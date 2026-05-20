@@ -12,7 +12,7 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
+    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
     kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -64,7 +64,7 @@ const [loading, setLoading] = useState(false);
     try {
       const { error } = await supabase.from("personel").insert({
         kimlik_no: form.kimlikNo, ad_soyad: (form.ad + " " + form.soyad).trim(), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: form.meslekKodu, telefon: form.telefon, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
+        meslek_kodu: form.meslekKodu, telefon: form.telefon, email: form.email || null, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
         yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null,
@@ -76,7 +76,7 @@ const [loading, setLoading] = useState(false);
       if (error) throw error;
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
         kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -154,6 +154,7 @@ const [loading, setLoading] = useState(false);
                 { label: "İşe Giriş Tarihi", icon: Calendar, field: "iseGirisTarihi", type: "date" },
                 { label: "Meslek Kodu", icon: Briefcase, field: "meslekKodu", placeholder: "Meslek Kodu" },
                 { label: "Telefon", icon: Phone, field: "telefon", placeholder: "05XX XXX XX XX" },
+                { label: "Email", field: "email", placeholder: "ornek@mail.com" },
                 { label: "Şantiye", icon: Building2, field: "santiyeAdi", placeholder: "Şantiye Adı" },
                 { label: "Ekip", icon: Users, field: "ekipAdi", placeholder: "Ekip Adı" },
               ].map((item) => (
