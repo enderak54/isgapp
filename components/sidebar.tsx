@@ -97,7 +97,7 @@ export default function Sidebar() {
           <Link
             key={index}
             href={item.href}
-            className={`flex items-center justify-between px-2 py-2 rounded-lg transition-colors ${
+            className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
               pathname === item.href 
                 ? "bg-gray-200 text-gray-900" 
                 : "text-gray-600 hover:bg-gray-100"

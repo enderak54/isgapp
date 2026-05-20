@@ -15,9 +15,9 @@ export default function PersonnelForm() {
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
+  const [showNotes, setShowNotes] = useState(false);
   const [tcError, setTcError] = useState("");
 
   const handleTcChange = (value: string) => {
@@ -170,7 +170,7 @@ export default function PersonnelForm() {
                     type="date"
                     value={form[item.field as keyof typeof form] as string}
                     onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input text-sm w-40 cursor-pointer"
+                    className="input text-xs w-32 cursor-pointer"
                   />
                 </div>
               ))}
@@ -222,17 +222,26 @@ export default function PersonnelForm() {
         </div>
 
         {/* Notlar */}
-        <div className="card p-4 mt-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-gray-400" />
-            Notlar
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {form.notlar.map((note, index) => (
-              <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)}
-                placeholder="Not ekle..." className="input h-20 resize-none text-sm" />
-            ))}
-          </div>
+        <div className="card p-3 mt-3">
+          <button 
+            type="button"
+            onClick={() => setShowNotes(!showNotes)} 
+            className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-400" />
+              Notlar
+            </div>
+            <span className="text-gray-400">{showNotes ? "▼" : "▶"}</span>
+          </button>
+          {showNotes && (
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {form.notlar.map((note, index) => (
+                <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)}
+                  placeholder="Not ekle..." className="input h-16 resize-none text-xs" />
+              ))}
+            </div>
+          )}
         </div>
       </form>
     </main>
