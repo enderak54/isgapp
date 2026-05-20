@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Settings, Save, CheckCircle, AlertCircle, Module, AlertTriangle } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 
 interface ModuleSettings {
   id: string;
