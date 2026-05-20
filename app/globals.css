@@ -204,7 +204,7 @@ tr:hover td {
 
 .search-input svg {
   position: absolute;
-  left: 1rem;
+  right: 1rem;
   top: 50%;
   transform: translateY(-50%);
   width: 1.25rem;
@@ -213,7 +213,7 @@ tr:hover td {
 }
 
 .search-input input {
-  padding-left: 3rem;
+  padding-right: 3rem;
 }
 
 /* Loading spinner */
