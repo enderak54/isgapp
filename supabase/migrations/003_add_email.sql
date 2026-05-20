@@ -1,1 +1,2 @@
 ALTER TABLE personel ADD COLUMN IF NOT EXISTS email VARCHAR(100);
+ALTER TABLE personel ADD COLUMN IF NOT EXISTS saglik_raporu_tarihi DATE;

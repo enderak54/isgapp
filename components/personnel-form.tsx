@@ -14,7 +14,7 @@ export default function PersonnelForm() {
   const [form, setForm] = useState({
     kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
-    kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+    kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
@@ -69,7 +69,7 @@ export default function PersonnelForm() {
         meslek_kodu: form.meslekKodu, telefon: form.telefon, email: form.email || null, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
         yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
-        oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null,
+        oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null, saglik_raporu_tarihi: form.saglikRaporuTarihi || null,
         yuksekte_calisir: form.yuksekteCalisir, yuksekte_calisamaz: form.yuksekteCalisamaz,
         gece_calisir: form.geceCalisir, gece_calisamaz: form.geceCalisamaz,
         vardiyali_calisir: form.vardiyaliCalisir, vardiyali_calisamaz: form.vardiyaliCalisamaz,
@@ -80,7 +80,7 @@ export default function PersonnelForm() {
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
-        kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+        kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
     } catch (err: any) {
@@ -252,6 +252,16 @@ export default function PersonnelForm() {
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu</label>
                 <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={form.saglikRaporuTarihi}
+                      onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)}
+                      className="input text-xs"
+                      style={{ width: "7.5rem" }}
+                    />
+                    <span className="text-xs text-gray-400">Rapor Tarihi</span>
+                  </div>
                   {[
                     { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
                     { label: "Gece", canWork: "geceCalisir", cannotWork: "geceCalisamaz" },
