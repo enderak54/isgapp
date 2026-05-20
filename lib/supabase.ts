@@ -7,10 +7,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase URL veya Anon Key tanımlı değil. .env.local dosyasını kontrol edin.");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

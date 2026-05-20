@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import {
   Briefcase,
   Users,
@@ -19,7 +17,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -45,19 +42,12 @@ import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadModuleSettings();
   }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
 
   const loadModuleSettings = async () => {
     try {
@@ -121,15 +111,8 @@ export default function Sidebar() {
       
       <div className="p-2 border-t border-gray-100">
         <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="text-xs font-medium">Çıkış</span>}
-        </button>
-        <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500 mt-1"
+          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
