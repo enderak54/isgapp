@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-    kimlikNo: "", adSoyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
+    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
     kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -60,7 +60,7 @@ const [loading, setLoading] = useState(false);
     setStatus(null);
     try {
       const { error } = await supabase.from("personel").insert({
-        kimlik_no: form.kimlikNo, ad_soyad: form.adSoyad, ise_giris_tarihi: form.iseGirisTarihi || null,
+        kimlik_no: form.kimlikNo, ad_soyad: (form.ad + " " + form.soyad).trim(), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: form.meslekKodu, telefon: form.telefon, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
         yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
@@ -73,7 +73,7 @@ const [loading, setLoading] = useState(false);
       if (error) throw error;
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", adSoyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
         kanGrubu: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -125,8 +125,29 @@ const [loading, setLoading] = useState(false);
                 />
                 {tcError && <p className="text-xs text-red-500 mt-1">{tcError}</p>}
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1 block">Ad</label>
+                  <input
+                    type="text"
+                    value={form.ad}
+                    onChange={(e) => handleChange("ad", e.target.value)}
+                    className="input"
+                    placeholder="Ad"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
+                  <input
+                    type="text"
+                    value={form.soyad}
+                    onChange={(e) => handleChange("soyad", e.target.value)}
+                    className="input"
+                    placeholder="Soyad"
+                  />
+                </div>
+              </div>
               {[
-                { label: "Ad Soyad", icon: User, field: "adSoyad", placeholder: "Ad Soyad" },
                 { label: "İşe Giriş Tarihi", icon: Calendar, field: "iseGirisTarihi", type: "date" },
                 { label: "Meslek Kodu", icon: Briefcase, field: "meslekKodu", placeholder: "Meslek Kodu" },
                 { label: "Telefon", icon: Phone, field: "telefon", placeholder: "05XX XXX XX XX" },
