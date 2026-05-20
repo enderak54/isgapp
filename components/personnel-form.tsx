@@ -170,7 +170,7 @@ export default function PersonnelForm() {
               <Shield className="w-4 h-4 text-gray-400" />
               İSG Eğitimler
             </h3>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               {[
                 { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
                 { label: "MYK", field: "myk" },
@@ -178,13 +178,13 @@ export default function PersonnelForm() {
                 { label: "KKD", field: "kkd" },
                 { label: "Oryantasyon", field: "oryantasyon" },
               ].map((item) => (
-                <div key={item.field} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{item.label}</span>
+                <div key={item.field} className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 whitespace-nowrap">{item.label}</span>
                   <input
                     type="date"
                     value={form[item.field as keyof typeof form] as string}
                     onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input w-40"
+                    className="input text-xs py-1 px-2 flex-1"
                   />
                 </div>
               ))}
