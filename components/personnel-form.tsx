@@ -7,6 +7,9 @@ import {
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
+const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
+const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
+
 export default function PersonnelForm() {
   const [form, setForm] = useState({
     kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "",
@@ -188,10 +191,17 @@ const [loading, setLoading] = useState(false);
                 >
                   <span className="text-xs text-gray-700 w-40">{item.label}</span>
                   <input
-                    type="date"
-                    value={form[item.field as keyof typeof form] as string}
-                    onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input text-xs w-20 cursor-pointer"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="gg.aa.yyyy"
+                    maxLength={10}
+                    value={toDisplay(form[item.field as keyof typeof form] as string)}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[^0-9.]/g, "");
+                      handleChange(item.field, toDb(v));
+                    }}
+                    className="input text-xs cursor-pointer"
+                    style={{ width: "6rem" }}
                   />
                 </div>
               ))}
