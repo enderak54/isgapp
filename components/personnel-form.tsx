@@ -190,19 +190,39 @@ const [loading, setLoading] = useState(false);
                   className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}
                 >
                   <span className="text-xs text-gray-700 w-40">{item.label}</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="gg.aa.yyyy"
-                    maxLength={10}
-                    value={toDisplay(form[item.field as keyof typeof form] as string)}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/[^0-9.]/g, "");
-                      handleChange(item.field, toDb(v));
-                    }}
-                    className="input text-xs cursor-pointer"
-                    style={{ width: "6rem" }}
-                  />
+                  <div className="flex items-center gap-0.5">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="gg.aa.yyyy"
+                      maxLength={10}
+                      value={toDisplay(form[item.field as keyof typeof form] as string)}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9.]/g, "");
+                        handleChange(item.field, toDb(v));
+                      }}
+                      className="input text-xs"
+                      style={{ width: "5.5rem" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement;
+                        if (picker?.showPicker) picker.showPicker();
+                        else picker?.click();
+                      }}
+                      className="text-gray-400 hover:text-gray-600 p-0.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      id={`dp-${item.field}`}
+                      type="date"
+                      className="hidden"
+                      value={form[item.field as keyof typeof form] as string}
+                      onChange={(e) => handleChange(item.field, e.target.value)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
