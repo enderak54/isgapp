@@ -18,10 +18,11 @@ export default function PersonnelForm() {
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
-const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [tcError, setTcError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleTcChange = (value: string) => {
     const numericOnly = value.replace(/\D/g, "").slice(0, 11);
@@ -35,11 +36,12 @@ const [loading, setLoading] = useState(false);
   };
 
   const validateForm = () => {
-    if (form.kimlikNo.length !== 11) {
-      setTcError("TC Kimlik No 11 haneli olmalıdır");
-      return false;
-    }
-    return true;
+    const newErrors: Record<string, string> = {};
+    if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
+    if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
+    if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -97,16 +99,15 @@ const [loading, setLoading] = useState(false);
         </div>
       )}
 
-      <div className="flex justify-end items-center gap-3 mb-4">
-        <Link href="/personel" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
-          📋 Liste
-        </Link>
-        <button type="submit" disabled={loading} className="btn btn-primary text-sm px-6 py-2">
-          {loading ? "Kaydediliyor..." : "💾 Kaydet"}
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit}>
+        <div className="flex justify-end items-center gap-3 mb-4">
+          <Link href="/personel" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
+            📋 Liste
+          </Link>
+          <button type="submit" disabled={loading} className="btn btn-primary text-sm px-6 py-2">
+            {loading ? "Kaydediliyor..." : "💾 Kaydet"}
+          </button>
+        </div>
         <div className="grid grid-cols-3 gap-4">
           {/* Personel */}
           <div className="card p-4">
@@ -121,33 +122,34 @@ const [loading, setLoading] = useState(false);
                   type="text"
                   inputMode="numeric"
                   value={form.kimlikNo}
-                  onChange={(e) => handleTcChange(e.target.value)}
-                  className={`input ${tcError ? "border-red-500 focus:ring-red-300" : ""}`}
+                  onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }}
+                  className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`}
                   placeholder="11 haneli TC kimlik numarası"
-                  required
                 />
-                {tcError && <p className="text-xs text-red-500 mt-1">{tcError}</p>}
+                {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1 block">Ad</label>
-                  <input
-                    type="text"
-                    value={form.ad}
-                    onChange={(e) => handleChange("ad", e.target.value)}
-                    className="input"
-                    placeholder="Ad"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
-                  <input
-                    type="text"
-                    value={form.soyad}
-                    onChange={(e) => handleChange("soyad", e.target.value)}
-                    className="input"
-                    placeholder="Soyad"
-                  />
+                    <input
+                      type="text"
+                      value={form.ad}
+                      onChange={(e) => { handleChange("ad", e.target.value); setErrors((p) => ({ ...p, ad: "" })); }}
+                      className={`input ${errors.ad ? "border-red-500" : ""}`}
+                      placeholder="Ad"
+                    />
+                    {errors.ad && <p className="text-xs text-red-500 mt-1">{errors.ad}</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
+                    <input
+                      type="text"
+                      value={form.soyad}
+                      onChange={(e) => { handleChange("soyad", e.target.value); setErrors((p) => ({ ...p, soyad: "" })); }}
+                      className={`input ${errors.soyad ? "border-red-500" : ""}`}
+                      placeholder="Soyad"
+                    />
+                    {errors.soyad && <p className="text-xs text-red-500 mt-1">{errors.soyad}</p>}
                 </div>
               </div>
               {[
