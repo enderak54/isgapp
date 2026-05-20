@@ -1,11 +1,11 @@
 import Sidebar from "@/components/sidebar";
-import PersonnelForm from "@/components/personnel-form";
+import Dashboard from "@/components/dashboard";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <PersonnelForm />
+      <Dashboard />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Settings, Save, CheckCircle, AlertCircle, Module, Eye, EyeOff } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Module, AlertTriangle } from "lucide-react";
 
 interface ModuleSettings {
   id: string;
@@ -10,60 +10,90 @@ interface ModuleSettings {
   label: string;
   description: string;
   enabled: boolean;
-  icon: string;
 }
 
-const defaultModules: Omit<ModuleSettings, "id" | "enabled">[] = [
-  { key: "dashboard", label: "İSG Takip", description: "Ana sayfa ve istatistikler", icon: "LayoutDashboard" },
-  { key: "personel", label: "Personel", description: "Personel kayıt ve listeleme", icon: "Users" },
-  { key: "myk", label: "MYK Belgeleri", description: "Mesleki yeterlilik belgeleri", icon: "GraduationCap" },
-  { key: "operator", label: "Operatör Belgeleri", description: "Operatör sertifikaları", icon: "Shield" },
-  { key: "dosya", label: "Personel Dosyası", description: "Personel belgeleri", icon: "FolderOpen" },
-  { key: "talimatlar", label: "Talimatlar", description: "İş talimatları", icon: "FileText" },
-  { key: "santiyeler", label: "Şantiyeler", description: "Şantiye yönetimi", icon: "Building2" },
-  { key: "taseronlar", label: "Taşeronlar", description: "Taşeron firma takibi", icon: "HardHat" },
-  { key: "sorumlular", label: "Saha Sorumluları", description: "Sorumlu yönetimi", icon: "UserCog" },
-  { key: "ekipmanlar", label: "İş Ekipmanları", description: "Ekipman takibi", icon: "Wrench" },
-  { key: "kazalar", label: "İş Kazaları", description: "Kaza kaydı ve istatistik", icon: "AlertTriangle" },
-  { key: "egitimler", label: "Eğitimler", description: "Eğitim takibi", icon: "GraduationCap" },
+const defaultModules = [
+  { key: "dashboard", label: "İSG Takip", description: "Ana sayfa ve istatistikler" },
+  { key: "personel", label: "Personel", description: "Personel kayıt ve listeleme" },
+  { key: "myk", label: "MYK Belgeleri", description: "Mesleki yeterlilik belgeleri" },
+  { key: "operator", label: "Operatör Belgeleri", description: "Operatör sertifikaları" },
+  { key: "dosya", label: "Personel Dosyası", description: "Personel belgeleri" },
+  { key: "talimatlar", label: "Talimatlar", description: "İş talimatları" },
+  { key: "santiyeler", label: "Şantiyeler", description: "Şantiye yönetimi" },
+  { key: "taseronlar", label: "Taşeronlar", description: "Taşeron firma takibi" },
+  { key: "sorumlular", label: "Saha Sorumluları", description: "Sorumlu yönetimi" },
+  { key: "ekipmanlar", label: "İş Ekipmanları", description: "Ekipman takibi" },
+  { key: "kazalar", label: "İş Kazaları", description: "Kaza kaydı ve istatistik" },
+  { key: "egitimler", label: "Eğitimler", description: "Eğitim takibi" },
 ];
+
+async function setupDatabase() {
+  try {
+    const { error } = await supabase.from("ayarlar").select("id").limit(1);
+    if (error?.message?.includes("relation") || error?.message?.includes("does not exist")) {
+      const { error: insertError } = await supabase.from("ayarlar").insert({
+        key: "setup_check",
+        value: "true",
+        type: "system",
+        description: "Database setup"
+      });
+      if (insertError && !insertError.message.includes("duplicate")) {
+        console.log("Database setup needed - please run SQL in Supabase");
+      }
+    }
+  } catch (e) {
+    console.log("Setup check skipped");
+  }
+}
 
 export default function SettingsPage() {
   const [modules, setModules] = useState<ModuleSettings[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
 
   useEffect(() => {
+    setupDatabase();
     fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from("ayarlar").select("*").eq("type", "module");
-    
-    if (data && data.length > 0) {
-      const savedModules = defaultModules.map(def => {
-        const saved = data.find((d: any) => d.key === def.key);
-        return {
-          id: saved?.id || "",
+    try {
+      const { data } = await supabase.from("ayarlar").select("*").eq("type", "module");
+      
+      if (data && data.length > 0) {
+        const savedModules = defaultModules.map(def => {
+          const saved = data.find((d: any) => d.key === def.key);
+          return {
+            id: saved?.id || "",
+            key: def.key,
+            label: def.label,
+            description: def.description,
+            enabled: saved?.value === "true",
+          };
+        });
+        setModules(savedModules);
+      } else {
+        const newModules = defaultModules.map(def => ({
+          id: "",
           key: def.key,
           label: def.label,
           description: def.description,
-          enabled: saved?.value === "true",
-          icon: def.icon,
-        };
-      });
-      setModules(savedModules);
-    } else {
-      const newModules = defaultModules.map(def => ({
-        id: "",
-        key: def.key,
-        label: def.label,
-        description: def.description,
-        enabled: true,
-        icon: def.icon,
-      }));
-      setModules(newModules);
+          enabled: true,
+        }));
+        setModules(newModules);
+        
+        for (const mod of newModules) {
+          await supabase.from("ayarlar").insert({
+            key: mod.key,
+            value: "true",
+            type: "module",
+            description: mod.description,
+          });
+        }
+      }
+    } catch (e: any) {
+      setStatus({ type: "info", message: "Ayarlar tablosu henüz yok. Lütfen Supabase SQL'de ayarları oluşturun." });
     }
     setLoading(false);
   };
@@ -92,12 +122,13 @@ export default function SettingsPage() {
         }
       }
       
-      const { data: cacheData } = await supabase.from("ayarlar").select("key, value").eq("type", "module");
-      localStorage.setItem("isg_modules", JSON.stringify(cacheData?.reduce((acc: any, d: any) => ({ ...acc, [d.key]: d.value === "true" }), {})));
+      localStorage.setItem("isg_modules", JSON.stringify(
+        modules.reduce((acc, m) => ({ ...acc, [m.key]: m.enabled }), {})
+      ));
       
-      setStatus({ type: "success", message: "Ayarlar başarıyla kaydedildi!" });
+      setStatus({ type: "success", message: "Ayarlar kaydedildi!" });
     } catch (err: any) {
-      setStatus({ type: "error", message: err.message || "Kayıt sırasında hata oluştu" });
+      setStatus({ type: "error", message: "Hata: " + err.message });
     } finally {
       setSaving(false);
     }
@@ -119,38 +150,35 @@ export default function SettingsPage() {
         </div>
 
         {status && (
-          <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${status.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
-            {status.type === "success" ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${
+            status.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : 
+            status.type === "info" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+            "bg-red-50 text-red-700 border border-red-100"
+          }`}>
+            {status.type === "success" ? <CheckCircle className="w-5 h-5" /> : 
+             status.type === "info" ? <AlertTriangle className="w-5 h-5" /> :
+             <AlertCircle className="w-5 h-5" />}
             <span>{status.message}</span>
           </div>
         )}
 
-        <div className="card p-6 mb-6">
+        <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-800">Modül Ayarları</h3>
-              <p className="text-sm text-gray-500">Hang modüllerin aktif olacağını belirleyin</p>
+              <p className="text-sm text-gray-500">Hangı modüller aktif olsun</p>
             </div>
             <button onClick={saveSettings} disabled={saving} className="btn btn-primary">
-              {saving ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Kaydediliyor</>
-              ) : (
-                <><Save className="w-4 h-4" />Kaydet</>
-              )}
+              {saving ? "Kaydediliyor..." : "Kaydet"}
             </button>
           </div>
 
           <div className="space-y-3">
             {modules.map((mod) => (
-              <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${mod.enabled ? "bg-blue-50" : "bg-gray-200"}`}>
-                    <Module className={`w-5 h-5 ${mod.enabled ? "text-blue-500" : "text-gray-400"}`} />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{mod.label}</p>
-                    <p className="text-sm text-gray-500">{mod.description}</p>
-                  </div>
+              <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-800">{mod.label}</p>
+                  <p className="text-sm text-gray-500">{mod.description}</p>
                 </div>
                 <button
                   onClick={() => toggleModule(mod.key)}
@@ -163,13 +191,25 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Sistem Bilgileri</h3>
-          <div className="space-y-2 text-sm text-gray-600">
-            <p><span className="font-medium">Versiyon:</span> 1.0.0</p>
-            <p><span className="font-medium">Veritabanı:</span> Supabase</p>
-            <p><span className="font-medium">Son Güncelleme:</span> {new Date().toLocaleDateString("tr-TR")}</p>
-          </div>
+        <div className="card p-6 mt-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Kurulum</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Eğer ayarlar çalışmıyorsa, Supabase SQL Editor'da şunu çalıştır:
+          </p>
+          <pre className="bg-gray-800 text-green-400 p-4 rounded-lg text-xs overflow-x-auto">
+{`CREATE TABLE IF NOT EXISTS ayarlar (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  key VARCHAR(50) NOT NULL UNIQUE,
+  value TEXT,
+  type VARCHAR(50) DEFAULT 'general',
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE ayarlar ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "okuma" ON ayarlar FOR SELECT USING (true);
+CREATE POLICY "yazma" ON ayarlar FOR ALL USING (true);`}
+          </pre>
         </div>
       </div>
     </main>
