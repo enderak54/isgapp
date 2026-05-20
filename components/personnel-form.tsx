@@ -153,21 +153,24 @@ export default function PersonnelForm() {
               <Shield className="w-4 h-4 text-gray-400" />
               İSG Eğitimler
             </h3>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-0">
               {[
-                { label: "Yüksekte Çalışma", field: "yuksekteCalisma", color: "bg-blue-50" },
-                { label: "MYK", field: "myk", color: "bg-green-50" },
-                { label: "Operatör Belgesi", field: "operatorBelgesi", color: "bg-purple-50" },
-                { label: "KKD", field: "kkd", color: "bg-amber-50" },
-                { label: "Oryantasyon", field: "oryantasyon", color: "bg-pink-50" },
-              ].map((item) => (
-                <div key={item.field} className={`flex items-center justify-between ${item.color} px-3 py-2 rounded`}>
-                  <span className="text-sm text-gray-700">{item.label}</span>
+                { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
+                { label: "MYK", field: "myk" },
+                { label: "Operatör Belgesi", field: "operatorBelgesi" },
+                { label: "KKD", field: "kkd" },
+                { label: "Oryantasyon", field: "oryantasyon" },
+              ].map((item, idx) => (
+                <div 
+                  key={item.field} 
+                  className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}
+                >
+                  <span className="text-sm text-gray-700 w-32">{item.label}</span>
                   <input
                     type="date"
                     value={form[item.field as keyof typeof form] as string}
                     onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input text-xs py-1 w-32"
+                    className="input text-sm w-40 cursor-pointer"
                   />
                 </div>
               ))}
