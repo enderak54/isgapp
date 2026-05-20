@@ -9,6 +9,7 @@ import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
+const sanitize = (s: string) => s.replace(/[<>]/g, "").trim();
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
@@ -69,17 +70,20 @@ export default function PersonnelForm() {
     setLoading(true);
     setStatus(null);
     try {
-      const { error } = await supabase.from("personel").insert({
-        kimlik_no: form.kimlikNo, ad_soyad: (form.ad + " " + form.soyad).trim(), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: form.meslekKodu, telefon: form.telefon, email: form.email || null, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
+      const payload = {
+        kimlik_no: sanitize(form.kimlikNo), ad_soyad: sanitize(form.ad + " " + form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
+        meslek_kodu: sanitize(form.meslekKodu), telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null,
+        santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
-        oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null, saglik_raporu_tarihi: form.saglikRaporuTarihi || null,
-        yuksekte_calisir: form.yuksekteCalisir, yuksekte_calisamaz: form.yuksekteCalisamaz,
-        gece_calisir: form.geceCalisir, gece_calisamaz: form.geceCalisamaz,
-        vardiyali_calisir: form.vardiyaliCalisir, vardiyali_calisamaz: form.vardiyaliCalisamaz,
-        notlar: form.notlar.filter((n) => n.trim()).join(" | "),
-      });
+        oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null,
+        saglik_raporu_tarihi: form.saglikRaporuTarihi || null,
+        yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
+        gece_calisir: !!form.geceCalisir, gece_calisamaz: !!form.geceCalisamaz,
+        vardiyali_calisir: !!form.vardiyaliCalisir, vardiyali_calisamaz: !!form.vardiyaliCalisamaz,
+        notlar: form.notlar.map((n) => sanitize(n)).filter((n) => n).join(" | "),
+      };
+      const { error } = await supabase.from("personel").insert(payload);
       if (error) throw error;
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
