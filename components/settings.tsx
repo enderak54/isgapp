@@ -356,26 +356,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        <div className="card p-6 mt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Kurulum</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Eğer ayarlar çalışmıyorsa, Supabase SQL Editor'da şunu çalıştır:
-          </p>
-          <pre className="bg-gray-800 text-green-400 p-4 rounded-lg text-xs overflow-x-auto">
-{`CREATE TABLE IF NOT EXISTS ayarlar (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  key VARCHAR(50) NOT NULL UNIQUE,
-  value TEXT,
-  type VARCHAR(50) DEFAULT 'general',
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
-ALTER TABLE ayarlar ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "okuma" ON ayarlar FOR SELECT USING (true);
-CREATE POLICY "yazma" ON ayarlar FOR ALL USING (true);`}
-          </pre>
-        </div>
       </div>
     </main>
   );
