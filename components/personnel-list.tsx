@@ -90,14 +90,14 @@ export default function PersonnelList() {
                     <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
                     <td>
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => setSelectedPerson(p)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Detay">
-                          <Eye className="w-4 h-4" />
+                        <button onClick={() => setSelectedPerson(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" /> Detay
                         </button>
-                        <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Düzenle">
-                          <Edit className="w-4 h-4" />
+                        <button className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1">
+                          <Edit className="w-3.5 h-3.5" /> Düzenle
                         </button>
-                        <button onClick={() => deletePerson(p.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Sil">
-                          <Trash2 className="w-4 h-4" />
+                        <button onClick={() => deletePerson(p.id)} className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition flex items-center gap-1">
+                          <Trash2 className="w-3.5 h-3.5" /> Sil
                         </button>
                       </div>
                     </td>
