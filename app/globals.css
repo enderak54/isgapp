@@ -416,10 +416,26 @@ tr:hover td {
 /* Font themes */
 .font-serif { --font-family: Georgia, "Times New Roman", serif; }
 .font-mono { --font-family: "Courier New", Courier, monospace; }
+.font-arial { --font-family: Arial, Helvetica, sans-serif; }
+.font-tahoma { --font-family: Tahoma, Geneva, sans-serif; }
+.font-verdana { --font-family: Verdana, Geneva, sans-serif; }
+.font-georgia { --font-family: Georgia, serif; }
+.font-trebuchet { --font-family: "Trebuchet MS", "Lucida Grande", sans-serif; }
 
-.font-serif body,
-.font-mono body,
-.font-serif .font-body,
-.font-mono .font-body {
+.font-serif body, .font-mono body, .font-arial body, .font-tahoma body,
+.font-verdana body, .font-georgia body, .font-trebuchet body,
+.font-serif .font-body, .font-mono .font-body, .font-arial .font-body,
+.font-tahoma .font-body, .font-verdana .font-body, .font-georgia .font-body,
+.font-trebuchet .font-body {
   font-family: var(--font-family);
+}
+
+/* Font sizes */
+.size-small { --font-size: 14px; }
+.size-normal { --font-size: 16px; }
+.size-large { --font-size: 18px; }
+.size-xlarge { --font-size: 20px; }
+
+.size-small body, .size-normal body, .size-large body, .size-xlarge body {
+  font-size: var(--font-size);
 }

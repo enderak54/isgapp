@@ -31,7 +31,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark")r.classList.add("theme-dark");if(t.color)r.classList.add("theme-"+t.color);if(t.font)r.classList.add("font-"+t.font);}catch(e){}})();`,
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark")r.classList.add("theme-dark");if(t.color)r.classList.add("theme-"+t.color);if(t.font)r.classList.add("font-"+t.font);if(t.size)r.classList.add("size-"+t.size);}catch(e){}})();`,
           }}
         />
       </head>

@@ -19,14 +19,27 @@ const fontOptions = [
   { key: "", label: "Varsayılan", class: "" },
   { key: "serif", label: "Serif", class: "font-serif" },
   { key: "mono", label: "Monospace", class: "font-mono" },
+  { key: "arial", label: "Arial", class: "font-arial" },
+  { key: "tahoma", label: "Tahoma", class: "font-tahoma" },
+  { key: "verdana", label: "Verdana", class: "font-verdana" },
+  { key: "georgia", label: "Georgia", class: "font-georgia" },
+  { key: "trebuchet", label: "Trebuchet MS", class: "font-trebuchet" },
 ];
 
-function applyTheme(theme: { mode?: string; color?: string; font?: string }) {
+const sizeOptions = [
+  { key: "small", label: "Küçük" },
+  { key: "normal", label: "Normal" },
+  { key: "large", label: "Büyük" },
+  { key: "xlarge", label: "Çok Büyük" },
+];
+
+function applyTheme(theme: { mode?: string; color?: string; font?: string; size?: string }) {
   const root = document.documentElement;
-  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class), ...fontOptions.map(f => f.class));
+  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class), ...fontOptions.map(f => f.class), ...sizeOptions.map(s => "size-" + s.key));
   if (theme.mode === "dark") root.classList.add("theme-dark");
   if (theme.color) root.classList.add("theme-" + theme.color);
   if (theme.font) root.classList.add("font-" + theme.font);
+  if (theme.size && theme.size !== "normal") root.classList.add("size-" + theme.size);
 }
 
 interface ModuleSettings {
@@ -76,6 +89,7 @@ export default function SettingsPage() {
   const [themeMode, setThemeMode] = useState("light");
   const [themeColor, setThemeColor] = useState("");
   const [themeFont, setThemeFont] = useState("");
+  const [themeSize, setThemeSize] = useState("normal");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
@@ -87,6 +101,7 @@ export default function SettingsPage() {
     if (saved.mode) setThemeMode(saved.mode);
     if (saved.color) setThemeColor(saved.color);
     if (saved.font) setThemeFont(saved.font);
+    if (saved.size) setThemeSize(saved.size);
   }, []);
 
   const fetchSettings = async () => {
@@ -167,7 +182,7 @@ export default function SettingsPage() {
   };
 
   const saveTheme = async () => {
-    const theme = { mode: themeMode, color: themeColor, font: themeFont };
+    const theme = { mode: themeMode, color: themeColor, font: themeFont, size: themeSize };
     localStorage.setItem("isg_theme", JSON.stringify(theme));
     applyTheme(theme);
     try {
@@ -291,6 +306,25 @@ export default function SettingsPage() {
                   <option key={f.key || "default"} value={f.key}>{f.label}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="font-medium text-gray-800 mb-2">Yazı Boyutu</p>
+              <div className="flex gap-2">
+                {sizeOptions.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setThemeSize(s.key)}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                      themeSize === s.key
+                        ? "bg-gray-800 text-white"
+                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
