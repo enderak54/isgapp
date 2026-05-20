@@ -251,9 +251,9 @@ export default function PersonnelForm() {
             </h3>
             <div className="space-y-2">
               <div>
-                <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu</label>
+                <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu Tarihi</label>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -267,7 +267,35 @@ export default function PersonnelForm() {
                       className="input text-xs"
                       style={{ width: "5.5rem" }}
                     />
-                    <span className="text-xs text-gray-400">Trh</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const picker = document.getElementById("dp-saglikRaporu") as HTMLInputElement;
+                        if (!picker) return;
+                        const rect = (document.getElementById("dp-btn-saglikRaporu") as HTMLElement).getBoundingClientRect();
+                        picker.style.position = "fixed";
+                        picker.style.left = rect.left + "px";
+                        picker.style.top = rect.top + "px";
+                        picker.style.width = "1px";
+                        picker.style.height = "1px";
+                        picker.style.opacity = "0";
+                        picker.style.display = "block";
+                        picker.focus();
+                        picker.showPicker();
+                      }}
+                      id="dp-btn-saglikRaporu"
+                      className="text-gray-400 hover:text-gray-600 p-0.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      id="dp-saglikRaporu"
+                      type="date"
+                      className="hidden"
+                      value={form.saglikRaporuTarihi}
+                      onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)}
+                      onBlur={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
                   </div>
                   {[
                     { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
