@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight } from "lucide-react";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -86,6 +86,7 @@ async function setupDatabase() {
 
 export default function SettingsPage() {
   const [modules, setModules] = useState<ModuleSettings[]>([]);
+  const [showModules, setShowModules] = useState(false);
   const [themeMode, setThemeMode] = useState("light");
   const [themeColor, setThemeColor] = useState("");
   const [themeFont, setThemeFont] = useState("");
@@ -220,32 +221,47 @@ export default function SettingsPage() {
         )}
 
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          <button
+            onClick={() => setShowModules(!showModules)}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <div className="text-left">
               <h3 className="text-lg font-semibold text-gray-800">Modül Ayarları</h3>
-              <p className="text-sm text-gray-500">Hangı modüller aktif olsun</p>
+              <p className="text-sm text-gray-500">Hangi modüller aktif olsun</p>
             </div>
-            <button onClick={saveSettings} disabled={saving} className="btn btn-primary">
-              {saving ? "Kaydediliyor..." : "Kaydet"}
-            </button>
-          </div>
+            <div className="flex items-center gap-3">
+              {showModules && (
+                <button onClick={(e) => { e.stopPropagation(); saveSettings(); }} disabled={saving} className="btn btn-primary text-sm">
+                  {saving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showModules ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
 
-          <div className="space-y-3">
-            {modules.map((mod) => (
-              <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{mod.label}</p>
-                  <p className="text-sm text-gray-500">{mod.description}</p>
+          {showModules && (
+            <div className="space-y-3">
+              {modules.map((mod) => (
+                <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{mod.label}</p>
+                    <p className="text-sm text-gray-500">{mod.description}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleModule(mod.key)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${mod.enabled ? "bg-green-500" : "bg-gray-300"}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? "left-7" : "left-1"}`} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => toggleModule(mod.key)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${mod.enabled ? "bg-green-500" : "bg-gray-300"}`}
-                >
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? "left-7" : "left-1"}`} />
+              ))}
+              <div className="flex justify-end pt-2">
+                <button onClick={saveSettings} disabled={saving} className="btn btn-primary text-sm">
+                  {saving ? "Kaydediliyor..." : "Kaydet"}
                 </button>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="card p-6 mt-6">
