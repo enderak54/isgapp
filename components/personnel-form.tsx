@@ -40,6 +40,11 @@ export default function PersonnelForm() {
     if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
     if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
     if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
+    if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
+    if (!form.yuksekteCalisma) newErrors.yuksekteCalisma = "Zorunludur";
+    if (!form.myk) newErrors.myk = "Zorunludur";
+    if (!form.kkd) newErrors.kkd = "Zorunludur";
+    if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -188,7 +193,10 @@ export default function PersonnelForm() {
                 { label: "Operatör Belgesi", field: "operatorBelgesi" },
                 { label: "KKD", field: "kkd" },
                 { label: "Oryantasyon", field: "oryantasyon" },
-              ].map((item, idx) => (
+              ].map((item, idx) => {
+                const errField = item.field as keyof typeof errors;
+                const hasErr = errors[errField as string];
+                return (
                 <div 
                   key={item.field} 
                   className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}
@@ -204,8 +212,9 @@ export default function PersonnelForm() {
                       onChange={(e) => {
                         const v = e.target.value.replace(/[^0-9.]/g, "");
                         handleChange(item.field, toDb(v));
+                        setErrors((p) => ({ ...p, [item.field]: "" }));
                       }}
-                      className="input text-xs"
+                      className={`input text-xs ${hasErr ? "border-red-500" : ""}`}
                       style={{ width: "5.5rem" }}
                     />
                     <button
@@ -238,8 +247,10 @@ export default function PersonnelForm() {
                       onBlur={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                   </div>
+                  {hasErr && <p className="text-xs text-red-500">{hasErr}</p>}
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
 
@@ -263,8 +274,9 @@ export default function PersonnelForm() {
                       onChange={(e) => {
                         const v = e.target.value.replace(/[^0-9.]/g, "");
                         handleChange("saglikRaporuTarihi", toDb(v));
+                        setErrors((p) => ({ ...p, saglikRaporuTarihi: "" }));
                       }}
-                      className="input text-xs"
+                      className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`}
                       style={{ width: "5.5rem" }}
                     />
                     <button
@@ -297,6 +309,7 @@ export default function PersonnelForm() {
                       onBlur={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                   </div>
+                  {errors.saglikRaporuTarihi && <p className="text-xs text-red-500">{errors.saglikRaporuTarihi}</p>}
                   {[
                     { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
                     { label: "Gece", canWork: "geceCalisir", cannotWork: "geceCalisamaz" },
