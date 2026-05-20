@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar } from "lucide-react";
 import Link from "next/link";
 
 export default function PersonnelList() {
@@ -36,154 +36,145 @@ export default function PersonnelList() {
   );
 
   return (
-    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
+    <main className="flex-1 p-8 bg-[#f8f7f4] min-h-screen">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Personel Listesi</h2>
-          <p className="text-gray-500 mt-1">Toplam {personnel.length} personel</p>
+          <h2 className="text-2xl font-semibold text-gray-800">Personel Listesi</h2>
+          <p className="text-gray-500 mt-1">Toplam {personnel.length} kayıtlı personel</p>
         </div>
-        <Link
-          href="/"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
-        >
-          <UserPlus className="w-5 h-5" />
+        <Link href="/" className="btn btn-primary">
+          <UserPlus className="w-4 h-4" />
           Yeni Personel
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="card p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Personel ara (ad, kimlik no, şantiye)..."
+            placeholder="Personel ara (ad, TC, şantiye)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input pl-12"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
+        <div className="flex items-center justify-center py-20 text-gray-400">
+          <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin mr-2"></div>
+          Yükleniyor...
+        </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Ad Soyad</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kimlik No</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Şantiye</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Telefon</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">İş Giriş</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{p.ad_soyad || "-"}</td>
-                  <td className="px-4 py-3 text-sm">{p.kimlik_no}</td>
-                  <td className="px-4 py-3 text-sm">{p.santiye_adi || "-"}</td>
-                  <td className="px-4 py-3 text-sm">{p.telefon || "-"}</td>
-                  <td className="px-4 py-3 text-sm">{p.ise_giris_tarihi || "-"}</td>
-                  <td className="px-4 py-3 flex justify-center gap-2">
-                    <button
-                      onClick={() => setSelectedPerson(p)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                      title="Detay"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="p-1 text-green-600 hover:bg-green-50 rounded" title="Düzenle">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deletePerson(p.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                      title="Sil"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+        <div className="card overflow-hidden">
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ad Soyad</th>
+                  <th>TC Kimlik No</th>
+                  <th>Şantiye</th>
+                  <th>Telefon</th>
+                  <th>İşe Giriş</th>
+                  <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td className="font-medium text-gray-800">{p.ad_soyad || "-"}</td>
+                    <td className="font-mono text-sm">{p.kimlik_no}</td>
+                    <td className="text-gray-600">{p.santiye_adi || "-"}</td>
+                    <td className="text-gray-600">{p.telefon || "-"}</td>
+                    <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
+                    <td>
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => setSelectedPerson(p)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Detay">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Düzenle">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deletePerson(p.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Sil">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {filtered.length === 0 && (
-            <div className="text-center py-8 text-gray-500">Personel bulunamadı</div>
+            <div className="text-center py-12 text-gray-400">Kayıt bulunamadı</div>
           )}
         </div>
       )}
 
       {selectedPerson && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Personel Detayı</h3>
-              <button onClick={() => setSelectedPerson(null)} className="p-1 hover:bg-gray-100 rounded">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-800">Personel Detayı</h3>
+              <button onClick={() => setSelectedPerson(null)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <span className="text-gray-500">Ad Soyad:</span>
-                <span>{selectedPerson.ad_soyad || "-"}</span>
-                <span className="text-gray-500">Kimlik No:</span>
-                <span>{selectedPerson.kimlik_no}</span>
-                <span className="text-gray-500">Telefon:</span>
-                <span>{selectedPerson.telefon || "-"}</span>
-                <span className="text-gray-500">Email:</span>
-                <span>{selectedPerson.email || "-"}</span>
-                <span className="text-gray-500">Şantiye:</span>
-                <span>{selectedPerson.santiye_adi || "-"}</span>
-                <span className="text-gray-500">Ekip:</span>
-                <span>{selectedPerson.ekip_adi || "-"}</span>
-                <span className="text-gray-500">Meslek Kodu:</span>
-                <span>{selectedPerson.meslek_kodu || "-"}</span>
-                <span className="text-gray-500">İş Giriş:</span>
-                <span>{selectedPerson.ise_giris_tarihi || "-"}</span>
-                <span className="text-gray-500">Kan Grubu:</span>
-                <span>{selectedPerson.kan_grubu || "-"}</span>
-              </div>
-              <div className="border-t pt-3">
-                <h4 className="font-medium mb-2">İSG Belgeleri</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-gray-500">Yüksekte Çalışma:</span>
-                  <span>{selectedPerson.yuksekte_calisma_tarihi || "-"}</span>
-                  <span className="text-gray-500">MYK:</span>
-                  <span>{selectedPerson.myk_tarihi || "-"}</span>
-                  <span className="text-gray-500">Operatör Belgesi:</span>
-                  <span>{selectedPerson.operator_belgesi_tarihi || "-"}</span>
-                  <span className="text-gray-500">KKD:</span>
-                  <span>{selectedPerson.kkd_tarihi || "-"}</span>
-                  <span className="text-gray-500">Oryantasyon:</span>
-                  <span>{selectedPerson.oryantasyon_tarihi || "-"}</span>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl font-medium text-gray-600">
+                  {(selectedPerson.ad_soyad || "?").charAt(0)}
+                </div>
+                <div>
+                  <h4 className="text-xl font-semibold text-gray-800">{selectedPerson.ad_soyad || "-"}</h4>
+                  <p className="text-gray-500">{selectedPerson.kimlik_no}</p>
                 </div>
               </div>
-              <div className="border-t pt-3">
-                <h4 className="font-medium mb-2">Sağlık Durumu</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-gray-500">Yüksekte:</span>
-                  <span className={selectedPerson.yuksekte_calisamaz ? "text-red-600" : "text-green-600"}>
-                    {selectedPerson.yuksekte_calisamaz ? "Çalışamaz" : "Çalışır"}
-                  </span>
-                  <span className="text-gray-500">Gece:</span>
-                  <span className={selectedPerson.gece_calisamaz ? "text-red-600" : "text-green-600"}>
-                    {selectedPerson.gece_calisamaz ? "Çalışamaz" : "Çalışır"}
-                  </span>
-                  <span className="text-gray-500">Vardiyalı:</span>
-                  <span className={selectedPerson.vardiyali_calisamaz ? "text-red-600" : "text-green-600"}>
-                    {selectedPerson.vardiyali_calisamaz ? "Çalışamaz" : "Çalışır"}
-                  </span>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">{selectedPerson.telefon || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Building2 className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">{selectedPerson.santiye_adi || "-"}</span>
+                  </div>
                 </div>
+                
+                <div className="pt-4 border-t border-gray-100">
+                  <h5 className="text-sm font-medium text-gray-500 mb-3">İSG Belgeleri</h5>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Yüksekte:</span> {selectedPerson.yuksekte_calisma_tarihi || "-"}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">MYK:</span> {selectedPerson.myk_tarihi || "-"}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">KKD:</span> {selectedPerson.kkd_tarihi || "-"}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Oryantasyon:</span> {selectedPerson.oryantasyon_tarihi || "-"}</div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <h5 className="text-sm font-medium text-gray-500 mb-3">Sağlık Durumu</h5>
+                  <div className="flex gap-2">
+                    {selectedPerson.yuksekte_calisamaz ? (
+                      <span className="badge bg-red-100 text-red-700">Yüksekte Çalışamaz</span>
+                    ) : (
+                      <span className="badge bg-green-100 text-green-700">Yüksekte Çalışır</span>
+                    )}
+                    {selectedPerson.kan_grubu && (
+                      <span className="badge bg-gray-100 text-gray-600">Kan: {selectedPerson.kan_grubu}</span>
+                    )}
+                  </div>
+                </div>
+
+                {selectedPerson.notlar && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <h5 className="text-sm font-medium text-gray-500 mb-2">Notlar</h5>
+                    <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg">{selectedPerson.notlar}</p>
+                  </div>
+                )}
               </div>
-              {selectedPerson.notlar && (
-                <div className="border-t pt-3">
-                  <h4 className="font-medium mb-2">Notlar</h4>
-                  <p className="text-gray-600">{selectedPerson.notlar}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
