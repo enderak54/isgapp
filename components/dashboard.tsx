@@ -2,7 +2,47 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target } from "lucide-react";
+import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb } from "lucide-react";
+
+const motivasyonSozleri = [
+  "Güvenlik bir alışkanlıktır, tesadüf değil. — Her gün bir adım daha güvenliye.",
+  "En iyi güvenlik ekipmanı, dikkatli bir zihindir.",
+  "Bugün güvenli çalış, yarın da güvende ol.",
+  "Küçük bir önlem, büyük bir kazayı engeller.",
+  "İş sağlığı, aile mutluluğunun temelidir.",
+  "Güvenlik kuralları kanla yazılmıştır — onlara saygı duy.",
+  "Herkes eve sağ dönmeyi hak eder.",
+  "Dikkat bir an, güvenlik bir ömür.",
+  "Kaza olmaz demeyen, kaza yaşar.",
+  "Güvenli iş, verimli iş demektir.",
+  "Bir kask hayat kurtarır, bir ihmal her şeyi bitirir.",
+  "İş güvenliği, sevdiklerine olan saygındır.",
+  "Bugün yaptığın güvenlik yatırımı, yarının güvencesidir.",
+  "Tehlikeyi gör, önlemi al, güvende kal.",
+  "Güvenlik kültürü, liderlikten başlar.",
+  "Her gün yeni bir fırsat, her an bir sorumluluk.",
+  "Kaza anında değil, öncesinde önlenir.",
+  "Güvenli çalışma, en büyük başarıdır.",
+  "Takım olarak güvende, birlikte güçlüyüz.",
+  "İş yerinde güvenlik, evde huzur demektir.",
+  "Bir saniyelik dikkatsizlik, ömür boyu pişmanlık.",
+  "Güvenlik sadece kural değil, yaşam biçimidir.",
+  "Risk almayın, önlem alın.",
+  "Güvenli eller, güçlü yarınlar inşa eder.",
+  "Her personel bir değer, her güvenlik bir yatırım.",
+  "Kaza istatistik değil, gerçek hayatlardır.",
+  "Güvenlik bilinci, en güçlü koruma kalkanıdır.",
+  "Dün bitti, bugün başlıyor — güvenli başla.",
+  "İş güvenliği, insan onuruna saygıdır.",
+  "Güvenli çalışma, en güzel geleneğimiz olsun.",
+  "Bir kaza bile fazla, sıfır kaza hedefimiz.",
+];
+
+const gununSozu = () => {
+  const now = new Date();
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  return motivasyonSozleri[dayOfYear % motivasyonSozleri.length];
+};
 
 interface ISGStats {
   totalPersonel: number;
@@ -132,6 +172,19 @@ export default function Dashboard() {
         <h2 className="text-2xl font-semibold text-gray-800">İşyeri Sicili</h2>
         <p className="text-gray-500 mt-1">Güvenlik istatistikleri ve risk değerlendirmesi</p>
       </header>
+
+      {/* Günün Motivasyon Sözü */}
+      <div className="card p-5 mb-8 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-100">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Lightbulb className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-amber-700 mb-1">💡 Günün Motivasyon Sözü</p>
+            <p className="text-sm text-amber-800 italic">{gununSozu()}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Üst İstatistikler */}
       <div className="grid grid-cols-4 gap-4 mb-8">
