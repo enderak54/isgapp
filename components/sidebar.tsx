@@ -13,28 +13,67 @@ import {
   Wrench,
   AlertTriangle,
   LayoutDashboard,
+  Settings,
 } from "lucide-react";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "İSG Takip", href: "/" },
-  { icon: Users, label: "Personel Listesi", href: "/personel" },
-  { icon: GraduationCap, label: "MYK", href: "/myk" },
-  { icon: Shield, label: "Operatör Belgeleri", href: "/operator" },
-  { icon: FolderOpen, label: "Personel Dosyası", href: "/dosya" },
-  { icon: FileText, label: "Talimatlar", href: "/talimatlar" },
-  { icon: Building2, label: "Şantiyeler", href: "/santiyeler" },
-  { icon: HardHat, label: "Taşeronlar", href: "/taseronlar" },
-  { icon: UserCog, label: "Saha Sorumluları", href: "/sorumlular" },
-  { icon: Wrench, label: "İş Ekipmanları", href: "/ekipmanlar" },
-  { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar" },
-  { icon: GraduationCap, label: "Eğitimler", href: "/egitimler" },
+const allMenuItems = [
+  { icon: LayoutDashboard, label: "İSG Takip", href: "/", key: "dashboard" },
+  { icon: Users, label: "Personel", href: "/personel", key: "personel" },
+  { icon: GraduationCap, label: "MYK", href: "/myk", key: "myk" },
+  { icon: Shield, label: "Operatör", href: "/operator", key: "operator" },
+  { icon: FolderOpen, label: "Dosya", href: "/dosya", key: "dosya" },
+  { icon: FileText, label: "Talimatlar", href: "/talimatlar", key: "talimatlar" },
+  { icon: Building2, label: "Şantiyeler", href: "/santiyeler", key: "santiyeler" },
+  { icon: HardHat, label: "Taşeronlar", href: "/taseronlar", key: "taseronlar" },
+  { icon: UserCog, label: "Sorumlular", href: "/sorumlular", key: "sorumlular" },
+  { icon: Wrench, label: "Ekipmanlar", href: "/ekipmanlar", key: "ekipmanlar" },
+  { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
+  { icon: GraduationCap, label: "Eğitimler", href: "/egitimler", key: "egitimler" },
+  { icon: Settings, label: "Ayarlar", href: "/ayarlar", key: "settings" },
 ];
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    loadModuleSettings();
+  }, []);
+
+  const loadModuleSettings = async () => {
+    try {
+      const cached = localStorage.getItem("isg_modules");
+      if (cached) {
+        setVisibleModules(JSON.parse(cached));
+      } else {
+        const { data } = await supabase.from("ayarlar").select("key, value").eq("type", "module");
+        const modules = data?.reduce((acc: Record<string, boolean>, d: any) => {
+          acc[d.key] = d.value === "true";
+          return acc;
+        }, {} as Record<string, boolean>) || {};
+        
+        Object.keys(allMenuItems).forEach(key => {
+          if (modules[key] === undefined) modules[key] = true;
+        });
+        
+        localStorage.setItem("isg_modules", JSON.stringify(modules));
+        setVisibleModules(modules);
+      }
+    } catch (e) {
+      const defaultModules: Record<string, boolean> = {};
+      allMenuItems.forEach(item => { defaultModules[item.key || ""] = true; });
+      setVisibleModules(defaultModules);
+    }
+  };
+
+  const menuItems = allMenuItems.filter(item => 
+    item.key === "settings" || item.key === "dashboard" || visibleModules[item.key || ""] !== false
+  );
 
   return (
     <aside className="w-64 bg-white min-h-screen border-r border-gray-100 flex flex-col">
@@ -63,7 +102,7 @@ export default function Sidebar() {
       </nav>
       <div className="p-4 border-t border-gray-100">
         <div className="p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 text-center">© 2026 ISG Takip</p>
+          <p className="text-xs text-gray-500 text-center">© 2026 ISG Takip v1.0</p>
         </div>
       </div>
     </aside>
