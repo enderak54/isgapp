@@ -18,6 +18,27 @@ export default function PersonnelForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const [tcError, setTcError] = useState("");
+
+  const handleTcChange = (value: string) => {
+    const numericOnly = value.replace(/\D/g, "").slice(0, 11);
+    setForm((prev) => ({ ...prev, kimlikNo: numericOnly }));
+    
+    if (numericOnly.length > 0 && numericOnly.length < 11) {
+      setTcError("TC Kimlik No 11 haneli olmalıdır");
+    } else {
+      setTcError("");
+    }
+  };
+
+  const validateForm = () => {
+    if (form.kimlikNo.length !== 11) {
+      setTcError("TC Kimlik No 11 haneli olmalıdır");
+      return false;
+    }
+    return true;
+  };
+
   const handleChange = (field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -30,6 +51,11 @@ export default function PersonnelForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     setStatus(null);
     try {
@@ -87,8 +113,20 @@ export default function PersonnelForm() {
               Personel Bilgileri
             </h3>
             <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.kimlikNo}
+                  onChange={(e) => handleTcChange(e.target.value)}
+                  className={`input ${tcError ? "border-red-500 focus:ring-red-300" : ""}`}
+                  placeholder="11 haneli TC kimlik numarası"
+                  required
+                />
+                {tcError && <p className="text-xs text-red-500 mt-1">{tcError}</p>}
+              </div>
               {[
-                { label: "TC Kimlik No", icon: User, field: "kimlikNo", required: true, placeholder: "11 haneli TC" },
                 { label: "Ad Soyad", icon: User, field: "adSoyad", placeholder: "Ad Soyad" },
                 { label: "İşe Giriş Tarihi", icon: Calendar, field: "iseGirisTarihi", type: "date" },
                 { label: "Meslek Kodu", icon: Briefcase, field: "meslekKodu", placeholder: "Meslek Kodu" },
@@ -104,8 +142,6 @@ export default function PersonnelForm() {
                     onChange={(e) => handleChange(item.field, e.target.value)}
                     className="input"
                     placeholder={item.placeholder}
-                    required={item.required}
-                    maxLength={item.field === "kimlikNo" ? 11 : undefined}
                   />
                 </div>
               ))}
