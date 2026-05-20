@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { Building2, Plus, Edit, Trash2, Search, X, Save, Phone, MapPin, User } from "lucide-react";
 
 export default function Santiyeler() {
@@ -22,8 +23,8 @@ export default function Santiyeler() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("santiyeler").update(form).eq("id", editing.id);
-    else await supabase.from("santiyeler").insert(form);
+    if (editing) await supabase.from("santiyeler").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("santiyeler").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null);
     setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "" });
     fetchSantiyeler();

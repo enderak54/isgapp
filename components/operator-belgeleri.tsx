@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { Shield, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
 export default function OperatorBelgeleri() {
@@ -28,8 +29,8 @@ export default function OperatorBelgeleri() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("operator_belgeri").update(form).eq("id", editing.id);
-    else await supabase.from("operator_belgeri").insert(form);
+    if (editing) await supabase.from("operator_belgeri").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("operator_belgeri").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" });
     fetchBelgeler();
   };

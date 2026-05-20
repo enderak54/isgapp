@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { FolderOpen, Plus, Edit, Trash2, Search, X, Save, File } from "lucide-react";
 
 export default function PersonelDosyasi() {
@@ -28,8 +29,8 @@ export default function PersonelDosyasi() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("personel_dosyasi").update(form).eq("id", editing.id);
-    else await supabase.from("personel_dosyasi").insert(form);
+    if (editing) await supabase.from("personel_dosyasi").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("personel_dosyasi").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_turu: "", tarih: "", dosya_url: "", notlar: "" });
     fetchDosyalar();
   };

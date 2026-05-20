@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { FileText, Plus, Edit, Trash2, Search, X, Save, Calendar } from "lucide-react";
 
 export default function Talimatlar() {
@@ -22,8 +23,8 @@ export default function Talimatlar() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("talimatlar").update(form).eq("id", editing.id);
-    else await supabase.from("talimatlar").insert(form);
+    if (editing) await supabase.from("talimatlar").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("talimatlar").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ baslik: "", icerik: "", tarih: "", hedef: "", durum: "aktif" });
     fetchTalimatlar();
   };

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { HardHat, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
 export default function Taseronlar() {
@@ -28,8 +29,8 @@ export default function Taseronlar() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("taseronlar").update(form).eq("id", editing.id);
-    else await supabase.from("taseronlar").insert(form);
+    if (editing) await supabase.from("taseronlar").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("taseronlar").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
     fetchTaseronlar();
   };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar } from "lucide-react";
+import { maskTC } from "@/lib/security";
 import Link from "next/link";
 
 export default function PersonnelList() {
@@ -84,7 +85,7 @@ export default function PersonnelList() {
                 {filtered.map((p) => (
                   <tr key={p.id}>
                     <td className="font-medium text-gray-800">{p.ad_soyad || "-"}</td>
-                    <td className="font-mono text-sm">{p.kimlik_no}</td>
+                    <td className="font-mono text-sm">{maskTC(p.kimlik_no)}</td>
                     <td className="text-gray-600">{p.santiye_adi || "-"}</td>
                     <td className="text-gray-600">{p.telefon || "-"}</td>
                     <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
@@ -128,7 +129,7 @@ export default function PersonnelList() {
                 </div>
                 <div>
                   <h4 className="text-xl font-semibold text-gray-800">{selectedPerson.ad_soyad || "-"}</h4>
-                  <p className="text-gray-500">{selectedPerson.kimlik_no}</p>
+                  <p className="text-gray-500">{maskTC(selectedPerson.kimlik_no)}</p>
                 </div>
               </div>
               

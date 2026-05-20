@@ -5,11 +5,11 @@ import {
   User, Users, Calendar, Briefcase, Phone, Building2, Shield, Heart, FileText, Save, CheckCircle, AlertCircle
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { sanitize } from "@/lib/security";
 import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
-const sanitize = (s: string) => s.replace(/[<>]/g, "").trim();
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({

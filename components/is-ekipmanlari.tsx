@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { Wrench, Plus, Edit, Trash2, Search, X, Save, AlertTriangle } from "lucide-react";
 
 export default function IsEkipmanlari() {
@@ -28,8 +29,8 @@ export default function IsEkipmanlari() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("is_ekipmanlari").update(form).eq("id", editing.id);
-    else await supabase.from("is_ekipmanlari").insert(form);
+    if (editing) await supabase.from("is_ekipmanlari").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("is_ekipmanlari").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null);
     setForm({ ad: "", seri_no: "", tip: "", santiye_id: "", son_kontrol_tarihi: "", sonraki_kontrol_tarihi: "", durum: "aktif", notlar: "" });
     fetchEkipmanlar();

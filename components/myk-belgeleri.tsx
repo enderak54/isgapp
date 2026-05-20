@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
 export default function MykBelgeleri() {
@@ -40,9 +41,9 @@ export default function MykBelgeleri() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editing) {
-      await supabase.from("myk_belgeri").update(form).eq("id", editing.id);
+      await supabase.from("myk_belgeri").update(sanitizeForm(form)).eq("id", editing.id);
     } else {
-      await supabase.from("myk_belgeri").insert(form);
+      await supabase.from("myk_belgeri").insert(sanitizeForm(form));
     }
     setShowForm(false);
     setEditing(null);

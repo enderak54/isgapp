@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight } from "lucide-react";
 
 const colorOptions = [
@@ -69,12 +70,12 @@ async function setupDatabase() {
   try {
     const { error } = await supabase.from("ayarlar").select("id").limit(1);
     if (error?.message?.includes("relation") || error?.message?.includes("does not exist")) {
-      const { error: insertError } = await supabase.from("ayarlar").insert({
+      const { error: insertError } = await supabase.from("ayarlar").insert(sanitizeForm({
         key: "setup_check",
         value: "true",
         type: "system",
         description: "Database setup"
-      });
+      }));
       if (insertError && !insertError.message.includes("duplicate")) {
         console.log("Database setup needed - please run SQL in Supabase");
       }
@@ -133,12 +134,12 @@ export default function SettingsPage() {
         setModules(newModules);
         
         for (const mod of newModules) {
-          await supabase.from("ayarlar").insert({
+          await supabase.from("ayarlar").insert(sanitizeForm({
             key: mod.key,
             value: "true",
             type: "module",
             description: mod.description,
-          });
+          }));
         }
       }
     } catch (e: any) {
@@ -160,14 +161,14 @@ export default function SettingsPage() {
     try {
       for (const mod of modules) {
         if (mod.id) {
-          await supabase.from("ayarlar").update({ value: mod.enabled.toString() }).eq("id", mod.id);
+          await supabase.from("ayarlar").update(sanitizeForm({ value: mod.enabled.toString() })).eq("id", mod.id);
         } else {
-          await supabase.from("ayarlar").insert({
+          await supabase.from("ayarlar").insert(sanitizeForm({
             key: mod.key,
             value: mod.enabled.toString(),
             type: "module",
             description: mod.description,
-          });
+          }));
         }
       }
       
@@ -188,7 +189,7 @@ export default function SettingsPage() {
     localStorage.setItem("isg_theme", JSON.stringify(theme));
     applyTheme(theme);
     try {
-      await supabase.from("ayarlar").upsert({ key: "theme", value: JSON.stringify(theme), type: "theme" }, { onConflict: "key" });
+      await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
     } catch {}
     setStatus({ type: "success", message: "Tema kaydedildi!" });
   };

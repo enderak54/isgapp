@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { UserCog, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
 export default function SahaSorumlulari() {
@@ -28,8 +29,8 @@ export default function SahaSorumlulari() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("saha_sorumlulari").update(form).eq("id", editing.id);
-    else await supabase.from("saha_sorumlulari").insert(form);
+    if (editing) await supabase.from("saha_sorumlulari").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("saha_sorumlulari").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ ad_soyad: "", telefon: "", email: "", pozisyon: "", santiye_id: "", durum: "aktif", notlar: "" });
     fetchSorumlular();
   };

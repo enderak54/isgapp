@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeForm } from "@/lib/security";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar } from "lucide-react";
 
 export default function Egitimler() {
@@ -22,8 +23,8 @@ export default function Egitimler() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("egitimler").update(form).eq("id", editing.id);
-    else await supabase.from("egitimler").insert(form);
+    if (editing) await supabase.from("egitimler").update(sanitizeForm(form)).eq("id", editing.id);
+    else await supabase.from("egitimler").insert(sanitizeForm(form));
     setShowForm(false); setEditing(null); setForm({ ad: "", tarih: "", sure: "", egitmen: "", yer: "", katilimcilar: "", notlar: "" });
     fetchEgitimler();
   };
