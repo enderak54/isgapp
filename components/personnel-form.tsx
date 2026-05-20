@@ -98,11 +98,28 @@ export default function PersonnelForm() {
       </header>
 
       {status && (
-        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${status.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
+        <div className={`mb-4 p-4 rounded-xl flex items-center gap-3 ${status.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
           {status.type === "success" ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           <span>{status.message}</span>
         </div>
       )}
+
+      <div className="flex justify-between items-center mb-4">
+        <div></div>
+        <button type="submit" disabled={loading} className="btn btn-primary text-base px-8 py-2.5">
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              Kaydediliyor...
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5" />
+              Kaydet
+            </>
+          )}
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-3 gap-6">
@@ -231,22 +248,6 @@ export default function PersonnelForm() {
                 placeholder="Not ekle..." className="input h-28 resize-none" />
             ))}
           </div>
-        </div>
-
-        <div className="mt-6 flex justify-center">
-          <button type="submit" disabled={loading} className="btn btn-primary text-base px-10 py-3">
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Kaydediliyor...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                Kaydet
-              </>
-            )}
-          </button>
         </div>
       </form>
     </main>
