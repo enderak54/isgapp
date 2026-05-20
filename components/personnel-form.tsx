@@ -303,7 +303,7 @@ export default function PersonnelForm() {
                     { label: "Vardiyalı", canWork: "vardiyaliCalisir", cannotWork: "vardiyaliCalisamaz" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-4 text-sm">
-                      <span className="w-16 text-gray-500">{item.label}</span>
+                      <span className="text-xs text-gray-700 w-20">{item.label}</span>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <input type="radio" name={item.label} checked={form[item.canWork as keyof typeof form] as boolean}
                           onChange={() => { handleChange(item.canWork, true); handleChange(item.cannotWork, false); }}

@@ -21,7 +21,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -328,3 +328,98 @@ tr:hover td {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ===== THEME SYSTEM ===== */
+
+/* Dark theme */
+.theme-dark {
+  --bg: #1e1e2e;
+  --surface: #2a2a3e;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #3a3a4e;
+  --primary: #6b7280;
+  --primary-hover: #8a94a0;
+}
+
+.theme-dark body,
+.theme-dark .theme-bg {
+  background: var(--bg);
+}
+
+.theme-dark .card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.theme-dark .card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.theme-dark .input,
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+  background: #1e1e2e;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.theme-dark .input:focus,
+.theme-dark input:focus,
+.theme-dark textarea:focus,
+.theme-dark select:focus {
+  background: #1e1e2e;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.15);
+}
+
+.theme-dark th {
+  background: #1e1e2e;
+}
+
+.theme-dark tr:hover td {
+  background: #1e1e2e;
+}
+
+.theme-dark .modal-content,
+.theme-dark .modal-header {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.theme-dark hr { border-color: var(--border); }
+
+.theme-dark .bg-white { background: var(--surface); }
+.theme-dark .bg-gray-50 { background: #1e1e2e; }
+.theme-dark .bg-gray-100 { background: #2a2a3e; }
+.theme-dark .bg-gray-200 { background: #3a3a4e; }
+.theme-dark .text-gray-400 { color: #94a3b8; }
+.theme-dark .text-gray-500 { color: #94a3b8; }
+.theme-dark .text-gray-600 { color: #cbd5e1; }
+.theme-dark .text-gray-700 { color: #e2e8f0; }
+.theme-dark .text-gray-800 { color: #f1f5f9; }
+.theme-dark .text-gray-900 { color: #f8fafc; }
+.theme-dark .border-gray-100 { border-color: var(--border); }
+.theme-dark .hover\:bg-gray-100:hover { background: #2a2a3e; }
+.theme-dark .hover\:bg-gray-200:hover { background: #3a3a4e; }
+
+/* Color themes */
+.theme-blue { --primary: #3b82f6; --primary-hover: #2563eb; }
+.theme-green { --primary: #10b981; --primary-hover: #059669; }
+.theme-purple { --primary: #8b5cf6; --primary-hover: #7c3aed; }
+.theme-orange { --primary: #f59e0b; --primary-hover: #d97706; }
+.theme-teal { --primary: #14b8a6; --primary-hover: #0d9488; }
+.theme-pink { --primary: #ec4899; --primary-hover: #db2777; }
+.theme-red { --primary: #ef4444; --primary-hover: #dc2626; }
+
+/* Font themes */
+.font-serif { --font-family: Georgia, "Times New Roman", serif; }
+.font-mono { --font-family: "Courier New", Courier, monospace; }
+
+.font-serif body,
+.font-mono body,
+.font-serif .font-body,
+.font-mono .font-body {
+  font-family: var(--font-family);
+}

@@ -2,7 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette } from "lucide-react";
+
+const colorOptions = [
+  { key: "", label: "Gri", class: "", bg: "#6b7280" },
+  { key: "blue", label: "Mavi", class: "theme-blue", bg: "#3b82f6" },
+  { key: "green", label: "Yeşil", class: "theme-green", bg: "#10b981" },
+  { key: "purple", label: "Mor", class: "theme-purple", bg: "#8b5cf6" },
+  { key: "orange", label: "Turuncu", class: "theme-orange", bg: "#f59e0b" },
+  { key: "teal", label: "Teal", class: "theme-teal", bg: "#14b8a6" },
+  { key: "pink", label: "Pembe", class: "theme-pink", bg: "#ec4899" },
+  { key: "red", label: "Kırmızı", class: "theme-red", bg: "#ef4444" },
+];
+
+const fontOptions = [
+  { key: "", label: "Varsayılan", class: "" },
+  { key: "serif", label: "Serif", class: "font-serif" },
+  { key: "mono", label: "Monospace", class: "font-mono" },
+];
+
+function applyTheme(theme: { mode?: string; color?: string; font?: string }) {
+  const root = document.documentElement;
+  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class), ...fontOptions.map(f => f.class));
+  if (theme.mode === "dark") root.classList.add("theme-dark");
+  if (theme.color) root.classList.add("theme-" + theme.color);
+  if (theme.font) root.classList.add("font-" + theme.font);
+}
 
 interface ModuleSettings {
   id: string;
@@ -48,6 +73,9 @@ async function setupDatabase() {
 
 export default function SettingsPage() {
   const [modules, setModules] = useState<ModuleSettings[]>([]);
+  const [themeMode, setThemeMode] = useState("light");
+  const [themeColor, setThemeColor] = useState("");
+  const [themeFont, setThemeFont] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
@@ -55,6 +83,10 @@ export default function SettingsPage() {
   useEffect(() => {
     setupDatabase();
     fetchSettings();
+    const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
+    if (saved.mode) setThemeMode(saved.mode);
+    if (saved.color) setThemeColor(saved.color);
+    if (saved.font) setThemeFont(saved.font);
   }, []);
 
   const fetchSettings = async () => {
@@ -134,6 +166,16 @@ export default function SettingsPage() {
     }
   };
 
+  const saveTheme = async () => {
+    const theme = { mode: themeMode, color: themeColor, font: themeFont };
+    localStorage.setItem("isg_theme", JSON.stringify(theme));
+    applyTheme(theme);
+    try {
+      await supabase.from("ayarlar").upsert({ key: "theme", value: JSON.stringify(theme), type: "theme" }, { onConflict: "key" });
+    } catch {}
+    setStatus({ type: "success", message: "Tema kaydedildi!" });
+  };
+
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
 
   return (
@@ -188,6 +230,68 @@ export default function SettingsPage() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="card p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Tema</h3>
+              <p className="text-sm text-gray-500">Görünüm ve renk ayarları</p>
+            </div>
+            <button onClick={saveTheme} className="btn btn-primary text-sm">Temayı Kaydet</button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                {themeMode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
+                <div>
+                  <p className="font-medium text-gray-800">Tema Modu</p>
+                  <p className="text-sm text-gray-500">{themeMode === "dark" ? "Koyu tema" : "Açık tema"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                className={`relative w-12 h-6 rounded-full transition-colors ${themeMode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${themeMode === "dark" ? "left-7" : "left-1"}`} />
+              </button>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <Palette className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-800">Renk</p>
+                  <p className="text-sm text-gray-500">Vurgu rengini seç</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {colorOptions.map((c) => (
+                  <button
+                    key={c.key || "default"}
+                    onClick={() => setThemeColor(c.key)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
+                    style={{ backgroundColor: c.bg }}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="font-medium text-gray-800 mb-2">Yazı Tipi</p>
+              <select
+                value={themeFont}
+                onChange={(e) => setThemeFont(e.target.value)}
+                className="input"
+              >
+                {fontOptions.map((f) => (
+                  <option key={f.key || "default"} value={f.key}>{f.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
