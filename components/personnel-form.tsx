@@ -165,12 +165,12 @@ const [loading, setLoading] = useState(false);
                   key={item.field} 
                   className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}
                 >
-                  <span className="text-xs text-gray-700 w-36">{item.label}</span>
+                  <span className="text-xs text-gray-700 w-40">{item.label}</span>
                   <input
                     type="date"
                     value={form[item.field as keyof typeof form] as string}
                     onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input text-xs w-28 cursor-pointer"
+                    className="input text-xs w-24 cursor-pointer"
                   />
                 </div>
               ))}
