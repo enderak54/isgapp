@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Briefcase,
   Users,
@@ -15,8 +14,6 @@ import {
   AlertTriangle,
   LayoutDashboard,
   Settings,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -37,13 +34,12 @@ const allMenuItems = [
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState as useStateReact } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [visibleModules, setVisibleModules] = useStateReact<Record<string, boolean>>({});
+  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadModuleSettings();
@@ -80,22 +76,16 @@ export default function Sidebar() {
   );
 
   return (
-    <aside 
-      className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${
-        collapsed ? "w-16" : "w-64"
-      }`}
-    >
-      <div className={`p-4 border-b border-gray-100 ${collapsed ? "flex justify-center" : ""}`}>
-        <Link href="/" className={`flex items-center gap-3 group ${collapsed ? "justify-center" : ""}`}>
+    <aside className="w-64 bg-white min-h-screen border-r border-gray-100 flex flex-col">
+      <div className="p-4 border-b border-gray-100">
+        <Link href="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          {!collapsed && (
-            <div>
-              <h1 className="text-base font-semibold text-gray-800">İSG Takip</h1>
-              <p className="text-xs text-gray-400">Yönetim Paneli</p>
-            </div>
-          )}
+          <div>
+            <h1 className="text-base font-semibold text-gray-800">İSG Takip</h1>
+            <p className="text-xs text-gray-400">Yönetim Paneli</p>
+          </div>
         </Link>
       </div>
       
@@ -104,32 +94,18 @@ export default function Sidebar() {
           <Link
             key={index}
             href={item.href}
-            title={collapsed ? item.label : undefined}
-            className={`nav-item ${collapsed ? "justify-center px-2" : ""} ${pathname === item.href ? "active" : ""}`}
+            className={`nav-item ${pathname === item.href ? "active" : ""}`}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
+            <span>{item.label}</span>
           </Link>
         ))}
       </nav>
       
-      <div className="p-2 border-t border-gray-100">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={`w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition ${
-            collapsed ? "" : "text-gray-500 text-sm"
-          }`}
-          title={collapsed ? "Menüyü aç" : "Menüyü kapat"}
-        >
-          {collapsed ? (
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          ) : (
-            <div className="flex items-center gap-2 text-gray-500">
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm">Kapat</span>
-            </div>
-          )}
-        </button>
+      <div className="p-4 border-t border-gray-100">
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <p className="text-xs text-gray-500 text-center">© 2026 ISG Takip v1.0</p>
+        </div>
       </div>
     </aside>
   );
