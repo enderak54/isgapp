@@ -86,11 +86,10 @@ export default function PersonnelForm() {
   };
 
   return (
-    <main className="flex-1 p-8 bg-[#f8f7f4] min-h-screen">
-      <header className="mb-8 flex justify-between items-center">
+    <main className="flex-1 p-4 bg-[#f8f7f4] min-h-screen">
+      <header className="mb-4 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-800">Personel Kayıt</h2>
-          <p className="text-gray-500 mt-1">Yeni personel ekleme formu</p>
+          <h2 className="text-xl font-semibold text-gray-800">Personel Kayıt</h2>
         </div>
         <Link href="/personel" className="text-gray-500 hover:text-gray-700 text-sm">
           ← Personel Listesi
@@ -122,14 +121,14 @@ export default function PersonnelForm() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-4">
           {/* Personel */}
-          <div className="card p-6">
-            <h3 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
-              <User className="w-5 h-5 text-gray-400" />
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <User className="w-4 h-4 text-gray-400" />
               Personel Bilgileri
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No</label>
                 <input
@@ -166,12 +165,12 @@ export default function PersonnelForm() {
           </div>
 
           {/* İSG */}
-          <div className="card p-6">
-            <h3 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-gray-400" />
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-gray-400" />
               İSG Eğitimler
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {[
                 { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
                 { label: "MYK", field: "myk" },
@@ -193,12 +192,12 @@ export default function PersonnelForm() {
           </div>
 
           {/* Sağlık */}
-          <div className="card p-6">
-            <h3 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-gray-400" />
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Heart className="w-4 h-4 text-gray-400" />
               Sağlık Durumu
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu</label>
                 <div className="space-y-2">
@@ -237,15 +236,15 @@ export default function PersonnelForm() {
         </div>
 
         {/* Notlar */}
-        <div className="card p-6 mt-6">
-          <h3 className="text-base font-semibold text-gray-800 mb-5 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-gray-400" />
+        <div className="card p-4 mt-4">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-gray-400" />
             Notlar
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2">
             {form.notlar.map((note, index) => (
               <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)}
-                placeholder="Not ekle..." className="input h-28 resize-none" />
+                placeholder="Not ekle..." className="input h-20 resize-none text-sm" />
             ))}
           </div>
         </div>
