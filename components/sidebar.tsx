@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Briefcase,
   Users,
@@ -14,6 +15,8 @@ import {
   AlertTriangle,
   LayoutDashboard,
   Settings,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -34,11 +37,12 @@ const allMenuItems = [
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -76,36 +80,42 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 bg-white min-h-screen border-r border-gray-100 flex flex-col">
-      <div className="p-4 border-b border-gray-100">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-base font-semibold text-gray-800">İSG Takip</h1>
-            <p className="text-xs text-gray-400">Yönetim Paneli</p>
+    <aside className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+      <div className="p-3 border-b border-gray-100">
+        <Link href="/" className="flex items-center justify-between group">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
+              <Briefcase className="w-4 h-4 text-white" />
+            </div>
+            {!collapsed && <span className="text-sm font-semibold text-gray-800">İSG Takip</span>}
           </div>
         </Link>
       </div>
       
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
         {menuItems.map((item, index) => (
           <Link
             key={index}
             href={item.href}
-            className={`nav-item ${pathname === item.href ? "active" : ""}`}
+            className={`flex items-center justify-between px-2 py-2 rounded-lg transition-colors ${
+              pathname === item.href 
+                ? "bg-gray-200 text-gray-900" 
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span>{item.label}</span>
+            <item.icon className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && <span className="text-xs font-medium">{item.label}</span>}
           </Link>
         ))}
       </nav>
       
-      <div className="p-4 border-t border-gray-100">
-        <div className="p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 text-center">© 2026 ISG Takip v1.0</p>
-        </div>
+      <div className="p-2 border-t border-gray-100">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
       </div>
     </aside>
   );
