@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Warning } from "lucide-react";
+import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target } from "lucide-react";
 
 interface ISGStats {
   totalPersonel: number;
