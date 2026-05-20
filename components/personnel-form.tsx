@@ -106,8 +106,8 @@ export default function PersonnelForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="flex justify-end items-center gap-3 mb-4">
-          <Link href="/personel" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
-            📋 Liste
+          <Link href="/personel" className="btn text-sm px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-100">
+            <Users className="w-4 h-4" /> Personel Listesi
           </Link>
           <button type="submit" disabled={loading} className="btn btn-primary text-sm px-6 py-2">
             {loading ? "Kaydediliyor..." : "💾 Kaydet"}
