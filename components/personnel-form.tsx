@@ -204,16 +204,35 @@ const [loading, setLoading] = useState(false);
                       className="input text-xs"
                       style={{ width: "5.5rem" }}
                     />
-                    <div className="relative w-5 h-5">
-                      <Calendar className="w-3.5 h-3.5 absolute top-0.5 left-0.5 text-gray-400 pointer-events-none" />
-                      <input
-                        type="date"
-                        className="absolute inset-0 cursor-pointer"
-                        style={{ opacity: 0.01 }}
-                        value={form[item.field as keyof typeof form] as string}
-                        onChange={(e) => handleChange(item.field, e.target.value)}
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement;
+                        if (!picker) return;
+                        const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect();
+                        picker.style.position = "fixed";
+                        picker.style.left = rect.left + "px";
+                        picker.style.top = rect.top + "px";
+                        picker.style.width = "1px";
+                        picker.style.height = "1px";
+                        picker.style.opacity = "0";
+                        picker.style.display = "block";
+                        picker.focus();
+                        picker.showPicker();
+                      }}
+                      id={`dp-btn-${item.field}`}
+                      className="text-gray-400 hover:text-gray-600 p-0.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      id={`dp-${item.field}`}
+                      type="date"
+                      className="hidden"
+                      value={form[item.field as keyof typeof form] as string}
+                      onChange={(e) => { handleChange(item.field, e.target.value); }}
+                      onBlur={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
                   </div>
                 </div>
               ))}
