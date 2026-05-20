@@ -14,6 +14,10 @@ DROP POLICY IF EXISTS "okuma" ON ayarlar;
 DROP POLICY IF EXISTS "yazma" ON ayarlar;
 
 -- yeni politikalar (public - auth kurulana kadar)
+DROP POLICY IF EXISTS "ayarlar_select" ON ayarlar;
+DROP POLICY IF EXISTS "ayarlar_insert" ON ayarlar;
+DROP POLICY IF EXISTS "ayarlar_update" ON ayarlar;
+DROP POLICY IF EXISTS "ayarlar_delete" ON ayarlar;
 CREATE POLICY "ayarlar_select" ON ayarlar FOR SELECT USING (true);
 CREATE POLICY "ayarlar_insert" ON ayarlar FOR INSERT WITH CHECK (true);
 CREATE POLICY "ayarlar_update" ON ayarlar FOR UPDATE USING (true);
