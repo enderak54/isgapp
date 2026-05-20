@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 const allMenuItems = [
-  { icon: LayoutDashboard, label: "İSG Takip", href: "/", key: "dashboard" },
+  { icon: LayoutDashboard, label: "İSG Takip", href: "/dashboard", key: "dashboard" },
   { icon: Users, label: "Personel", href: "/personel", key: "personel" },
   { icon: GraduationCap, label: "MYK", href: "/myk", key: "myk" },
   { icon: Shield, label: "Operatör", href: "/operator", key: "operator" },
