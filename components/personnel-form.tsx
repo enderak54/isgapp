@@ -204,16 +204,12 @@ const [loading, setLoading] = useState(false);
                       className="input text-xs"
                       style={{ width: "5.5rem" }}
                     />
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="text-gray-400 hover:text-gray-600 p-0.5"
-                      >
-                        <Calendar className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="relative w-5 h-5">
+                      <Calendar className="w-3.5 h-3.5 absolute top-0.5 left-0.5 text-gray-400 pointer-events-none" />
                       <input
                         type="date"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        className="absolute inset-0 cursor-pointer"
+                        style={{ opacity: 0.01 }}
                         value={form[item.field as keyof typeof form] as string}
                         onChange={(e) => handleChange(item.field, e.target.value)}
                       />
