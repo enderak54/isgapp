@@ -431,11 +431,7 @@ tr:hover td {
 }
 
 /* Font sizes */
-.size-small { --font-size: 14px; }
-.size-normal { --font-size: 16px; }
-.size-large { --font-size: 18px; }
-.size-xlarge { --font-size: 20px; }
-
-.size-small body, .size-normal body, .size-large body, .size-xlarge body {
-  font-size: var(--font-size);
-}
+.size-small { font-size: 14px; }
+.size-normal { font-size: 16px; }
+.size-large { font-size: 18px; }
+.size-xlarge { font-size: 20px; }

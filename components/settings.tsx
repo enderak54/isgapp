@@ -87,6 +87,7 @@ async function setupDatabase() {
 export default function SettingsPage() {
   const [modules, setModules] = useState<ModuleSettings[]>([]);
   const [showModules, setShowModules] = useState(false);
+  const [showTheme, setShowTheme] = useState(false);
   const [themeMode, setThemeMode] = useState("light");
   const [themeColor, setThemeColor] = useState("");
   const [themeFont, setThemeFont] = useState("");
@@ -265,84 +266,94 @@ export default function SettingsPage() {
         </div>
 
         <div className="card p-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+          <button
+            onClick={() => setShowTheme(!showTheme)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="text-left">
               <h3 className="text-lg font-semibold text-gray-800">Tema</h3>
               <p className="text-sm text-gray-500">Görünüm ve renk ayarları</p>
             </div>
-            <button onClick={saveTheme} className="btn btn-primary text-sm">Temayı Kaydet</button>
-          </div>
+            <div className="flex items-center gap-3">
+              {showTheme && (
+                <button onClick={(e) => { e.stopPropagation(); saveTheme(); }} className="btn btn-primary text-sm">Kaydet</button>
+              )}
+              {showTheme ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                {themeMode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
-                <div>
-                  <p className="font-medium text-gray-800">Tema Modu</p>
-                  <p className="text-sm text-gray-500">{themeMode === "dark" ? "Koyu tema" : "Açık tema"}</p>
+          {showTheme && (
+            <div className="space-y-4 mt-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {themeMode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
+                  <div>
+                    <p className="font-medium text-gray-800">Tema Modu</p>
+                    <p className="text-sm text-gray-500">{themeMode === "dark" ? "Koyu tema" : "Açık tema"}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${themeMode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
+                >
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${themeMode === "dark" ? "left-7" : "left-1"}`} />
+                </button>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <Palette className="w-5 h-5 text-gray-600" />
+                  <div>
+                    <p className="font-medium text-gray-800">Renk</p>
+                    <p className="text-sm text-gray-500">Vurgu rengini seç</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {colorOptions.map((c) => (
+                    <button
+                      key={c.key || "default"}
+                      onClick={() => setThemeColor(c.key)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
+                      style={{ backgroundColor: c.bg }}
+                      title={c.label}
+                    />
+                  ))}
                 </div>
               </div>
-              <button
-                onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
-                className={`relative w-12 h-6 rounded-full transition-colors ${themeMode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
-              >
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${themeMode === "dark" ? "left-7" : "left-1"}`} />
-              </button>
-            </div>
 
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3 mb-3">
-                <Palette className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="font-medium text-gray-800">Renk</p>
-                  <p className="text-sm text-gray-500">Vurgu rengini seç</p>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-gray-800 mb-2">Yazı Tipi</p>
+                <select
+                  value={themeFont}
+                  onChange={(e) => setThemeFont(e.target.value)}
+                  className="input"
+                >
+                  {fontOptions.map((f) => (
+                    <option key={f.key || "default"} value={f.key}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-gray-800 mb-2">Yazı Boyutu</p>
+                <div className="flex gap-2">
+                  {sizeOptions.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => setThemeSize(s.key)}
+                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                        themeSize === s.key
+                          ? "bg-gray-800 text-white"
+                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {colorOptions.map((c) => (
-                  <button
-                    key={c.key || "default"}
-                    onClick={() => setThemeColor(c.key)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
-                    style={{ backgroundColor: c.bg }}
-                    title={c.label}
-                  />
-                ))}
-              </div>
             </div>
-
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="font-medium text-gray-800 mb-2">Yazı Tipi</p>
-              <select
-                value={themeFont}
-                onChange={(e) => setThemeFont(e.target.value)}
-                className="input"
-              >
-                {fontOptions.map((f) => (
-                  <option key={f.key || "default"} value={f.key}>{f.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="font-medium text-gray-800 mb-2">Yazı Boyutu</p>
-              <div className="flex gap-2">
-                {sizeOptions.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => setThemeSize(s.key)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      themeSize === s.key
-                        ? "bg-gray-800 text-white"
-                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="card p-6 mt-6">
