@@ -329,6 +329,13 @@ tr:hover td {
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
+/* App background (uses --bg var for theme support) */
+.app-bg { background: var(--bg); }
+.app-surface { background: var(--surface); }
+.app-text { color: var(--text); }
+.app-text-muted { color: var(--text-muted); }
+.app-border { border-color: var(--border); }
+
 /* ===== THEME SYSTEM ===== */
 
 /* Dark theme */

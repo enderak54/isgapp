@@ -96,7 +96,7 @@ export default function PersonnelForm() {
   };
 
   return (
-    <main className="flex-1 p-4 bg-[#f8f7f4] min-h-screen">
+    <main className="flex-1 p-4 app-bg min-h-screen">
       {status && (
         <div className={`mb-3 p-3 rounded-lg flex items-center gap-2 text-sm ${status.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
           {status.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}

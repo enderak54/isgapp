@@ -127,7 +127,7 @@ export default function Dashboard() {
   const ksoDurum = getKSODurum(stats.kso);
 
   return (
-    <main className="flex-1 p-8 bg-[#f8f7f4] min-h-screen">
+    <main className="flex-1 p-8 app-bg min-h-screen">
       <header className="mb-8">
         <h2 className="text-2xl font-semibold text-gray-800">İşyeri Sicili</h2>
         <p className="text-gray-500 mt-1">Güvenlik istatistikleri ve risk değerlendirmesi</p>

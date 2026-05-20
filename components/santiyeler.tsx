@@ -45,7 +45,7 @@ export default function Santiyeler() {
   const filtered = santiyeler.filter((s) => s.ad.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <main className="flex-1 p-8 bg-[#f8f7f4] min-h-screen">
+    <main className="flex-1 p-8 app-bg min-h-screen">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-semibold text-gray-800">Şantiyeler</h2>
