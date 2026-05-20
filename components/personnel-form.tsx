@@ -67,7 +67,7 @@ export default function PersonnelForm() {
       const { error } = await supabase.from("personel").insert({
         kimlik_no: form.kimlikNo, ad_soyad: (form.ad + " " + form.soyad).trim(), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: form.meslekKodu, telefon: form.telefon, email: form.email || null, santiye_adi: form.santiyeAdi, ekip_adi: form.ekipAdi,
-        yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
+        isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null, saglik_raporu_tarihi: form.saglikRaporuTarihi || null,
         yuksekte_calisir: form.yuksekteCalisir, yuksekte_calisamaz: form.yuksekteCalisamaz,
@@ -79,7 +79,7 @@ export default function PersonnelForm() {
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
-        santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "",
+    santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
         kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
@@ -182,6 +182,7 @@ export default function PersonnelForm() {
             </h3>
             <div className="flex flex-col gap-0">
               {[
+                { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi" },
                 { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
                 { label: "MYK", field: "myk" },
                 { label: "Operatör Belgesi", field: "operatorBelgesi" },
