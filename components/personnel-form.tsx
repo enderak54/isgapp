@@ -191,7 +191,7 @@ const [loading, setLoading] = useState(false);
                     type="date"
                     value={form[item.field as keyof typeof form] as string}
                     onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input text-xs w-24 cursor-pointer"
+                    className="input text-xs w-20 cursor-pointer"
                   />
                 </div>
               ))}
