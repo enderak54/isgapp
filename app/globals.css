@@ -340,13 +340,13 @@ tr:hover td {
 
 /* Dark theme */
 .theme-dark {
-  --bg: #1e1e2e;
-  --surface: #2a2a3e;
+  --bg: #1a1a2e;
+  --surface: #242438;
   --text: #e2e8f0;
   --text-muted: #94a3b8;
-  --border: #3a3a4e;
-  --primary: #6b7280;
-  --primary-hover: #8a94a0;
+  --border: #5a5a6e;
+  --primary: #787878;
+  --primary-hover: #909090;
 }
 
 .theme-dark body,
@@ -396,6 +396,8 @@ tr:hover td {
 }
 
 .theme-dark hr { border-color: var(--border); }
+.theme-dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-top-color: var(--border); }
+.theme-dark .divide-x > :not([hidden]) ~ :not([hidden]) { border-left-color: var(--border); }
 
 .theme-dark .bg-white { background: var(--surface); }
 .theme-dark .bg-gray-50 { background: #1e1e2e; }
@@ -408,6 +410,9 @@ tr:hover td {
 .theme-dark .text-gray-800 { color: #f1f5f9; }
 .theme-dark .text-gray-900 { color: #f8fafc; }
 .theme-dark .border-gray-100 { border-color: var(--border); }
+.theme-dark .border-gray-200 { border-color: var(--border); }
+.theme-dark .border-t-gray-500 { border-top-color: #787878; }
+.theme-dark .border-white { border-color: var(--surface); }
 .theme-dark .hover\:bg-gray-100:hover { background: #2a2a3e; }
 .theme-dark .hover\:bg-gray-200:hover { background: #3a3a4e; }
 
