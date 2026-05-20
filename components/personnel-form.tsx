@@ -252,15 +252,21 @@ export default function PersonnelForm() {
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu</label>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <input
-                      type="date"
-                      value={form.saglikRaporuTarihi}
-                      onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="gg.aa.yyyy"
+                      maxLength={10}
+                      value={toDisplay(form.saglikRaporuTarihi)}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9.]/g, "");
+                        handleChange("saglikRaporuTarihi", toDb(v));
+                      }}
                       className="input text-xs"
-                      style={{ width: "7.5rem" }}
+                      style={{ width: "5.5rem" }}
                     />
-                    <span className="text-xs text-gray-400">Rapor Tarihi</span>
+                    <span className="text-xs text-gray-400">Trh</span>
                   </div>
                   {[
                     { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
