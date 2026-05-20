@@ -203,8 +203,7 @@ export default function SettingsPage() {
             <Settings className="w-6 h-6 text-gray-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-gray-800">Ayarlar</h2>
-            <p className="text-gray-500">Modül ve sistem ayarları</p>
+              <h2 className="text-2xl font-semibold text-gray-800">Ayarlar</h2>
           </div>
         </div>
 
