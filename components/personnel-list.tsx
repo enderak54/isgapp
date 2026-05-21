@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink } from "lucide-react";
 import { maskTC } from "@/lib/security";
 import Link from "next/link";
 
@@ -11,6 +11,7 @@ export default function PersonnelList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
+  const [belgeler, setBelgeler] = useState<any[]>([]);
 
   useEffect(() => {
     fetchPersonnel();
@@ -27,6 +28,31 @@ export default function PersonnelList() {
       await supabase.from("personel").delete().eq("id", id);
       fetchPersonnel();
     }
+  };
+
+  const fetchBelgeler = async (personelId: string) => {
+    const { data } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", personelId).is("silinme_tarihi", null).order("eklenme_tarihi", { ascending: false });
+    if (data) setBelgeler(data);
+  };
+
+  const openDetail = (p: any) => {
+    setSelectedPerson(p);
+    setBelgeler([]);
+    fetchBelgeler(p.id);
+  };
+
+  const belgeTipiLabel = (tip: string) => {
+    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", diger: "Diğer" };
+    return labels[tip] || tip;
+  };
+
+  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return "";
+    const k = 1024; const sizes = ["B", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   const filtered = personnel.filter(
@@ -95,7 +121,7 @@ export default function PersonnelList() {
                     <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
                     <td>
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => setSelectedPerson(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
+                        <button onClick={() => openDetail(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
                           <Eye className="w-3.5 h-3.5" /> Detay
                         </button>
                         <button className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1">
@@ -160,12 +186,36 @@ export default function PersonnelList() {
                 <div className="pt-4 border-t border-gray-100">
                   <h5 className="text-sm font-medium text-gray-500 mb-3">İSG Belgeleri</h5>
                   <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">İSG Eğitim:</span> {selectedPerson.isg_egitim_tarihi || "-"}</div>
                     <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Yüksekte:</span> {selectedPerson.yuksekte_calisma_tarihi || "-"}</div>
                     <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">MYK:</span> {selectedPerson.myk_tarihi || "-"}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Operatör:</span> {selectedPerson.operator_belgesi_tarihi || "-"}</div>
                     <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">KKD:</span> {selectedPerson.kkd_tarihi || "-"}</div>
                     <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Oryantasyon:</span> {selectedPerson.oryantasyon_tarihi || "-"}</div>
                   </div>
                 </div>
+
+                {belgeler.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <h5 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Ekli Belgeler ({belgeler.length})</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      {belgeler.map((b: any) => (
+                        <div key={b.id} className="card p-2 flex items-center gap-2">
+                          {isImage(b.dosya_url) ? (
+                            <img src={b.dosya_url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-5 h-5 text-amber-500" /></div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
+                            <p className="text-[10px] text-gray-400">{belgeTipiLabel(b.belge_tipi)}{b.dosya_boyut ? ` • ${formatBytes(b.dosya_boyut)}` : ""}</p>
+                          </div>
+                          <a href={b.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 flex-shrink-0"><ExternalLink className="w-3.5 h-3.5" /></a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-4 border-t border-gray-100">
                   <h5 className="text-sm font-medium text-gray-500 mb-3">Sağlık Durumu</h5>
@@ -181,6 +231,9 @@ export default function PersonnelList() {
                   </div>
                   {selectedPerson.kronik_rahatlik && (
                     <p className="text-sm text-gray-600 bg-red-50 p-3 rounded-lg mt-2"><strong>Kronik Rahatsızlık:</strong> {selectedPerson.kronik_rahatlik}</p>
+                  )}
+                  {selectedPerson.saglik_raporu_tarihi && (
+                    <p className="text-xs text-gray-500 mt-2"><strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}</p>
                   )}
                 </div>
 
