@@ -316,6 +316,29 @@ export default function PersonnelForm() {
               );
               })}
             </div>
+
+            {/* İSG Dosya Grid */}
+            {pendingFiles.filter(f => BELGE_TIPLERI[f.field] && BELGE_TIPLERI[f.field] !== "saglik_raporu").length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <h4 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1"><Paperclip className="w-3 h-3" /> Eklenen Belgeler</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {pendingFiles.filter(f => BELGE_TIPLERI[f.field] && BELGE_TIPLERI[f.field] !== "saglik_raporu").map((pf, i) => {
+                    const globalIdx = pendingFiles.indexOf(pf);
+                    const label = belgeFields.find(b => b.field === pf.field)?.label || pf.field;
+                    return (
+                      <div key={i} className="card p-2 flex items-center gap-2">
+                        {pf.preview ? <img src={pf.preview} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-5 h-5 text-amber-500" /></div>}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">{pf.file.name}</p>
+                          <p className="text-[10px] text-gray-400">{label} • {formatBytes(pf.file.size)}</p>
+                        </div>
+                        <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sağlık */}
@@ -338,6 +361,28 @@ export default function PersonnelForm() {
                     </button>
                   </div>
                   {errors.saglikRaporuTarihi && <p className="text-xs text-red-500">{errors.saglikRaporuTarihi}</p>}
+
+                  {/* Sağlık Raporu Dosya Grid */}
+                  {pendingFiles.filter(f => f.field === "saglikRaporuTarihi").length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-[10px] font-semibold text-gray-400 mb-1.5">Sağlık Raporu Dosyaları</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {pendingFiles.filter(f => f.field === "saglikRaporuTarihi").map((pf, i) => {
+                          const globalIdx = pendingFiles.indexOf(pf);
+                          return (
+                            <div key={i} className="card p-1.5 flex items-center gap-1.5">
+                              {pf.preview ? <img src={pf.preview} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-medium text-gray-800 truncate">{pf.file.name}</p>
+                                <p className="text-[9px] text-gray-400">{formatBytes(pf.file.size)}</p>
+                              </div>
+                              <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600 flex-shrink-0"><X className="w-3 h-3" /></button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {[
                     { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
                     { label: "Gece", canWork: "geceCalisir", cannotWork: "geceCalisamaz" },
