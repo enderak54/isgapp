@@ -11,12 +11,19 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
 
 const BELGE_TIPLERI: Record<string, string> = {
   isgEgitimTarihi: "isg_egitim",
+  isg_egitim_tarihi: "isg_egitim",
   yuksekteCalisma: "yuksekte_calisma",
+  yuksekte_calisma_tarihi: "yuksekte_calisma",
   myk: "myk",
+  myk_tarihi: "myk",
   operatorBelgesi: "operator_belgesi",
+  operator_belgesi_tarihi: "operator_belgesi",
   kkd: "kkd",
+  kkd_tarihi: "kkd",
   oryantasyon: "oryantasyon",
+  oryantasyon_tarihi: "oryantasyon",
   saglikRaporuTarihi: "saglik_raporu",
+  saglik_raporu_tarihi: "saglik_raporu",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -426,29 +433,91 @@ export default function PersonnelList() {
 
               <div className="pt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Sağlık</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-xs text-gray-500">Sağlık Raporu</label><input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs" /></div>
-                  <div><label className="text-xs text-gray-500">Kan Grubu</label><select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs"><option value="">Seçiniz</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select></div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">Sağlık Raporu</label>
+                    <input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs" style={{width: "auto"}} />
+                    <button type="button" onClick={() => setUploadModalField("saglik_raporu_tarihi")} className={`p-1 rounded transition relative ${pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length}</span>}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">Kan</label>
+                    <select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs" style={{width: "auto"}}><option value="">Seç</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">Kronik</label>
+                    <input type="text" value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input text-xs flex-1" placeholder="Varsa..." />
+                  </div>
                 </div>
-                <div className="mt-2"><label className="text-xs text-gray-500">Kronik Rahatsızlık</label><textarea value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input h-12 resize-none text-xs" /></div>
+
+                {/* Sağlık Raporu Pending Files */}
+                {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                    <p className="text-[10px] font-medium text-blue-700 mb-1">Sağlık Raporu - Yeni Dosyalar</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").map((pf, i) => {
+                        const globalIdx = pendingFiles.indexOf(pf);
+                        return (
+                          <div key={i} className="flex items-center gap-1 px-1.5 py-1 bg-white rounded text-[10px]">
+                            {pf.preview ? <ImageIcon className="w-2.5 h-2.5 text-blue-500" /> : <FileDoc className="w-2.5 h-2.5 text-amber-500" />}
+                            <span className="truncate max-w-20">{pf.file.name}</span>
+                            <button onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-2.5 h-2.5" /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Existing Files */}
+              {/* Existing Files - Grouped by Type */}
               {editBelgeler.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Mevcut Belgeler ({editBelgeler.length})</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {editBelgeler.map((b: any) => (
-                      <div key={b.id} className="card p-2 flex items-center gap-2">
-                        {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
-                          <p className="text-[10px] text-gray-400">{belgeTipiLabel(b.belge_tipi)}</p>
+                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu"].map(tip => {
+                    const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
+                    if (tipFiles.length === 0) return null;
+                    return (
+                      <div key={tip} className="mb-3">
+                        <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">{belgeTipiLabel(tip)}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {tipFiles.map((b: any) => (
+                            <div key={b.id} className="card p-2 flex items-center gap-2">
+                              {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
+                                <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
+                              </div>
+                              <button onClick={() => deleteBelge(b)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ))}
                         </div>
-                        <button onClick={() => deleteBelge(b)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
+                  {(() => {
+                    const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu"].includes(b.belge_tipi));
+                    if (otherFiles.length === 0) return null;
+                    return (
+                      <div className="mb-3">
+                        <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Diğer</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {otherFiles.map((b: any) => (
+                            <div key={b.id} className="card p-2 flex items-center gap-2">
+                              {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
+                                <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
+                              </div>
+                              <button onClick={() => deleteBelge(b)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
