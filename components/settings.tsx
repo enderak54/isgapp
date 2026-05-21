@@ -64,6 +64,7 @@ const defaultModules = [
   { key: "ekipmanlar", label: "İş Ekipmanları", description: "Ekipman takibi" },
   { key: "kazalar", label: "İş Kazaları", description: "Kaza kaydı ve istatistik" },
   { key: "egitimler", label: "Eğitimler", description: "Eğitim takibi" },
+  { key: "ihtar", label: "İhtar Tutanağı", description: "Personel ihtar ve uyarı kayıtları" },
   { key: "risk", label: "Risk Değerlendirme", description: "Tehlike tanımlama ve risk analizi" },
   { key: "yasal", label: "Yasal Uygunluk", description: "Yasal gereklilikler ve uyum takibi" },
   { key: "denetim", label: "İç Denetim", description: "Denetim planlama ve bulgu takibi" },

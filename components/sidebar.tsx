@@ -27,6 +27,7 @@ import {
   FileCheck,
   Award,
   TrendingUp,
+  AlertOctagon,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -42,6 +43,7 @@ const mainMenuItems = [
   { icon: Wrench, label: "Ekipmanlar", href: "/ekipmanlar", key: "ekipmanlar" },
   { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
   { icon: GraduationCap, label: "Eğitimler", href: "/egitimler", key: "egitimler" },
+  { icon: AlertOctagon, label: "İhtar Tutanağı", href: "/ihtar", key: "ihtar" },
 ];
 
 const ekModulItems = [
