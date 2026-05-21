@@ -534,10 +534,10 @@ export default function PersonnelList() {
                                 <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button onClick={() => toggleLock(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-amber-500 hover:text-amber-700" : "text-gray-300 hover:text-gray-500"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
-                                  {lockedFiles.has(b.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                <button type="button" onClick={() => { console.log("toggleLock", b.id, lockedFiles.has(b.id)); toggleLock(b.id); }} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                  {lockedFiles.has(b.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                 </button>
-                                <button onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-red-400 hover:text-red-600" : "text-gray-200 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                                <button type="button" onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1.5 rounded transition ${lockedFiles.has(b.id) ? "bg-red-50 text-red-500 hover:bg-red-100" : "bg-gray-100 text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </div>
                           ))}
@@ -560,10 +560,10 @@ export default function PersonnelList() {
                                 <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button onClick={() => toggleLock(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-amber-500 hover:text-amber-700" : "text-gray-300 hover:text-gray-500"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
-                                  {lockedFiles.has(b.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                <button type="button" onClick={() => { console.log("toggleLock", b.id, lockedFiles.has(b.id)); toggleLock(b.id); }} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                  {lockedFiles.has(b.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                 </button>
-                                <button onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-red-400 hover:text-red-600" : "text-gray-200 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                                <button type="button" onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1.5 rounded transition ${lockedFiles.has(b.id) ? "bg-red-50 text-red-500 hover:bg-red-100" : "bg-gray-100 text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
                               </div>
                             </div>
                           ))}
