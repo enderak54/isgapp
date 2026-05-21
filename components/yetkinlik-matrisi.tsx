@@ -31,17 +31,17 @@ export default function YetkinlikMatrisi() {
   useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
   const fetchItems = async () => {
-    const { data } = await supabase.from("yetkinlik_matrisi").select("*, personel(ad_soyad, kimlik_no)").order("olusturma_tarihi", { ascending: false });
+    const { data } = await supabase.from("yetkinlik_matrisi").select("*, personel(ad, soyad, kimlik_no)").order("olusturma_tarihi", { ascending: false });
     if (data) setItems(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, ad_soyad");
+    const { data } = await supabase.from("personel").select("id, ad, soyad");
     if (data) setPersonel(data);
   };
 
-  const filtered = items.filter(i => i.yetkinlik_adi.toLowerCase().includes(search.toLowerCase()) || (i.personel?.ad_soyad && i.personel.ad_soyad.toLowerCase().includes(search.toLowerCase())));
+  const filtered = items.filter(i => i.yetkinlik_adi.toLowerCase().includes(search.toLowerCase()) || (i.personel && `${i.personel.ad || ""} ${i.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())));
 
   const handleSubmit = async () => {
     if (!form.yetkinlik_adi || !form.personel_id) return;
@@ -99,7 +99,7 @@ export default function YetkinlikMatrisi() {
             <tbody>
               {filtered.map(i => (
                 <tr key={i.id}>
-                  <td className="font-medium">{i.personel?.ad_soyad || "-"}</td>
+                  <td className="font-medium">{i.personel ? `${i.personel.ad || ""} ${i.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td>{i.yetkinlik_adi}</td>
                   <td>{yetkinlikTipleri.find(y => y.value === i.yetkinlik_tipi)?.label}</td>
                   <td className="text-center">{i.seviye}/5</td>
@@ -121,7 +121,7 @@ export default function YetkinlikMatrisi() {
           <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header"><h3>{editing ? "Kayıt Düzenle" : "Yeni Yetkinlik Kaydı"}</h3><button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-gray-400" /></button></div>
             <div className="modal-body space-y-4">
-              <div><label>Personel *</label><select value={form.personel_id} onChange={e => setForm({ ...form, personel_id: e.target.value })}><option value="">Seçiniz</option>{personel.map(p => <option key={p.id} value={p.id}>{p.ad_soyad}</option>)}</select></div>
+              <div><label>Personel *</label><select value={form.personel_id} onChange={e => setForm({ ...form, personel_id: e.target.value })}><option value="">Seçiniz</option>{personel.map(p => <option key={p.id} value={p.id}>{p.ad} {p.soyad}</option>)}</select></div>
               <div><label>Yetkinlik Adı *</label><input type="text" value={form.yetkinlik_adi} onChange={e => setForm({ ...form, yetkinlik_adi: e.target.value })} placeholder="Örn: Yüksekte Çalışma Eğitimi" /></div>
               <div className="grid-2"><div><label>Tip</label><select value={form.yetkinlik_tipi} onChange={e => setForm({ ...form, yetkinlik_tipi: e.target.value })}>{yetkinlikTipleri.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}</select></div><div className="flex items-center gap-2 pt-6"><input type="checkbox" checked={form.zorunlu_mu} onChange={e => setForm({ ...form, zorunlu_mu: e.target.checked })} id="zorunlu" /><label htmlFor="zorunlu" className="mb-0">Zorunlu mu?</label></div></div>
               <div className="grid-2"><div><label>Mevcut Seviye (1-5)</label><input type="number" min={1} max={5} value={form.seviye} onChange={e => setForm({ ...form, seviye: parseInt(e.target.value) || 1 })} /></div><div><label>Gereken Seviye (1-5)</label><input type="number" min={1} max={5} value={form.gereken_seviye} onChange={e => setForm({ ...form, gereken_seviye: parseInt(e.target.value) || 1 })} /></div></div>

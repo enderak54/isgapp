@@ -17,13 +17,13 @@ export default function OperatorBelgeleri() {
   useEffect(() => { fetchBelgeler(); fetchPersonel(); }, []);
 
   const fetchBelgeler = async () => {
-    const { data } = await supabase.from("operator_belgeri").select("*, personel(kimlik_no, ad_soyad)").order("gecerlilik_tarihi", { ascending: true });
+    const { data } = await supabase.from("operator_belgeri").select("*, personel(kimlik_no, ad, soyad)").order("gecerlilik_tarihi", { ascending: true });
     if (data) setBelgeler(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad_soyad");
+    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad");
     if (data) setPersonel(data);
   };
 
@@ -65,7 +65,7 @@ export default function OperatorBelgeleri() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad_soyad} ({p.kimlik_no})</option>)}
+                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
               </select>
               <input required placeholder="Belge Adı (Forklift, Vinç, vb.)" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
               <input placeholder="Belge No" value={form.belge_no} onChange={(e) => setForm({ ...form, belge_no: e.target.value })} className="w-full p-2 border rounded-lg" />
@@ -98,9 +98,9 @@ export default function OperatorBelgeleri() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {belgeler.filter((b) => !search || b.personel?.ad_soyad?.toLowerCase().includes(search.toLowerCase()) || b.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((b) => (
+              {belgeler.filter((b) => !search || (b.personel && `${b.personel.ad || ""} ${b.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || b.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((b) => (
                 <tr key={b.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{b.personel?.ad_soyad || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{b.personel ? `${b.personel.ad || ""} ${b.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td className="px-4 py-3 text-sm">{b.belge_adi}</td>
                   <td className="px-4 py-3 text-sm">{b.belge_no || "-"}</td>
                   <td className={`px-4 py-3 text-sm ${isExpired(b.gecerlilik_tarihi) ? "text-red-600 font-medium" : ""}`}>{b.gecerlilik_tarihi || "-"}</td>

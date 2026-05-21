@@ -17,13 +17,13 @@ export default function PersonelDosyasi() {
   useEffect(() => { fetchDosyalar(); fetchPersonel(); }, []);
 
   const fetchDosyalar = async () => {
-    const { data } = await supabase.from("personel_dosyasi").select("*, personel(kimlik_no, ad_soyad)").order("tarih", { ascending: false });
+    const { data } = await supabase.from("personel_dosyasi").select("*, personel(kimlik_no, ad, soyad)").order("tarih", { ascending: false });
     if (data) setDosyalar(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad_soyad");
+    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad");
     if (data) setPersonel(data);
   };
 
@@ -63,7 +63,7 @@ export default function PersonelDosyasi() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad_soyad} ({p.kimlik_no})</option>)}
+                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
               </select>
               <input required placeholder="Belge Adı" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
               <select value={form.belge_turu} onChange={(e) => setForm({ ...form, belge_turu: e.target.value })} className="w-full p-2 border rounded-lg">
@@ -97,9 +97,9 @@ export default function PersonelDosyasi() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {dosyalar.filter((d) => !search || d.personel?.ad_soyad?.toLowerCase().includes(search.toLowerCase()) || d.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((d) => (
+              {dosyalar.filter((d) => !search || (d.personel && `${d.personel.ad || ""} ${d.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || d.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((d) => (
                 <tr key={d.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{d.personel?.ad_soyad || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{d.personel ? `${d.personel.ad || ""} ${d.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td className="px-4 py-3 text-sm flex items-center gap-2"><File className="w-4 h-4 text-gray-400" />{d.belge_adi}</td>
                   <td className="px-4 py-3 text-sm"><span className="px-2 py-1 rounded text-xs bg-gray-100">{d.belge_turu || "-"}</span></td>
                   <td className="px-4 py-3 text-sm">{d.tarih || "-"}</td>

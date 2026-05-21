@@ -88,7 +88,8 @@ export default function PersonnelList() {
   const openEdit = (p: any) => {
     setEditingPerson(p);
     setEditForm({
-      ad_soyad: p.ad_soyad || "",
+      ad: p.ad || "",
+      soyad: p.soyad || "",
       telefon: p.telefon || "",
       email: p.email || "",
       ogrenim_durumu: p.ogrenim_durumu || "",
@@ -181,7 +182,8 @@ export default function PersonnelList() {
     setEditStatus(null);
     try {
       const payload = sanitizeForm({
-        ad_soyad: editForm.ad_soyad,
+        ad: editForm.ad,
+        soyad: editForm.soyad,
         telefon: editForm.telefon,
         email: editForm.email,
         ogrenim_durumu: editForm.ogrenim_durumu,
@@ -230,7 +232,8 @@ export default function PersonnelList() {
 
   const filtered = personnel.filter(
     (p) =>
-      p.ad_soyad?.toLowerCase().includes(search.toLowerCase()) ||
+      p.ad?.toLowerCase().includes(search.toLowerCase()) ||
+      p.soyad?.toLowerCase().includes(search.toLowerCase()) ||
       p.kimlik_no?.includes(search) ||
       p.santiye_adi?.toLowerCase().includes(search.toLowerCase())
   );
@@ -266,7 +269,8 @@ export default function PersonnelList() {
             <table>
               <thead>
                 <tr>
-                  <th>Ad Soyad</th>
+                  <th>Ad</th>
+                  <th>Soyad</th>
                   <th>TC Kimlik No</th>
                   <th>Şantiye</th>
                   <th>Telefon</th>
@@ -278,15 +282,16 @@ export default function PersonnelList() {
               </thead>
               <tbody>
                 {filtered.map((p) => (
-                  <tr key={p.id} onClick={() => openEdit(p)} className="cursor-pointer hover:bg-gray-50 transition">
-                    <td className="font-medium text-gray-800">{p.ad_soyad || "-"}</td>
-                    <td className="font-mono text-sm">{maskTC(p.kimlik_no)}</td>
-                    <td className="text-gray-600">{p.santiye_adi || "-"}</td>
-                    <td className="text-gray-600">{p.telefon || "-"}</td>
-                    <td className="text-gray-600">{p.email || "-"}</td>
-                    <td className="text-gray-600">{p.ogrenim_durumu || "-"}</td>
-                    <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
-                    <td>
+                  <tr key={p.id} onClick={() => openEdit(p)} className="cursor-pointer hover:bg-gray-50 transition align-middle">
+                    <td className="font-medium text-gray-800 align-middle">{p.ad || "-"}</td>
+                    <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>
+                    <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
+                    <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.email || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
+                    <td className="text-gray-500 align-middle">{p.ise_giris_tarihi || "-"}</td>
+                    <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         <button onClick={() => openDetail(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
                           <Eye className="w-3.5 h-3.5" /> Detay
@@ -320,9 +325,9 @@ export default function PersonnelList() {
             </div>
             <div className="p-6 space-y-6">
               <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl font-medium text-gray-600">{(selectedPerson.ad_soyad || "?").charAt(0)}</div>
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl font-medium text-gray-600">{(selectedPerson.ad || "?").charAt(0)}</div>
                 <div>
-                  <h4 className="text-xl font-semibold text-gray-800">{selectedPerson.ad_soyad || "-"}</h4>
+                  <h4 className="text-xl font-semibold text-gray-800">{selectedPerson.ad} {selectedPerson.soyad || "-"}</h4>
                   <p className="text-gray-500">{maskTC(selectedPerson.kimlik_no)}</p>
                 </div>
               </div>
@@ -400,13 +405,16 @@ export default function PersonnelList() {
 
               {/* Kişisel Bilgiler */}
               <div className="grid grid-cols-3 gap-2">
-                <div><label className="text-[10px] text-gray-400 mb-0.5 block">Ad Soyad</label><input type="text" value={editForm.ad_soyad} onChange={e => setEditForm({...editForm, ad_soyad: e.target.value})} className="input text-xs" /></div>
+                <div><label className="text-[10px] text-gray-400 mb-0.5 block">Ad</label><input type="text" value={editForm.ad} onChange={e => setEditForm({...editForm, ad: e.target.value})} className="input text-xs" /></div>
+                <div><label className="text-[10px] text-gray-400 mb-0.5 block">Soyad</label><input type="text" value={editForm.soyad} onChange={e => setEditForm({...editForm, soyad: e.target.value})} className="input text-xs" /></div>
                 <div><label className="text-[10px] text-gray-400 mb-0.5 block">Telefon</label><input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input text-xs" /></div>
-                <div><label className="text-[10px] text-gray-400 mb-0.5 block">E-posta</label><input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs" /></div>
               </div>
               <div className="grid grid-cols-3 gap-2">
+                <div><label className="text-[10px] text-gray-400 mb-0.5 block">E-posta</label><input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs" /></div>
                 <div><label className="text-[10px] text-gray-400 mb-0.5 block">Öğrenim</label><select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs"><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
                 <div><label className="text-[10px] text-gray-400 mb-0.5 block">Şantiye</label><input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs" /></div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
                 <div><label className="text-[10px] text-gray-400 mb-0.5 block">Ekip</label><input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs" /></div>
               </div>
 

@@ -63,13 +63,13 @@ export default function IhtarTutanagi() {
   useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
   const fetchItems = async () => {
-    const { data } = await supabase.from("ihtar_tutanagi").select("*, personel(ad_soyad, kimlik_no)").order("tarih", { ascending: false });
+    const { data } = await supabase.from("ihtar_tutanagi").select("*, personel(ad, soyad, kimlik_no)").order("tarih", { ascending: false });
     if (data) setItems(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, ad_soyad");
+    const { data } = await supabase.from("personel").select("id, ad, soyad");
     if (data) setPersonel(data);
   };
 
@@ -78,7 +78,7 @@ export default function IhtarTutanagi() {
     if (data) setDosyalar(data);
   };
 
-  const filtered = items.filter(i => i.konu.toLowerCase().includes(search.toLowerCase()) || (i.personel?.ad_soyad && i.personel.ad_soyad.toLowerCase().includes(search.toLowerCase())));
+  const filtered = items.filter(i => i.konu.toLowerCase().includes(search.toLowerCase()) || (i.personel && `${i.personel.ad || ""} ${i.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())));
 
   const handleSubmit = async () => {
     if (!form.konu || !form.personel_id || !form.tarih) return;
@@ -224,7 +224,7 @@ export default function IhtarTutanagi() {
             <tbody>
               {filtered.map(i => (
                 <tr key={i.id}>
-                  <td className="font-medium">{i.personel?.ad_soyad || "-"}</td>
+                  <td className="font-medium">{i.personel ? `${i.personel.ad || ""} ${i.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td><span className={`badge ${i.ihtar_tipi === "kesin" ? "bg-red-100 text-red-700" : i.ihtar_tipi === "kinai" ? "bg-orange-100 text-orange-700" : i.ihtar_tipi === "yazili" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>{ihtarTipleri.find(t => t.value === i.ihtar_tipi)?.label}</span></td>
                   <td>{new Date(i.tarih).toLocaleDateString("tr-TR")}</td>
                   <td>{i.yer || "-"}</td>
@@ -252,7 +252,7 @@ export default function IhtarTutanagi() {
           <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
             <div className="modal-header"><h3>{editing ? "İhtar Düzenle" : "Yeni İhtar Tutanağı"}</h3><button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-gray-400" /></button></div>
             <div className="modal-body space-y-4">
-              <div><label>Personel *</label><select value={form.personel_id} onChange={e => setForm({ ...form, personel_id: e.target.value })}><option value="">Seçiniz</option>{personel.map(p => <option key={p.id} value={p.id}>{p.ad_soyad}</option>)}</select></div>
+              <div><label>Personel *</label><select value={form.personel_id} onChange={e => setForm({ ...form, personel_id: e.target.value })}><option value="">Seçiniz</option>{personel.map(p => <option key={p.id} value={p.id}>{p.ad} {p.soyad}</option>)}</select></div>
               <div className="grid-2"><div><label>İhtar Tipi</label><select value={form.ihtar_tipi} onChange={e => setForm({ ...form, ihtar_tipi: e.target.value })}>{ihtarTipleri.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div><div><label>Tarih *</label><input type="date" value={form.tarih} onChange={e => setForm({ ...form, tarih: e.target.value })} /></div></div>
               <div><label>Yer</label><input type="text" value={form.yer} onChange={e => setForm({ ...form, yer: e.target.value })} placeholder="Olay yeri" /></div>
               <div><label>Konu *</label><input type="text" value={form.konu} onChange={e => setForm({ ...form, konu: e.target.value })} placeholder="İhtar konusu" /></div>
@@ -274,7 +274,7 @@ export default function IhtarTutanagi() {
             <div className="modal-header">
               <div>
                 <h3>İhtar Detayı</h3>
-                <p className="text-xs text-gray-500 mt-1">{selectedIhtar.personel?.ad_soyad} — {selectedIhtar.konu}</p>
+                <p className="text-xs text-gray-500 mt-1">{selectedIhtar.personel ? `${selectedIhtar.personel.ad || ""} ${selectedIhtar.personel.soyad || ""}`.trim() : ""} — {selectedIhtar.konu}</p>
               </div>
               <button onClick={() => { setSelectedIhtar(null); setShowUpload(false); setEditingDosya(null); }}><X className="w-5 h-5 text-gray-400" /></button>
             </div>

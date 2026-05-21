@@ -17,13 +17,13 @@ export default function IsKazalari() {
   useEffect(() => { fetchKazalar(); fetchPersonel(); }, []);
 
   const fetchKazalar = async () => {
-    const { data } = await supabase.from("is_kazalari").select("*, personel(kimlik_no, ad_soyad)").order("tarih", { ascending: false });
+    const { data } = await supabase.from("is_kazalari").select("*, personel(kimlik_no, ad, soyad)").order("tarih", { ascending: false });
     if (data) setKazalar(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad_soyad");
+    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad");
     if (data) setPersonel(data);
   };
 
@@ -63,7 +63,7 @@ export default function IsKazalari() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad_soyad} ({p.kimlik_no})</option>)}
+                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
               </select>
               <div className="grid grid-cols-2 gap-4">
                 <input type="date" required value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} className="p-2 border rounded-lg" />
@@ -101,10 +101,10 @@ export default function IsKazalari() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {kazalar.filter((k) => !search || k.personel?.ad_soyad?.toLowerCase().includes(search.toLowerCase()) || k.yer?.toLowerCase().includes(search.toLowerCase())).map((k) => (
+              {kazalar.filter((k) => !search || (k.personel && `${k.personel.ad || ""} ${k.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || k.yer?.toLowerCase().includes(search.toLowerCase())).map((k) => (
                 <tr key={k.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{k.tarih}</td>
-                  <td className="px-4 py-3 text-sm">{k.personel?.ad_soyad || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td className="px-4 py-3 text-sm">{k.yer || "-"}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${k.yaralanma_durumu === "yok" ? "bg-green-100 text-green-700" : k.yaralanma_durumu === "hafif" ? "bg-yellow-100 text-yellow-700" : k.yaralanma_durumu === "agri" ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>{k.yaralanma_durumu || "-"}</span></td>
                   <td className="px-4 py-3 text-sm">{k.rapor_no || "-"}</td>

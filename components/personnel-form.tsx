@@ -145,7 +145,7 @@ export default function PersonnelForm() {
     setStatus(null);
     try {
       const payload = {
-        kimlik_no: sanitize(form.kimlikNo), ad_soyad: sanitize(form.ad + " " + form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
+        kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: sanitize(form.meslekKodu), telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
         santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
