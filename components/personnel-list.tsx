@@ -559,11 +559,13 @@ export default function PersonnelList() {
                         <div className="grid grid-cols-2 gap-2">
                           {tipFiles.map((b: any) => (
                             <div key={b.id} className="card p-2 flex items-center gap-2">
-                              {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
-                                <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
-                              </div>
+                              <a href={b.dosya_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
+                                {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
+                                  <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
+                                </div>
+                              </a>
                               <div className="flex items-center gap-1">
                                 <button type="button" onClick={() => { console.log("toggleLock", b.id, lockedFiles.has(b.id)); toggleLock(b.id); }} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
                                   {lockedFiles.has(b.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
