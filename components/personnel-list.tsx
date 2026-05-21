@@ -398,34 +398,54 @@ export default function PersonnelList() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-sm text-gray-600 mb-1 block">Ad Soyad</label><input type="text" value={editForm.ad_soyad} onChange={e => setEditForm({...editForm, ad_soyad: e.target.value})} className="input" /></div>
-                <div><label className="text-sm text-gray-600 mb-1 block">Telefon</label><input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input" /></div>
+              {/* Kişisel Bilgiler - Inline */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">Ad Soyad</label>
+                  <input type="text" value={editForm.ad_soyad} onChange={e => setEditForm({...editForm, ad_soyad: e.target.value})} className="input text-xs" style={{width: "auto", minWidth: "140px"}} />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">Telefon</label>
+                  <input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input text-xs" style={{width: "auto", minWidth: "120px"}} />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">E-posta</label>
+                  <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs" style={{width: "auto", minWidth: "160px"}} />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-sm text-gray-600 mb-1 block">E-posta</label><input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input" /></div>
-                <div><label className="text-sm text-gray-600 mb-1 block">Öğrenim Durumu</label><select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input"><option value="">Seçiniz</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-sm text-gray-600 mb-1 block">Şantiye</label><input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input" /></div>
-                <div><label className="text-sm text-gray-600 mb-1 block">Ekip</label><input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input" /></div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">Öğrenim</label>
+                  <select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs" style={{width: "auto"}}><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">Şantiye</label>
+                  <input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs" style={{width: "auto", minWidth: "120px"}} />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-gray-500 whitespace-nowrap">Ekip</label>
+                  <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs" style={{width: "auto", minWidth: "100px"}} />
+                </div>
               </div>
 
               <div className="pt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">İSG Tarihleri</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">İSG Tarihleri</h4>
+                <div className="flex flex-wrap items-center gap-3">
                   {[
-                    { label: "İSG Eğitim", field: "isg_egitim_tarihi" },
-                    { label: "Yüksekte Çalışma", field: "yuksekte_calisma_tarihi" },
+                    { label: "İSG", field: "isg_egitim_tarihi" },
+                    { label: "Yüksekte", field: "yuksekte_calisma_tarihi" },
                     { label: "MYK", field: "myk_tarihi" },
-                    { label: "Operatör Belgesi", field: "operator_belgesi_tarihi" },
+                    { label: "Operatör", field: "operator_belgesi_tarihi" },
                     { label: "KKD", field: "kkd_tarihi" },
                     { label: "Oryantasyon", field: "oryantasyon_tarihi" },
                   ].map(item => (
-                    <div key={item.field} className="flex items-center gap-2">
-                      <label className="text-xs text-gray-500 w-28">{item.label}</label>
-                      <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs" style={{width: "auto", flex: 1}} />
-                      <button type="button" onClick={() => setUploadModalField(item.field)} className="p-1 rounded text-gray-400 hover:text-blue-600"><Paperclip className="w-3.5 h-3.5" /></button>
+                    <div key={item.field} className="flex items-center gap-1.5">
+                      <label className="text-xs text-gray-500 whitespace-nowrap">{item.label}</label>
+                      <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs" style={{width: "auto"}} />
+                      <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition relative ${pendingFiles.filter(f => f.field === item.field).length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {pendingFiles.filter(f => f.field === item.field).length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === item.field).length}</span>}
+                      </button>
                     </div>
                   ))}
                 </div>
