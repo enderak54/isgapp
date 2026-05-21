@@ -404,44 +404,46 @@ export default function PersonnelList() {
               )}
 
               {/* Kişisel Bilgiler */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Ad</label>
-                  <input type="text" value={editForm.ad} onChange={e => setEditForm({...editForm, ad: e.target.value})} className="input text-xs flex-1" />
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Ad</label>
+                  <input type="text" value={editForm.ad} onChange={e => setEditForm({...editForm, ad: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Soyad</label>
-                  <input type="text" value={editForm.soyad} onChange={e => setEditForm({...editForm, soyad: e.target.value})} className="input text-xs flex-1" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Telefon</label>
-                  <input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input text-xs flex-1" />
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Soyad</label>
+                  <input type="text" value={editForm.soyad} onChange={e => setEditForm({...editForm, soyad: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-3">
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">E-posta</label>
-                  <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs flex-1" />
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Telefon</label>
+                  <input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Öğrenim</label>
-                  <select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs flex-1"><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Şantiye</label>
-                  <input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs flex-1" />
+                  <label className="text-xs text-gray-500 w-12 shrink-0">E-posta</label>
+                  <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-3">
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-14 shrink-0">Ekip</label>
-                  <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs flex-1" />
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Öğrenim</label>
+                  <select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Şantiye</label>
+                  <input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Ekip</label>
+                  <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">İSG Tarihleri</h4>
-                <div className="grid grid-cols-3 gap-4">
+              <div className="pt-3 mt-3 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">İSG Tarihleri</h4>
+                <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "İSG", field: "isg_egitim_tarihi" },
                     { label: "Yüksekte", field: "yuksekte_calisma_tarihi" },
@@ -452,7 +454,7 @@ export default function PersonnelList() {
                   ].map(item => (
                     <div key={item.field} className="flex items-center gap-2">
                       <label className="text-xs text-gray-500 w-16 shrink-0">{item.label}</label>
-                      <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs flex-1" />
+                      <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs flex-1 min-w-0" />
                       <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === item.field).length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
                         <Paperclip className="w-3.5 h-3.5" />
                         {pendingFiles.filter(f => f.field === item.field).length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === item.field).length}</span>}
@@ -462,24 +464,24 @@ export default function PersonnelList() {
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Sağlık</h4>
-                <div className="grid grid-cols-3 gap-4">
+              <div className="pt-3 mt-3 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sağlık</h4>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-24 shrink-0">Sağlık Raporu</label>
-                    <input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs flex-1" />
+                    <label className="text-xs text-gray-500 w-20 shrink-0">Sağlık Raporu</label>
+                    <input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                     <button type="button" onClick={() => setUploadModalField("saglik_raporu_tarihi")} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
                       <Paperclip className="w-3.5 h-3.5" />
                       {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length}</span>}
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-14 shrink-0">Kan</label>
-                    <select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs flex-1"><option value="">Seç</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select>
+                    <label className="text-xs text-gray-500 w-12 shrink-0">Kan</label>
+                    <select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-14 shrink-0">Kronik</label>
-                    <input type="text" value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input text-xs flex-1" placeholder="Varsa..." />
+                  <div className="flex items-center gap-2 col-span-2">
+                    <label className="text-xs text-gray-500 w-12 shrink-0">Kronik</label>
+                    <input type="text" value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="Varsa..." />
                   </div>
                 </div>
 
