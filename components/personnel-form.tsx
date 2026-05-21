@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
-  User, Users, Calendar, Briefcase, Phone, Building2, Shield, Heart, FileText, Save, CheckCircle, AlertCircle
+  User, Users, Calendar, Briefcase, Phone, Building2, Shield, Heart, FileText, Save, CheckCircle, AlertCircle,
+  Upload, X, Paperclip, Eye, Trash2, Image as ImageIcon, FileText as FileDoc
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { sanitize } from "@/lib/security";
@@ -10,6 +11,32 @@ import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
+
+const BELGE_TIPLERI: Record<string, string> = {
+  isgEgitimTarihi: "isg_egitim",
+  yuksekteCalisma: "yuksekte_calisma",
+  myk: "myk",
+  operatorBelgesi: "operator_belgesi",
+  kkd: "kkd",
+  oryantasyon: "oryantasyon",
+  saglikRaporuTarihi: "saglik_raporu",
+};
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+
+function getFileExt(name: string) { return name.split(".").pop()?.toLowerCase() || ""; }
+function formatBytes(bytes: number) {
+  if (bytes === 0) return "0 B";
+  const k = 1024; const sizes = ["B", "KB", "MB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+interface PendingFile {
+  field: string;
+  file: File;
+  preview?: string;
+}
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
@@ -25,10 +52,15 @@ export default function PersonnelForm() {
   const [tcError, setTcError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [uploadModalField, setUploadModalField] = useState<string | null>(null);
+  const [uploadDragOver, setUploadDragOver] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleTcChange = (value: string) => {
     const numericOnly = value.replace(/\D/g, "").slice(0, 11);
     setForm((prev) => ({ ...prev, kimlikNo: numericOnly }));
-    
     if (numericOnly.length > 0 && numericOnly.length < 11) {
       setTcError("TC Kimlik No 11 haneli olmalıdır");
     } else {
@@ -60,13 +92,55 @@ export default function PersonnelForm() {
     setForm((prev) => ({ ...prev, notlar: newNotes }));
   };
 
+  const addFiles = (field: string, files: File[]) => {
+    const valid = files.filter(f => ALLOWED_TYPES.includes(f.type));
+    const newFiles: PendingFile[] = valid.map(f => ({
+      field,
+      file: f,
+      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
+    }));
+    setPendingFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => {
+      const f = prev[index];
+      if (f?.preview) URL.revokeObjectURL(f.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setUploadDragOver(true); }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setUploadDragOver(false); }, []);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); setUploadDragOver(false);
+    if (uploadModalField) addFiles(uploadModalField, Array.from(e.dataTransfer.files));
+  }, [uploadModalField]);
+
+  const uploadFilesForPersonel = async (personelId: string) => {
+    const filesForUpload = pendingFiles.filter(f => f.field && BELGE_TIPLERI[f.field]);
+    if (filesForUpload.length === 0) return;
+    for (const pf of filesForUpload) {
+      const fileExt = getFileExt(pf.file.name);
+      const fileName = `${personelId}/${Date.now()}_${pf.file.name}`;
+      const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
+      if (uploadError) { console.error("Upload error:", uploadError); continue; }
+      const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+      await supabase.from("personel_belgeleri").insert({
+        personel_id: personelId,
+        belge_tipi: BELGE_TIPLERI[pf.field],
+        dosya_url: urlData.publicUrl,
+        dosya_adi: pf.file.name,
+        dosya_uzantisi: fileExt,
+        dosya_boyut: pf.file.size,
+      });
+    }
+    setPendingFiles([]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+    if (!validateForm()) return;
     setLoading(true);
     setStatus(null);
     try {
@@ -83,15 +157,20 @@ export default function PersonnelForm() {
         vardiyali_calisir: !!form.vardiyaliCalisir, vardiyali_calisamaz: !!form.vardiyaliCalisamaz,
         notlar: form.notlar.map((n) => sanitize(n)).filter((n) => n).join(" | "),
       };
-      const { error } = await supabase.from("personel").insert(payload);
+      const { data, error } = await supabase.from("personel").insert(payload).select();
       if (error) throw error;
+      if (data && data[0]) {
+        await uploadFilesForPersonel(data[0].id);
+      }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
-    santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
+        santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
         kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
+      pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
+      setPendingFiles([]);
     } catch (err: any) {
       setStatus({ type: "error", message: err.message || "Kayıt sırasında hata oluştu." });
     } finally {
@@ -99,12 +178,41 @@ export default function PersonnelForm() {
     }
   };
 
+  const fieldFileCount = (field: string) => pendingFiles.filter(f => f.field === field).length;
+
+  const belgeFields = [
+    { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi" },
+    { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
+    { label: "MYK", field: "myk" },
+    { label: "Operatör Belgesi", field: "operatorBelgesi" },
+    { label: "KKD", field: "kkd" },
+    { label: "Oryantasyon", field: "oryantasyon" },
+  ];
+
   return (
     <main className="flex-1 p-4 app-bg min-h-screen">
       {status && (
         <div className={`mb-3 p-3 rounded-lg flex items-center gap-2 text-sm ${status.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
           {status.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           <span>{status.message}</span>
+        </div>
+      )}
+
+      {pendingFiles.length > 0 && (
+        <div className="mb-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-blue-700 flex items-center gap-2"><Paperclip className="w-4 h-4" /> Bekleyen Dosyalar ({pendingFiles.length})</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {pendingFiles.map((pf, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-lg text-xs">
+                {pf.preview ? <ImageIcon className="w-3 h-3 text-blue-500" /> : <FileDoc className="w-3 h-3 text-amber-500" />}
+                <span className="text-gray-700 truncate max-w-32">{pf.file.name}</span>
+                <span className="text-gray-400">({formatBytes(pf.file.size)})</span>
+                <button onClick={() => removePendingFile(i)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -127,38 +235,19 @@ export default function PersonnelForm() {
             <div className="space-y-2">
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={form.kimlikNo}
-                  onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }}
-                  className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`}
-                  placeholder="11 haneli TC kimlik numarası"
-                />
+                <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
                 {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1 block">Ad</label>
-                    <input
-                      type="text"
-                      value={form.ad}
-                      onChange={(e) => { handleChange("ad", e.target.value); setErrors((p) => ({ ...p, ad: "" })); }}
-                      className={`input ${errors.ad ? "border-red-500" : ""}`}
-                      placeholder="Ad"
-                    />
-                    {errors.ad && <p className="text-xs text-red-500 mt-1">{errors.ad}</p>}
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
-                    <input
-                      type="text"
-                      value={form.soyad}
-                      onChange={(e) => { handleChange("soyad", e.target.value); setErrors((p) => ({ ...p, soyad: "" })); }}
-                      className={`input ${errors.soyad ? "border-red-500" : ""}`}
-                      placeholder="Soyad"
-                    />
-                    {errors.soyad && <p className="text-xs text-red-500 mt-1">{errors.soyad}</p>}
+                  <input type="text" value={form.ad} onChange={(e) => { handleChange("ad", e.target.value); setErrors((p) => ({ ...p, ad: "" })); }} className={`input ${errors.ad ? "border-red-500" : ""}`} placeholder="Ad" />
+                  {errors.ad && <p className="text-xs text-red-500 mt-1">{errors.ad}</p>}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
+                  <input type="text" value={form.soyad} onChange={(e) => { handleChange("soyad", e.target.value); setErrors((p) => ({ ...p, soyad: "" })); }} className={`input ${errors.soyad ? "border-red-500" : ""}`} placeholder="Soyad" />
+                  {errors.soyad && <p className="text-xs text-red-500 mt-1">{errors.soyad}</p>}
                 </div>
               </div>
               {[
@@ -167,35 +256,17 @@ export default function PersonnelForm() {
               ].map((item) => (
                 <div key={item.field}>
                   <label className="text-sm text-gray-600 mb-1.5 block">{item.label}</label>
-                  <input
-                    type={item.type || "text"}
-                    value={form[item.field as keyof typeof form] as string}
-                    onChange={(e) => handleChange(item.field, e.target.value)}
-                    className="input"
-                    placeholder={item.placeholder}
-                  />
+                  <input type={item.type || "text"} value={form[item.field as keyof typeof form] as string} onChange={(e) => handleChange(item.field, e.target.value)} className="input" placeholder={item.placeholder} />
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
-                  <input
-                    type="text"
-                    value={form.telefon}
-                    onChange={(e) => handleChange("telefon", e.target.value)}
-                    className="input"
-                    placeholder="05XX XXX XX XX"
-                  />
+                  <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    className="input"
-                    placeholder="ornek@mail.com"
-                  />
+                  <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="input" placeholder="ornek@mail.com" />
                 </div>
               </div>
               <div>
@@ -207,23 +278,11 @@ export default function PersonnelForm() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Şantiye</label>
-                <input
-                  type="text"
-                  value={form.santiyeAdi}
-                  onChange={(e) => handleChange("santiyeAdi", e.target.value)}
-                  className="input"
-                  placeholder="Şantiye Adı"
-                />
+                <input type="text" value={form.santiyeAdi} onChange={(e) => handleChange("santiyeAdi", e.target.value)} className="input" placeholder="Şantiye Adı" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Ekip</label>
-                <input
-                  type="text"
-                  value={form.ekipAdi}
-                  onChange={(e) => handleChange("ekipAdi", e.target.value)}
-                  className="input"
-                  placeholder="Ekip Adı"
-                />
+                <input type="text" value={form.ekipAdi} onChange={(e) => handleChange("ekipAdi", e.target.value)} className="input" placeholder="Ekip Adı" />
               </div>
             </div>
           </div>
@@ -235,66 +294,21 @@ export default function PersonnelForm() {
               İSG Eğitimler
             </h3>
             <div className="flex flex-col gap-0">
-              {[
-                { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi" },
-                { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
-                { label: "MYK", field: "myk" },
-                { label: "Operatör Belgesi", field: "operatorBelgesi" },
-                { label: "KKD", field: "kkd" },
-                { label: "Oryantasyon", field: "oryantasyon" },
-              ].map((item, idx) => {
+              {belgeFields.map((item, idx) => {
                 const errField = item.field as keyof typeof errors;
                 const hasErr = errors[errField as string];
+                const fc = fieldFileCount(item.field);
                 return (
-                <div 
-                  key={item.field} 
-                  className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}
-                >
+                <div key={item.field} className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>
                   <span className="text-xs text-gray-700 w-40">{item.label}</span>
                   <div className="flex items-center gap-0.5">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="gg.aa.yyyy"
-                      maxLength={10}
-                      value={toDisplay(form[item.field as keyof typeof form] as string)}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^0-9.]/g, "");
-                        handleChange(item.field, toDb(v));
-                        setErrors((p) => ({ ...p, [item.field]: "" }));
-                      }}
-                      className={`input text-xs ${hasErr ? "border-red-500" : ""}`}
-                      style={{ width: "5.5rem" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement;
-                        if (!picker) return;
-                        const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect();
-                        picker.style.position = "fixed";
-                        picker.style.left = rect.left + "px";
-                        picker.style.top = rect.top + "px";
-                        picker.style.width = "1px";
-                        picker.style.height = "1px";
-                        picker.style.opacity = "0";
-                        picker.style.display = "block";
-                        picker.focus();
-                        picker.showPicker();
-                      }}
-                      id={`dp-btn-${item.field}`}
-                      className="text-gray-400 hover:text-gray-600 p-0.5"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
+                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form[item.field as keyof typeof form] as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange(item.field, toDb(v)); setErrors((p) => ({ ...p, [item.field]: "" })); }} className={`input text-xs ${hasErr ? "border-red-500" : ""}`} style={{ width: "5.5rem" }} />
+                    <button type="button" onClick={() => { const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement; if (!picker) return; const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id={`dp-btn-${item.field}`} className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
+                    <input id={`dp-${item.field}`} type="date" className="hidden" value={form[item.field as keyof typeof form] as string} onChange={(e) => { handleChange(item.field, e.target.value); }} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition ${fc > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {fc > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fc}</span>}
                     </button>
-                    <input
-                      id={`dp-${item.field}`}
-                      type="date"
-                      className="hidden"
-                      value={form[item.field as keyof typeof form] as string}
-                      onChange={(e) => { handleChange(item.field, e.target.value); }}
-                      onBlur={(e) => { e.currentTarget.style.display = "none"; }}
-                    />
                   </div>
                   {hasErr && <p className="text-xs text-red-500">{hasErr}</p>}
                 </div>
@@ -314,49 +328,13 @@ export default function PersonnelForm() {
                 <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu Tarihi</label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-0.5">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="gg.aa.yyyy"
-                      maxLength={10}
-                      value={toDisplay(form.saglikRaporuTarihi)}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^0-9.]/g, "");
-                        handleChange("saglikRaporuTarihi", toDb(v));
-                        setErrors((p) => ({ ...p, saglikRaporuTarihi: "" }));
-                      }}
-                      className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`}
-                      style={{ width: "5.5rem" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const picker = document.getElementById("dp-saglikRaporu") as HTMLInputElement;
-                        if (!picker) return;
-                        const rect = (document.getElementById("dp-btn-saglikRaporu") as HTMLElement).getBoundingClientRect();
-                        picker.style.position = "fixed";
-                        picker.style.left = rect.left + "px";
-                        picker.style.top = rect.top + "px";
-                        picker.style.width = "1px";
-                        picker.style.height = "1px";
-                        picker.style.opacity = "0";
-                        picker.style.display = "block";
-                        picker.focus();
-                        picker.showPicker();
-                      }}
-                      id="dp-btn-saglikRaporu"
-                      className="text-gray-400 hover:text-gray-600 p-0.5"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
+                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.saglikRaporuTarihi)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("saglikRaporuTarihi", toDb(v)); setErrors((p) => ({ ...p, saglikRaporuTarihi: "" })); }} className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`} style={{ width: "5.5rem" }} />
+                    <button type="button" onClick={() => { const picker = document.getElementById("dp-saglikRaporu") as HTMLInputElement; if (!picker) return; const rect = (document.getElementById("dp-btn-saglikRaporu") as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id="dp-btn-saglikRaporu" className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
+                    <input id="dp-saglikRaporu" type="date" className="hidden" value={form.saglikRaporuTarihi} onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <button type="button" onClick={() => setUploadModalField("saglikRaporuTarihi")} className={`p-1 rounded transition relative ${fieldFileCount("saglikRaporuTarihi") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {fieldFileCount("saglikRaporuTarihi") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("saglikRaporuTarihi")}</span>}
                     </button>
-                    <input
-                      id="dp-saglikRaporu"
-                      type="date"
-                      className="hidden"
-                      value={form.saglikRaporuTarihi}
-                      onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)}
-                      onBlur={(e) => { e.currentTarget.style.display = "none"; }}
-                    />
                   </div>
                   {errors.saglikRaporuTarihi && <p className="text-xs text-red-500">{errors.saglikRaporuTarihi}</p>}
                   {[
@@ -367,15 +345,11 @@ export default function PersonnelForm() {
                     <div key={item.label} className="flex items-center gap-4 text-sm">
                       <span className="text-xs text-gray-700 w-20">{item.label}</span>
                       <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="radio" name={item.label} checked={form[item.canWork as keyof typeof form] as boolean}
-                          onChange={() => { handleChange(item.canWork, true); handleChange(item.cannotWork, false); }}
-                          className="w-4 h-4 accent-gray-600" />
+                        <input type="radio" name={item.label} checked={form[item.canWork as keyof typeof form] as boolean} onChange={() => { handleChange(item.canWork, true); handleChange(item.cannotWork, false); }} className="w-4 h-4 accent-gray-600" />
                         <span className="text-gray-600">Çalışır</span>
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="radio" name={item.label} checked={form[item.cannotWork as keyof typeof form] as boolean}
-                          onChange={() => { handleChange(item.cannotWork, true); handleChange(item.canWork, false); }}
-                          className="w-4 h-4 accent-gray-600" />
+                        <input type="radio" name={item.label} checked={form[item.cannotWork as keyof typeof form] as boolean} onChange={() => { handleChange(item.cannotWork, true); handleChange(item.canWork, false); }} className="w-4 h-4 accent-gray-600" />
                         <span className="text-gray-600">Çalışamaz</span>
                       </label>
                     </div>
@@ -391,12 +365,7 @@ export default function PersonnelForm() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Kronik Rahatsızlık</label>
-                <textarea
-                  value={form.kronikRahatsizlik}
-                  onChange={(e) => handleChange("kronikRahatsizlik", e.target.value)}
-                  className="input h-20 resize-none"
-                  placeholder="Varsa kronik rahatsızlıkları yazınız..."
-                />
+                <textarea value={form.kronikRahatsizlik} onChange={(e) => handleChange("kronikRahatsizlik", e.target.value)} className="input h-20 resize-none" placeholder="Varsa kronik rahatsızlıkları yazınız..." />
               </div>
             </div>
           </div>
@@ -404,27 +373,64 @@ export default function PersonnelForm() {
 
         {/* Notlar */}
         <div className="card p-3 mt-3">
-          <button 
-            type="button"
-            onClick={() => setShowNotes(!showNotes)} 
-            className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
-          >
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-gray-400" />
-              Notlar
-            </div>
+          <button type="button" onClick={() => setShowNotes(!showNotes)} className="w-full flex items-center justify-between text-sm font-semibold text-gray-800">
+            <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-gray-400" /> Notlar</div>
             <span className="text-gray-400">{showNotes ? "▼" : "▶"}</span>
           </button>
           {showNotes && (
             <div className="grid grid-cols-3 gap-2 mt-2">
               {form.notlar.map((note, index) => (
-                <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)}
-                  placeholder="Not ekle..." className="input h-16 resize-none text-xs" />
+                <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)} placeholder="Not ekle..." className="input h-16 resize-none text-xs" />
               ))}
             </div>
           )}
         </div>
       </form>
+
+      {/* Dosya Yükleme Modal */}
+      {uploadModalField && (
+        <div className="modal-overlay" onClick={() => { setUploadModalField(null); setUploadDragOver(false); }}>
+          <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Dosya Ekle — {belgeFields.find(b => b.field === uploadModalField)?.label || "Sağlık Raporu"}</h3>
+              <button onClick={() => { setUploadModalField(null); setUploadDragOver(false); }}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="modal-body">
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${uploadDragOver ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"}`}
+              >
+                <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf" onChange={(e) => { if (e.target.files) addFiles(uploadModalField, Array.from(e.target.files)); e.target.value = ""; }} className="hidden" />
+                <Upload className={`w-10 h-10 mx-auto mb-2 ${uploadDragOver ? "text-blue-500" : "text-gray-400"}`} />
+                <p className="text-sm text-gray-600 font-medium">Sürükle-bırak veya tıklayarak seç</p>
+                <p className="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP, PDF</p>
+              </div>
+              {pendingFiles.filter(f => f.field === uploadModalField).length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-medium text-gray-500">Seçili dosyalar:</p>
+                  {pendingFiles.filter(f => f.field === uploadModalField).map((pf, i) => {
+                    const globalIdx = pendingFiles.indexOf(pf);
+                    return (
+                      <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                        {pf.preview ? <img src={pf.preview} alt="" className="w-8 h-8 rounded object-cover" /> : <FileDoc className="w-6 h-6 text-amber-500" />}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">{pf.file.name}</p>
+                          <p className="text-[10px] text-gray-400">{formatBytes(pf.file.size)}</p>
+                        </div>
+                        <button onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-3">💾 Dosyalar personel kaydedildiğinde otomatik yüklenecek</p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
