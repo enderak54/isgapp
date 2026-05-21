@@ -77,6 +77,8 @@ export default function PersonnelList() {
                   <th>TC Kimlik No</th>
                   <th>Şantiye</th>
                   <th>Telefon</th>
+                  <th>E-posta</th>
+                  <th>Öğrenim</th>
                   <th>İşe Giriş</th>
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
@@ -88,6 +90,8 @@ export default function PersonnelList() {
                     <td className="font-mono text-sm">{maskTC(p.kimlik_no)}</td>
                     <td className="text-gray-600">{p.santiye_adi || "-"}</td>
                     <td className="text-gray-600">{p.telefon || "-"}</td>
+                    <td className="text-gray-600">{p.email || "-"}</td>
+                    <td className="text-gray-600">{p.ogrenim_durumu || "-"}</td>
                     <td className="text-gray-500">{p.ise_giris_tarihi || "-"}</td>
                     <td>
                       <div className="flex items-center justify-center gap-1">
@@ -140,8 +144,16 @@ export default function PersonnelList() {
                     <span className="text-sm">{selectedPerson.telefon || "-"}</span>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">{selectedPerson.email || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <Building2 className="w-4 h-4 text-gray-400" />
                     <span className="text-sm">{selectedPerson.santiye_adi || "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">{selectedPerson.ogrenim_durumu || "-"}</span>
                   </div>
                 </div>
                 

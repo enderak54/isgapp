@@ -17,9 +17,19 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ShieldCheck,
+  Scale,
+  ClipboardCheck,
+  Siren,
+  RotateCcw,
+  Eye,
+  FileCheck,
+  Award,
+  TrendingUp,
 } from "lucide-react";
 
-const allMenuItems = [
+const mainMenuItems = [
   { icon: LayoutDashboard, label: "İSG Takip", href: "/dashboard", key: "dashboard" },
   { icon: Users, label: "Personel", href: "/personel", key: "personel" },
   { icon: GraduationCap, label: "MYK", href: "/myk", key: "myk" },
@@ -32,7 +42,18 @@ const allMenuItems = [
   { icon: Wrench, label: "Ekipmanlar", href: "/ekipmanlar", key: "ekipmanlar" },
   { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
   { icon: GraduationCap, label: "Eğitimler", href: "/egitimler", key: "egitimler" },
-  { icon: Settings, label: "Ayarlar", href: "/ayarlar", key: "settings" },
+];
+
+const ekModulItems = [
+  { icon: ShieldCheck, label: "Risk Değerlendirme", href: "/risk", key: "risk" },
+  { icon: Scale, label: "Yasal Uygunluk", href: "/yasal", key: "yasal" },
+  { icon: ClipboardCheck, label: "İç Denetim", href: "/denetim", key: "denetim" },
+  { icon: Siren, label: "Acil Durum", href: "/acil", key: "acil" },
+  { icon: RotateCcw, label: "Düzeltici Faaliyet", href: "/duzeltici", key: "duzeltici" },
+  { icon: Eye, label: "Yönetim Gözden Geçirme", href: "/ygg", key: "ygg" },
+  { icon: FileCheck, label: "Doküman Kontrol", href: "/dokuman", key: "dokuman" },
+  { icon: Award, label: "Yetkinlik Matrisi", href: "/yetkinlik", key: "yetkinlik" },
+  { icon: TrendingUp, label: "Performans İzleme", href: "/performans", key: "performans" },
 ];
 
 import Link from "next/link";
@@ -43,6 +64,7 @@ import { supabase } from "@/lib/supabase";
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [ekModulOpen, setEkModulOpen] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -61,8 +83,11 @@ export default function Sidebar() {
           return acc;
         }, {} as Record<string, boolean>) || {};
         
-        Object.keys(allMenuItems).forEach(key => {
-          if (modules[key] === undefined) modules[key] = true;
+        mainMenuItems.forEach(item => {
+          if (modules[item.key] === undefined) modules[item.key] = true;
+        });
+        ekModulItems.forEach(item => {
+          if (modules[item.key] === undefined) modules[item.key] = true;
         });
         
         localStorage.setItem("isg_modules", JSON.stringify(modules));
@@ -70,13 +95,17 @@ export default function Sidebar() {
       }
     } catch (e) {
       const defaultModules: Record<string, boolean> = {};
-      allMenuItems.forEach(item => { defaultModules[item.key || ""] = true; });
+      mainMenuItems.forEach(item => { defaultModules[item.key || ""] = true; });
+      ekModulItems.forEach(item => { defaultModules[item.key || ""] = true; });
       setVisibleModules(defaultModules);
     }
   };
 
-  const menuItems = allMenuItems.filter(item => 
-    item.key === "settings" || item.key === "dashboard" || visibleModules[item.key || ""] !== false
+  const filteredMain = mainMenuItems.filter(item => 
+    item.key === "dashboard" || visibleModules[item.key || ""] !== false
+  );
+  const filteredEk = ekModulItems.filter(item => 
+    visibleModules[item.key || ""] !== false
   );
 
   return (
@@ -93,7 +122,7 @@ export default function Sidebar() {
       </div>
       
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-        {menuItems.map((item, index) => (
+        {filteredMain.map((item, index) => (
           <Link
             key={index}
             href={item.href}
@@ -107,12 +136,70 @@ export default function Sidebar() {
             {!collapsed && <span className="text-xs font-medium">{item.label}</span>}
           </Link>
         ))}
+
+        {!collapsed && filteredEk.length > 0 && (
+          <div className="pt-2">
+            <button
+              onClick={() => setEkModulOpen(!ekModulOpen)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider">Ek Modüller</span>
+              {ekModulOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            </button>
+            {ekModulOpen && (
+              <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-gray-100 pl-2">
+                {filteredEk.map((item, index) => (
+                  <Link
+                    key={index}
+                    href={item.href}
+                    className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
+                      pathname === item.href 
+                        ? "bg-gray-200 text-gray-900" 
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {collapsed && filteredEk.some(item => pathname === item.href) && (
+          <div className="pt-1">
+            <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Ek</div>
+            {filteredEk.map((item, index) => (
+              pathname === item.href && (
+                <Link
+                  key={index}
+                  href={item.href}
+                  className="flex items-center gap-1 px-2 py-2 rounded-lg bg-gray-200 text-gray-900 transition-colors"
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                </Link>
+              )
+            ))}
+          </div>
+        )}
       </nav>
       
       <div className="p-2 border-t border-gray-100">
+        <Link
+          href="/ayarlar"
+          className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
+            pathname === "/ayarlar" 
+              ? "bg-gray-200 text-gray-900" 
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <Settings className="w-4 h-4 flex-shrink-0" />
+          {!collapsed && <span className="text-xs font-medium">Ayarlar</span>}
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500 mt-1"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

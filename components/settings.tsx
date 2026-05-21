@@ -64,6 +64,15 @@ const defaultModules = [
   { key: "ekipmanlar", label: "İş Ekipmanları", description: "Ekipman takibi" },
   { key: "kazalar", label: "İş Kazaları", description: "Kaza kaydı ve istatistik" },
   { key: "egitimler", label: "Eğitimler", description: "Eğitim takibi" },
+  { key: "risk", label: "Risk Değerlendirme", description: "Tehlike tanımlama ve risk analizi" },
+  { key: "yasal", label: "Yasal Uygunluk", description: "Yasal gereklilikler ve uyum takibi" },
+  { key: "denetim", label: "İç Denetim", description: "Denetim planlama ve bulgu takibi" },
+  { key: "acil", label: "Acil Durum", description: "Acil durum senaryoları ve tatbikat" },
+  { key: "duzeltici", label: "Düzeltici Faaliyet", description: "Kök neden analizi ve CAPA" },
+  { key: "ygg", label: "Yönetim Gözden Geçirme", description: "Üst yönetim değerlendirme" },
+  { key: "dokuman", label: "Doküman Kontrol", description: "Doküman versiyon ve onay takibi" },
+  { key: "yetkinlik", label: "Yetkinlik Matrisi", description: "Personel yetkinlik ve sertifika" },
+  { key: "performans", label: "Performans İzleme", description: "İSG performans göstergeleri" },
 ];
 
 async function setupDatabase() {

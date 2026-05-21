@@ -13,7 +13,7 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
+    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -72,7 +72,7 @@ export default function PersonnelForm() {
     try {
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad_soyad: sanitize(form.ad + " " + form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: sanitize(form.meslekKodu), telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null,
+        meslek_kodu: sanitize(form.meslekKodu), telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
         santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
@@ -87,7 +87,7 @@ export default function PersonnelForm() {
       if (error) throw error;
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
         kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -164,10 +164,6 @@ export default function PersonnelForm() {
               {[
                 { label: "İşe Giriş Tarihi", icon: Calendar, field: "iseGirisTarihi", type: "date" },
                 { label: "Meslek Kodu", icon: Briefcase, field: "meslekKodu", placeholder: "Meslek Kodu" },
-                { label: "Telefon", icon: Phone, field: "telefon", placeholder: "05XX XXX XX XX" },
-                { label: "Email", field: "email", placeholder: "ornek@mail.com" },
-                { label: "Şantiye", icon: Building2, field: "santiyeAdi", placeholder: "Şantiye Adı" },
-                { label: "Ekip", icon: Users, field: "ekipAdi", placeholder: "Ekip Adı" },
               ].map((item) => (
                 <div key={item.field}>
                   <label className="text-sm text-gray-600 mb-1.5 block">{item.label}</label>
@@ -180,6 +176,55 @@ export default function PersonnelForm() {
                   />
                 </div>
               ))}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
+                  <input
+                    type="text"
+                    value={form.telefon}
+                    onChange={(e) => handleChange("telefon", e.target.value)}
+                    className="input"
+                    placeholder="05XX XXX XX XX"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="input"
+                    placeholder="ornek@mail.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Öğrenim Durumu</label>
+                <select value={form.ogrenimDurumu} onChange={(e) => handleChange("ogrenimDurumu", e.target.value)} className="input">
+                  <option value="">Seçiniz...</option>
+                  {["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Şantiye</label>
+                <input
+                  type="text"
+                  value={form.santiyeAdi}
+                  onChange={(e) => handleChange("santiyeAdi", e.target.value)}
+                  className="input"
+                  placeholder="Şantiye Adı"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Ekip</label>
+                <input
+                  type="text"
+                  value={form.ekipAdi}
+                  onChange={(e) => handleChange("ekipAdi", e.target.value)}
+                  className="input"
+                  placeholder="Ekip Adı"
+                />
+              </div>
             </div>
           </div>
 
