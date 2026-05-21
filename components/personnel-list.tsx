@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock } from "lucide-react";
-import { maskTC, sanitizeForm } from "@/lib/security";
+import { maskTC, sanitizeForm, checkRateLimit } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
@@ -72,8 +73,14 @@ export default function PersonnelList() {
   };
 
   const deletePerson = async (id: string) => {
+    if (!checkRateLimit("personel_delete", 3, 60000)) {
+      alert("Çok fazla silme denemesi. Lütfen bekleyin.");
+      return;
+    }
     if (confirm("Bu personeli silmek istediğinize emin misiniz?")) {
+      const person = personnel.find(p => p.id === id);
       await supabase.from("personel").delete().eq("id", id);
+      await logAudit("personel", "DELETE", id, person, null);
       fetchPersonnel();
     }
   };
@@ -217,9 +224,11 @@ export default function PersonnelList() {
         vardiyali_calisamaz: !!editForm.vardiyali_calisamaz,
         notlar: editForm.notlar,
       });
+      const oldValues = { ...editingPerson };
       const { error } = await supabase.from("personel").update(payload).eq("id", editingPerson.id);
       if (error) throw error;
       await uploadFiles();
+      await logAudit("personel", "UPDATE", editingPerson.id, oldValues, payload);
       setEditStatus({ type: "success", message: "Personel güncellendi!" });
       fetchPersonnel();
     } catch (err: any) {
@@ -236,6 +245,7 @@ export default function PersonnelList() {
       await supabase.storage.from("personel-belgeleri").remove([urlParts[1]]);
     }
     await supabase.from("personel_belgeleri").update({ silinme_tarihi: new Date().toISOString() }).eq("id", b.id);
+    await logAudit("personel_belgeleri", "DELETE", b.id, b, null);
     fetchEditBelgeler(editingPerson.id);
   };
 

@@ -6,7 +6,9 @@ import {
   Upload, X, Paperclip, Eye, Trash2, Image as ImageIcon, FileText as FileDoc, Award
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { sanitize } from "@/lib/security";
+import { sanitize, validateTC, checkRateLimit } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
+import { validateFile } from "@/lib/file-validation";
 import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
@@ -64,6 +66,8 @@ export default function PersonnelForm() {
     setForm((prev) => ({ ...prev, kimlikNo: numericOnly }));
     if (numericOnly.length > 0 && numericOnly.length < 11) {
       setTcError("TC Kimlik No 11 haneli olmalıdır");
+    } else if (numericOnly.length === 11 && !validateTC(numericOnly)) {
+      setTcError("Geçersiz TC Kimlik No");
     } else {
       setTcError("");
     }
@@ -72,6 +76,7 @@ export default function PersonnelForm() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
+    else if (!validateTC(form.kimlikNo)) newErrors.kimlikNo = "Geçersiz TC Kimlik No";
     if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
     if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
     if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
@@ -94,8 +99,12 @@ export default function PersonnelForm() {
   };
 
   const addFiles = (field: string, files: File[]) => {
-    const valid = files.filter(f => ALLOWED_TYPES.includes(f.type));
-    const newFiles: PendingFile[] = valid.map(f => ({
+    const validated = files.map(f => validateFile(f)).filter(v => v.valid);
+    const validFiles = files.filter((_, i) => validated[i]?.valid);
+    if (validated.length !== files.length) {
+      setStatus({ type: "error", message: "Bazı dosyalar boyut veya tür nedeniyle reddedildi." });
+    }
+    const newFiles: PendingFile[] = validFiles.map(f => ({
       field,
       file: f,
       preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
@@ -142,6 +151,10 @@ export default function PersonnelForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!checkRateLimit("personel_insert", 5, 60000)) {
+      setStatus({ type: "error", message: "Çok fazla kayıt denemesi. Lütfen bekleyin." });
+      return;
+    }
     setLoading(true);
     setStatus(null);
     try {
@@ -163,6 +176,7 @@ export default function PersonnelForm() {
       if (error) throw error;
       if (data && data[0]) {
         await uploadFilesForPersonel(data[0].id);
+        await logAudit("personel", "INSERT", data[0].id, null, payload);
       }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
