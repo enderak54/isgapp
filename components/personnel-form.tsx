@@ -250,15 +250,16 @@ export default function PersonnelForm() {
                   {errors.soyad && <p className="text-xs text-red-500 mt-1">{errors.soyad}</p>}
                 </div>
               </div>
-              {[
-                { label: "İşe Giriş Tarihi", icon: Calendar, field: "iseGirisTarihi", type: "date" },
-                { label: "Meslek Kodu", icon: Briefcase, field: "meslekKodu", placeholder: "Meslek Kodu" },
-              ].map((item) => (
-                <div key={item.field}>
-                  <label className="text-sm text-gray-600 mb-1.5 block">{item.label}</label>
-                  <input type={item.type || "text"} value={form[item.field as keyof typeof form] as string} onChange={(e) => handleChange(item.field, e.target.value)} className="input" placeholder={item.placeholder} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">İşe Giriş Tarihi</label>
+                  <input type="date" value={form.iseGirisTarihi} onChange={(e) => handleChange("iseGirisTarihi", e.target.value)} className="input" />
                 </div>
-              ))}
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Meslek Kodu</label>
+                  <input type="text" value={form.meslekKodu} onChange={(e) => handleChange("meslekKodu", e.target.value)} className="input" placeholder="Meslek Kodu" />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
