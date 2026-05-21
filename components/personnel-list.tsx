@@ -179,6 +179,9 @@ export default function PersonnelList() {
                       <span className="badge bg-gray-100 text-gray-600">Kan: {selectedPerson.kan_grubu}</span>
                     )}
                   </div>
+                  {selectedPerson.kronik_rahatlik && (
+                    <p className="text-sm text-gray-600 bg-red-50 p-3 rounded-lg mt-2"><strong>Kronik Rahatsızlık:</strong> {selectedPerson.kronik_rahatlik}</p>
+                  )}
                 </div>
 
                 {selectedPerson.notlar && (

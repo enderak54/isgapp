@@ -15,7 +15,7 @@ export default function PersonnelForm() {
   const [form, setForm] = useState({
     kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-    kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+    kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
@@ -77,7 +77,7 @@ export default function PersonnelForm() {
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null,
-        saglik_raporu_tarihi: form.saglikRaporuTarihi || null,
+        saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
         gece_calisir: !!form.geceCalisir, gece_calisamaz: !!form.geceCalisamaz,
         vardiyali_calisir: !!form.vardiyaliCalisir, vardiyali_calisamaz: !!form.vardiyaliCalisamaz,
@@ -89,7 +89,7 @@ export default function PersonnelForm() {
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-        kanGrubu: "", saglikRaporuTarihi: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+        kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
     } catch (err: any) {
@@ -388,6 +388,15 @@ export default function PersonnelForm() {
                   <option value="">Seçiniz...</option>
                   {["A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-"].map((kg) => <option key={kg} value={kg}>{kg}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Kronik Rahatsızlık</label>
+                <textarea
+                  value={form.kronikRahatsizlik}
+                  onChange={(e) => handleChange("kronikRahatsizlik", e.target.value)}
+                  className="input h-20 resize-none"
+                  placeholder="Varsa kronik rahatsızlıkları yazınız..."
+                />
               </div>
             </div>
           </div>
