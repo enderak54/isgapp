@@ -58,6 +58,7 @@ export default function PersonnelList() {
   const [uploadModalField, setUploadModalField] = useState<string | null>(null);
   const [uploadDragOver, setUploadDragOver] = useState(false);
   const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set());
+  const [lockedPersons, setLockedPersons] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchPersonnel(); }, []);
@@ -240,6 +241,14 @@ export default function PersonnelList() {
     });
   };
 
+  const toggleLockPerson = (id: string) => {
+    setLockedPersons(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const filtered = personnel.filter(
     (p) =>
       p.ad?.toLowerCase().includes(search.toLowerCase()) ||
@@ -309,9 +318,14 @@ export default function PersonnelList() {
                         <button onClick={() => openEdit(p)} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1">
                           <Edit className="w-3.5 h-3.5" /> Düzenle
                         </button>
-                        <button onClick={() => deletePerson(p.id)} className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition flex items-center gap-1">
-                          <Trash2 className="w-3.5 h-3.5" /> Sil
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          <button type="button" onClick={() => toggleLockPerson(p.id)} className={`p-1 rounded border transition ${lockedPersons.has(p.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedPersons.has(p.id) ? "Kilidi aç" : "Kilitli"}>
+                            {lockedPersons.has(p.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                          </button>
+                          <button onClick={() => deletePerson(p.id)} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
+                            <Trash2 className="w-3.5 h-3.5" /> Sil
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
