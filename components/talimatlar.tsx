@@ -34,7 +34,7 @@ export default function Talimatlar() {
   return (
     <main className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Talimatlar</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Talimat Takibi</h2>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm({ baslik: "", icerik: "", tarih: "", hedef: "", durum: "aktif" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
           <Plus className="w-5 h-5" /> Yeni Talimat
         </button>

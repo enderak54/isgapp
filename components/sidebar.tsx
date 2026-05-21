@@ -36,7 +36,7 @@ const mainMenuItems = [
   { icon: GraduationCap, label: "MYK", href: "/myk", key: "myk" },
   { icon: Shield, label: "Operatör", href: "/operator", key: "operator" },
   { icon: FolderOpen, label: "Dosya", href: "/dosya", key: "dosya" },
-  { icon: FileText, label: "Talimatlar", href: "/talimatlar", key: "talimatlar" },
+  { icon: FileText, label: "Talimat Takibi", href: "/talimatlar", key: "talimatlar" },
   { icon: Building2, label: "Şantiyeler", href: "/santiyeler", key: "santiyeler" },
   { icon: HardHat, label: "Taşeronlar", href: "/taseronlar", key: "taseronlar" },
   { icon: UserCog, label: "Sorumlular", href: "/sorumlular", key: "sorumlular" },

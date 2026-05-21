@@ -28,7 +28,7 @@ SELECT 'dosya', 'true', 'module', 'Personel Dosyası'
 WHERE NOT EXISTS (SELECT 1 FROM ayarlar WHERE key = 'dosya');
 
 INSERT INTO ayarlar (key, value, type, description) 
-SELECT 'talimatlar', 'true', 'module', 'Talimatlar'
+SELECT 'talimatlar', 'true', 'module', 'Talimat Takibi'
 WHERE NOT EXISTS (SELECT 1 FROM ayarlar WHERE key = 'talimatlar');
 
 INSERT INTO ayarlar (key, value, type, description) 

@@ -57,7 +57,7 @@ const defaultModules = [
   { key: "myk", label: "MYK Belgeleri", description: "Mesleki yeterlilik belgeleri" },
   { key: "operator", label: "Operatör Belgeleri", description: "Operatör sertifikaları" },
   { key: "dosya", label: "Personel Dosyası", description: "Personel belgeleri" },
-  { key: "talimatlar", label: "Talimatlar", description: "İş talimatları" },
+  { key: "talimatlar", label: "Talimat Takibi", description: "İş talimatları" },
   { key: "santiyeler", label: "Şantiyeler", description: "Şantiye yönetimi" },
   { key: "taseronlar", label: "Taşeronlar", description: "Taşeron firma takibi" },
   { key: "sorumlular", label: "Saha Sorumluları", description: "Sorumlu yönetimi" },
