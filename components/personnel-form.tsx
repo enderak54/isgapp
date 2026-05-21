@@ -43,7 +43,7 @@ export default function PersonnelForm() {
   const [form, setForm] = useState({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-    sertifika: "", sertifikaTarihi: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+    sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
@@ -151,7 +151,7 @@ export default function PersonnelForm() {
         santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
-        oryantasyon_tarihi: form.oryantasyon || null, sertifika: form.sertifika ? sanitize(form.sertifika) : null, sertifika_tarihi: form.sertifikaTarihi || null,
+        oryantasyon_tarihi: form.oryantasyon || null, sertifika_tarihi: form.sertifika || null,
         kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
@@ -168,7 +168,7 @@ export default function PersonnelForm() {
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-        sertifika: "", sertifikaTarihi: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+    sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
@@ -186,6 +186,7 @@ export default function PersonnelForm() {
     { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi" },
     { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
     { label: "MYK", field: "myk" },
+    { label: "Sertifika", field: "sertifika" },
     { label: "Operatör Belgesi", field: "operatorBelgesi" },
     { label: "KKD", field: "kkd" },
     { label: "Oryantasyon", field: "oryantasyon" },
@@ -347,19 +348,6 @@ export default function PersonnelForm() {
                 </div>
               </div>
             )}
-
-            {/* Sertifika */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1"><Award className="w-3 h-3" /> Sertifika</h4>
-              <div className="flex items-center gap-2">
-                <input type="text" value={form.sertifika} onChange={(e) => handleChange("sertifika", e.target.value)} className="input text-xs flex-1" placeholder="Sertifika adı / no" />
-                <input type="date" value={form.sertifikaTarihi} onChange={(e) => handleChange("sertifikaTarihi", e.target.value)} className="input text-xs" style={{width: "auto"}} />
-                <button type="button" onClick={() => setUploadModalField("sertifika")} className={`p-1 rounded transition ${fieldFileCount("sertifika") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
-                  <Paperclip className="w-3.5 h-3.5" />
-                  {fieldFileCount("sertifika") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sertifika")}</span>}
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Sağlık */}

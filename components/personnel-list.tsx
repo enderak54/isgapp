@@ -108,7 +108,6 @@ export default function PersonnelList() {
       operator_belgesi_tarihi: p.operator_belgesi_tarihi || "",
       kkd_tarihi: p.kkd_tarihi || "",
       oryantasyon_tarihi: p.oryantasyon_tarihi || "",
-      sertifika: p.sertifika || "",
       sertifika_tarihi: p.sertifika_tarihi || "",
       saglik_raporu_tarihi: p.saglik_raporu_tarihi || "",
       kan_grubu: p.kan_grubu || "",
@@ -206,7 +205,6 @@ export default function PersonnelList() {
         operator_belgesi_tarihi: editForm.operator_belgesi_tarihi || null,
         kkd_tarihi: editForm.kkd_tarihi || null,
         oryantasyon_tarihi: editForm.oryantasyon_tarihi || null,
-        sertifika: editForm.sertifika || null,
         sertifika_tarihi: editForm.sertifika_tarihi || null,
         saglik_raporu_tarihi: editForm.saglik_raporu_tarihi || null,
         kan_grubu: editForm.kan_grubu,
@@ -490,6 +488,7 @@ export default function PersonnelList() {
                     { label: "İSG", field: "isg_egitim_tarihi" },
                     { label: "Yüksekte", field: "yuksekte_calisma_tarihi" },
                     { label: "MYK", field: "myk_tarihi" },
+                    { label: "Sertifika", field: "sertifika_tarihi" },
                     { label: "Operatör", field: "operator_belgesi_tarihi" },
                     { label: "KKD", field: "kkd_tarihi" },
                     { label: "Oryantasyon", field: "oryantasyon_tarihi" },
@@ -503,24 +502,6 @@ export default function PersonnelList() {
                       </button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="pt-2 mt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Sertifika</label>
-                    <input type="text" value={editForm.sertifika || ""} onChange={e => setEditForm({...editForm, sertifika: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="Ad / No" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-16 shrink-0">Tarih</label>
-                    <input type="date" value={editForm.sertifika_tarihi || ""} onChange={e => setEditForm({...editForm, sertifika_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
-                    <button type="button" onClick={() => setUploadModalField("sertifika_tarihi")} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
-                      <Paperclip className="w-3.5 h-3.5" />
-                      {pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "sertifika_tarihi").length}</span>}
-                    </button>
-                  </div>
                 </div>
               </div>
 
