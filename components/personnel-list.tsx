@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock } from "lucide-react";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import Link from "next/link";
 
@@ -57,6 +57,7 @@ export default function PersonnelList() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [uploadModalField, setUploadModalField] = useState<string | null>(null);
   const [uploadDragOver, setUploadDragOver] = useState(false);
+  const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchPersonnel(); }, []);
@@ -117,6 +118,7 @@ export default function PersonnelList() {
     setPendingFiles([]);
     setEditBelgeler([]);
     setEditStatus(null);
+    setLockedFiles(new Set());
     fetchEditBelgeler(p.id);
   };
 
@@ -228,6 +230,14 @@ export default function PersonnelList() {
     }
     await supabase.from("personel_belgeleri").update({ silinme_tarihi: new Date().toISOString() }).eq("id", b.id);
     fetchEditBelgeler(editingPerson.id);
+  };
+
+  const toggleLock = (id: string) => {
+    setLockedFiles(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const filtered = personnel.filter(
@@ -523,7 +533,12 @@ export default function PersonnelList() {
                                 <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
                                 <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                               </div>
-                              <button onClick={() => deleteBelge(b)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => toggleLock(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-amber-500 hover:text-amber-700" : "text-gray-300 hover:text-gray-500"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                  {lockedFiles.has(b.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                </button>
+                                <button onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-red-400 hover:text-red-600" : "text-gray-200 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -544,7 +559,12 @@ export default function PersonnelList() {
                                 <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
                                 <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                               </div>
-                              <button onClick={() => deleteBelge(b)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => toggleLock(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-amber-500 hover:text-amber-700" : "text-gray-300 hover:text-gray-500"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                  {lockedFiles.has(b.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                                </button>
+                                <button onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1 rounded transition ${lockedFiles.has(b.id) ? "text-red-400 hover:text-red-600" : "text-gray-200 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                              </div>
                             </div>
                           ))}
                         </div>
