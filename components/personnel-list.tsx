@@ -391,11 +391,11 @@ export default function PersonnelList() {
       {editingPerson && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setEditingPerson(null); setPendingFiles([]); }}>
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-800">Personel Düzenle</h3>
-              <button onClick={() => { setEditingPerson(null); setPendingFiles([]); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
+              <h3 className="text-base font-semibold text-gray-800">Personel Düzenle</h3>
+              <button onClick={() => { setEditingPerson(null); setPendingFiles([]); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-2">
               {editStatus && (
                 <div className={`p-3 rounded-lg flex items-center gap-2 text-sm ${editStatus.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                   {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -414,7 +414,7 @@ export default function PersonnelList() {
                   <input type="text" value={editForm.soyad} onChange={e => setEditForm({...editForm, soyad: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Telefon</label>
                   <input type="text" value={editForm.telefon} onChange={e => setEditForm({...editForm, telefon: e.target.value})} className="input text-xs flex-1 min-w-0" />
@@ -424,7 +424,7 @@ export default function PersonnelList() {
                   <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Öğrenim</label>
                   <select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select>
@@ -434,14 +434,14 @@ export default function PersonnelList() {
                   <input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Ekip</label>
                   <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-t border-gray-100">
+              <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">İSG Tarihleri</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {[
@@ -464,7 +464,7 @@ export default function PersonnelList() {
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-t border-gray-100">
+              <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Sağlık</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
@@ -513,8 +513,8 @@ export default function PersonnelList() {
                     const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
                     if (tipFiles.length === 0) return null;
                     return (
-                      <div key={tip} className="mb-3">
-                        <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">{belgeTipiLabel(tip)}</p>
+                      <div key={tip} className="mb-2">
+                        <p className="text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">{belgeTipiLabel(tip)}</p>
                         <div className="grid grid-cols-2 gap-2">
                           {tipFiles.map((b: any) => (
                             <div key={b.id} className="card p-2 flex items-center gap-2">
@@ -534,8 +534,8 @@ export default function PersonnelList() {
                     const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu"].includes(b.belge_tipi));
                     if (otherFiles.length === 0) return null;
                     return (
-                      <div className="mb-3">
-                        <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Diğer</p>
+                      <div className="mb-2">
+                        <p className="text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Diğer</p>
                         <div className="grid grid-cols-2 gap-2">
                           {otherFiles.map((b: any) => (
                             <div key={b.id} className="card p-2 flex items-center gap-2">
@@ -556,8 +556,8 @@ export default function PersonnelList() {
 
               {/* Pending Files */}
               {pendingFiles.length > 0 && (
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                  <p className="text-xs font-medium text-blue-700 mb-2">Yeni Dosyalar ({pendingFiles.length})</p>
+                <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs font-medium text-blue-700 mb-1">Yeni Dosyalar ({pendingFiles.length})</p>
                   <div className="flex flex-wrap gap-2">
                     {pendingFiles.map((pf, i) => (
                       <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-white rounded text-xs">
