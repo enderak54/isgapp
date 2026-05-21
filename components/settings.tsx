@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User } from "lucide-react";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -106,16 +106,26 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+  const [showVersion, setShowVersion] = useState(false);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [showAddVersion, setShowAddVersion] = useState(false);
+  const [newVersion, setNewVersion] = useState({ versiyon: "", tip: "minor" as string, aciklama: "", detaylar: "", yazar: "" });
 
   useEffect(() => {
     setupDatabase();
     fetchSettings();
+    fetchVersions();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
     if (saved.color) setThemeColor(saved.color);
     if (saved.font) setThemeFont(saved.font);
     if (saved.size) setThemeSize(saved.size);
   }, []);
+
+  const fetchVersions = async () => {
+    const { data } = await supabase.from("versiyonlar").select("*").order("tarih", { ascending: false });
+    if (data) setVersions(data);
+  };
 
   const fetchSettings = async () => {
     try {
@@ -202,6 +212,20 @@ export default function SettingsPage() {
       await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
     } catch {}
     setStatus({ type: "success", message: "Tema kaydedildi!" });
+  };
+
+  const saveVersion = async () => {
+    if (!newVersion.versiyon || !newVersion.aciklama) return;
+    const payload = sanitizeForm({
+      ...newVersion,
+      tarih: new Date().toISOString().split("T")[0],
+      detaylar: newVersion.detaylar ? newVersion.detaylar.split("\n").filter((d: string) => d.trim()) : [],
+    });
+    await supabase.from("versiyonlar").insert(payload);
+    setShowAddVersion(false);
+    setNewVersion({ versiyon: "", tip: "minor", aciklama: "", detaylar: "", yazar: "" });
+    fetchVersions();
+    setStatus({ type: "success", message: "Yeni sürüm kaydedildi!" });
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -365,6 +389,101 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        <div className="card p-6 mt-6">
+          <button
+            onClick={() => setShowVersion(!showVersion)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Sürüm Takip</h3>
+              <p className="text-sm text-gray-500">Uygulama sürüm geçmişi ve değişiklikler</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showVersion && (
+                <button onClick={(e) => { e.stopPropagation(); setShowAddVersion(true); }} className="btn btn-primary text-sm"><Plus className="w-3 h-3" /> Yeni Sürüm</button>
+              )}
+              {showVersion ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showVersion && (
+            <div className="space-y-4 mt-4">
+              {versions.length === 0 && <p className="text-center py-6 text-gray-400">Henüz sürüm kaydı yok</p>}
+              {versions.map((v, idx) => (
+                <div key={v.id} className={`p-4 rounded-lg ${idx === 0 ? "bg-blue-50 border border-blue-100" : "bg-gray-50"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded ${v.tip === "major" ? "bg-red-100 text-red-700" : v.tip === "minor" ? "bg-blue-100 text-blue-700" : v.tip === "hotfix" ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
+                        v{v.versiyon}
+                      </span>
+                      {idx === 0 && <span className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white">Güncel</span>}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      {v.tarih && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(v.tarih).toLocaleDateString("tr-TR")}</span>}
+                      {v.yazar && <span className="flex items-center gap-1"><User className="w-3 h-3" />{v.yazar}</span>}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2">{v.aciklama}</p>
+                  {v.detaylar && Array.isArray(v.detaylar) && v.detaylar.length > 0 && (
+                    <ul className="space-y-1">
+                      {v.detaylar.map((d: string, i: number) => (
+                        <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                          <Tag className="w-3 h-3 mt-0.5 flex-shrink-0 text-gray-400" />
+                          {d}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {showAddVersion && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddVersion(false)}>
+            <div className="bg-white rounded-2xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-800">Yeni Sürüm Ekle</h3>
+                <button onClick={() => setShowAddVersion(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1.5 block">Versiyon *</label>
+                    <input type="text" value={newVersion.versiyon} onChange={e => setNewVersion({ ...newVersion, versiyon: e.target.value })} placeholder="Örn: 0.2.0" className="input" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1.5 block">Tip</label>
+                    <select value={newVersion.tip} onChange={e => setNewVersion({ ...newVersion, tip: e.target.value })} className="input">
+                      <option value="major">Major</option>
+                      <option value="minor">Minor</option>
+                      <option value="patch">Patch</option>
+                      <option value="hotfix">Hotfix</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Açıklama *</label>
+                  <input type="text" value={newVersion.aciklama} onChange={e => setNewVersion({ ...newVersion, aciklama: e.target.value })} placeholder="Bu sürümün kısa özeti" className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Değişiklikler (her satıra bir madde)</label>
+                  <textarea value={newVersion.detaylar} onChange={e => setNewVersion({ ...newVersion, detaylar: e.target.value })} className="input h-32 resize-none" placeholder="Yeni özellik: İhtar modülü&#10;Düzeltme: TC maskeleme&#10;İyileştirme: Performans artışı" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Yazar</label>
+                  <input type="text" value={newVersion.yazar} onChange={e => setNewVersion({ ...newVersion, yazar: e.target.value })} placeholder="Kim tarafından yapıldı" className="input" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setShowAddVersion(false)} className="btn text-sm" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button>
+                  <button onClick={saveVersion} className="btn btn-primary text-sm">Kaydet</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
 
       </div>
