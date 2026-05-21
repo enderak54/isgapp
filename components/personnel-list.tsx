@@ -24,6 +24,8 @@ const BELGE_TIPLERI: Record<string, string> = {
   oryantasyon_tarihi: "oryantasyon",
   saglikRaporuTarihi: "saglik_raporu",
   saglik_raporu_tarihi: "saglik_raporu",
+  sertifika: "sertifika",
+  sertifika_tarihi: "sertifika",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -98,6 +100,7 @@ export default function PersonnelList() {
       santiye_adi: p.santiye_adi || "",
       ekip_adi: p.ekip_adi || "",
       meslek_kodu: p.meslek_kodu || "",
+      sgk_tarihi: p.sgk_tarihi || "",
       ise_giris_tarihi: p.ise_giris_tarihi || "",
       isg_egitim_tarihi: p.isg_egitim_tarihi || "",
       yuksekte_calisma_tarihi: p.yuksekte_calisma_tarihi || "",
@@ -105,6 +108,8 @@ export default function PersonnelList() {
       operator_belgesi_tarihi: p.operator_belgesi_tarihi || "",
       kkd_tarihi: p.kkd_tarihi || "",
       oryantasyon_tarihi: p.oryantasyon_tarihi || "",
+      sertifika: p.sertifika || "",
+      sertifika_tarihi: p.sertifika_tarihi || "",
       saglik_raporu_tarihi: p.saglik_raporu_tarihi || "",
       kan_grubu: p.kan_grubu || "",
       kronik_rahatlik: p.kronik_rahatlik || "",
@@ -129,7 +134,7 @@ export default function PersonnelList() {
   };
 
   const belgeTipiLabel = (tip: string) => {
-    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", diger: "Diğer" };
+    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", diger: "Diğer" };
     return labels[tip] || tip;
   };
 
@@ -193,6 +198,7 @@ export default function PersonnelList() {
         santiye_adi: editForm.santiye_adi,
         ekip_adi: editForm.ekip_adi,
         meslek_kodu: editForm.meslek_kodu,
+        sgk_tarihi: editForm.sgk_tarihi || null,
         ise_giris_tarihi: editForm.ise_giris_tarihi || null,
         isg_egitim_tarihi: editForm.isg_egitim_tarihi || null,
         yuksekte_calisma_tarihi: editForm.yuksekte_calisma_tarihi || null,
@@ -200,6 +206,8 @@ export default function PersonnelList() {
         operator_belgesi_tarihi: editForm.operator_belgesi_tarihi || null,
         kkd_tarihi: editForm.kkd_tarihi || null,
         oryantasyon_tarihi: editForm.oryantasyon_tarihi || null,
+        sertifika: editForm.sertifika || null,
+        sertifika_tarihi: editForm.sertifika_tarihi || null,
         saglik_raporu_tarihi: editForm.saglik_raporu_tarihi || null,
         kan_grubu: editForm.kan_grubu,
         kronik_rahatlik: editForm.kronik_rahatlik,
@@ -460,6 +468,16 @@ export default function PersonnelList() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Meslek Kodu</label>
+                  <input type="text" value={editForm.meslek_kodu} onChange={e => setEditForm({...editForm, meslek_kodu: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">SGK Tarihi</label>
+                  <input type="date" value={editForm.sgk_tarihi || ""} onChange={e => setEditForm({...editForm, sgk_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Ekip</label>
                   <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
@@ -485,6 +503,24 @@ export default function PersonnelList() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="pt-2 mt-2 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Sertifika</label>
+                    <input type="text" value={editForm.sertifika || ""} onChange={e => setEditForm({...editForm, sertifika: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="Ad / No" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Tarih</label>
+                    <input type="date" value={editForm.sertifika_tarihi || ""} onChange={e => setEditForm({...editForm, sertifika_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                    <button type="button" onClick={() => setUploadModalField("sertifika_tarihi")} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "sertifika_tarihi").length}</span>}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -533,7 +569,7 @@ export default function PersonnelList() {
               {editBelgeler.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Mevcut Belgeler ({editBelgeler.length})</h4>
-                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu"].map(tip => {
+                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika"].map(tip => {
                     const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
                     if (tipFiles.length === 0) return null;
                     return (
@@ -560,7 +596,7 @@ export default function PersonnelList() {
                     );
                   })}
                   {(() => {
-                    const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu"].includes(b.belge_tipi));
+                    const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika"].includes(b.belge_tipi));
                     if (otherFiles.length === 0) return null;
                     return (
                       <div className="mb-2">

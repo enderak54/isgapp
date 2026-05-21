@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import {
   User, Users, Calendar, Briefcase, Phone, Building2, Shield, Heart, FileText, Save, CheckCircle, AlertCircle,
-  Upload, X, Paperclip, Eye, Trash2, Image as ImageIcon, FileText as FileDoc
+  Upload, X, Paperclip, Eye, Trash2, Image as ImageIcon, FileText as FileDoc, Award
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { sanitize } from "@/lib/security";
@@ -20,6 +20,7 @@ const BELGE_TIPLERI: Record<string, string> = {
   kkd: "kkd",
   oryantasyon: "oryantasyon",
   saglikRaporuTarihi: "saglik_raporu",
+  sertifika: "sertifika",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -40,9 +41,9 @@ interface PendingFile {
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-    kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-    kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+    sertifika: "", sertifikaTarihi: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
   });
 
@@ -146,11 +147,12 @@ export default function PersonnelForm() {
     try {
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: sanitize(form.meslekKodu), telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
+        meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
         santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
-        oryantasyon_tarihi: form.oryantasyon || null, kan_grubu: form.kanGrubu || null,
+        oryantasyon_tarihi: form.oryantasyon || null, sertifika: form.sertifika ? sanitize(form.sertifika) : null, sertifika_tarihi: form.sertifikaTarihi || null,
+        kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
         gece_calisir: !!form.geceCalisir, gece_calisamaz: !!form.geceCalisamaz,
@@ -164,9 +166,9 @@ export default function PersonnelForm() {
       }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", telefon: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
-        kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
+        sertifika: "", sertifikaTarihi: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
       });
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
@@ -262,20 +264,26 @@ export default function PersonnelForm() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">SGK Tarihi</label>
+                  <input type="date" value={form.sgkTarihi} onChange={(e) => handleChange("sgkTarihi", e.target.value)} className="input" />
+                </div>
+                <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
                   <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
                   <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="input" placeholder="ornek@mail.com" />
                 </div>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1.5 block">Öğrenim Durumu</label>
-                <select value={form.ogrenimDurumu} onChange={(e) => handleChange("ogrenimDurumu", e.target.value)} className="input">
-                  <option value="">Seçiniz...</option>
-                  {["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Öğrenim Durumu</label>
+                  <select value={form.ogrenimDurumu} onChange={(e) => handleChange("ogrenimDurumu", e.target.value)} className="input">
+                    <option value="">Seçiniz...</option>
+                    {["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Şantiye</label>
@@ -339,6 +347,19 @@ export default function PersonnelForm() {
                 </div>
               </div>
             )}
+
+            {/* Sertifika */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <h4 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1"><Award className="w-3 h-3" /> Sertifika</h4>
+              <div className="flex items-center gap-2">
+                <input type="text" value={form.sertifika} onChange={(e) => handleChange("sertifika", e.target.value)} className="input text-xs flex-1" placeholder="Sertifika adı / no" />
+                <input type="date" value={form.sertifikaTarihi} onChange={(e) => handleChange("sertifikaTarihi", e.target.value)} className="input text-xs" style={{width: "auto"}} />
+                <button type="button" onClick={() => setUploadModalField("sertifika")} className={`p-1 rounded transition ${fieldFileCount("sertifika") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {fieldFileCount("sertifika") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sertifika")}</span>}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Sağlık */}
