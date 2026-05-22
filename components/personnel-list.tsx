@@ -94,15 +94,18 @@ export default function PersonnelList() {
   };
 
   const fetchPersonnel = async () => {
-    const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
-    if (arsivGoster) {
-      query.eq("arsivde", true);
-    } else {
-      query.or("arsivde.eq.false,arsivde.is.null");
+    try {
+      const { data, error } = await supabase
+        .from("personel").select("*")
+        .eq("arsivde", arsivGoster)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (data) setPersonnel(data);
+    } catch (err) {
+      console.error("Personel listesi hatası:", err);
+    } finally {
+      setLoading(false);
     }
-    const { data } = await query;
-    if (data) setPersonnel(data);
-    setLoading(false);
   };
 
   const deletePerson = async (id: string, tur: "istirak_ayrilis" | "hatali_kayit") => {
@@ -399,16 +402,21 @@ export default function PersonnelList() {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  const arsivDegistir = (v: boolean) => {
+  const arsivDegistir = async (v: boolean) => {
     setArsivGoster(v);
     setLoading(true);
-    const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
-    if (v) {
-      query.eq("arsivde", true);
-    } else {
-      query.or("arsivde.eq.false,arsivde.is.null");
+    try {
+      const { data, error } = await supabase
+        .from("personel").select("*")
+        .eq("arsivde", v)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      if (data) setPersonnel(data);
+    } catch (err) {
+      console.error("Arşiv değiştirme hatası:", err);
+    } finally {
+      setLoading(false);
     }
-    query.then(({ data }) => { if (data) setPersonnel(data); setLoading(false); });
   };
 
   return (
