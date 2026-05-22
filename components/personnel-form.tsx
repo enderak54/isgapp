@@ -72,15 +72,20 @@ export default function PersonnelForm() {
   const [mykSecimTarih, setMykSecimTarih] = useState("");
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
+  const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
 
   useEffect(() => {
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
-    ]).then(([egitimRes, ayarRes]) => {
+      supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
+    ]).then(([egitimRes, ayarRes, zorunluRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
+      }
+      if (zorunluRes.data?.value) {
+        try { setZorunluAlanlar(JSON.parse(zorunluRes.data.value)); } catch {}
       }
     });
   }, []);
@@ -109,16 +114,44 @@ export default function PersonnelForm() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
-    else if (!validateTC(form.kimlikNo)) newErrors.kimlikNo = "Geçersiz TC Kimlik No";
-    if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
-    if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
-    if (form.isgEgitimTarihi && !form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Süre seçiniz";
-    if (form.yuksekteCalisma && !form.yuksekteSure) newErrors.yuksekteSure = "Süre seçiniz";
-    const hasMyk = mykKayitlar.length > 0 || form.myk;
-    if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
-    if (form.kkd && !form.kkdSure) newErrors.kkdSure = "Süre seçiniz";
-    if (form.saglikRaporuTarihi && !form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Süre seçiniz";
+    if (zorunluAlanlar.includes("kimlikNo")) {
+      if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
+      else if (!validateTC(form.kimlikNo)) newErrors.kimlikNo = "Geçersiz TC Kimlik No";
+    }
+    if (zorunluAlanlar.includes("ad") && !form.ad.trim()) newErrors.ad = "Ad zorunludur";
+    if (zorunluAlanlar.includes("soyad") && !form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
+    if (zorunluAlanlar.includes("isgEgitimTarihi")) {
+      if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
+      else if (!form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("yuksekteCalisma")) {
+      if (!form.yuksekteCalisma) newErrors.yuksekteCalisma = "Zorunludur";
+      else if (!form.yuksekteSure) newErrors.yuksekteSure = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("myk")) {
+      const hasMyk = mykKayitlar.length > 0 || form.myk;
+      if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
+    }
+    if (zorunluAlanlar.includes("sertifika")) {
+      if (!form.sertifika) newErrors.sertifika = "Zorunludur";
+      else if (!form.sertifikaSure) newErrors.sertifikaSure = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("operatorBelgesi")) {
+      if (!form.operatorBelgesi) newErrors.operatorBelgesi = "Zorunludur";
+      else if (!form.operatorSure) newErrors.operatorSure = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("kkd")) {
+      if (!form.kkd) newErrors.kkd = "Zorunludur";
+      else if (!form.kkdSure) newErrors.kkdSure = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("oryantasyon")) {
+      if (!form.oryantasyon) newErrors.oryantasyon = "Zorunludur";
+      else if (!form.oryantasyonSure) newErrors.oryantasyonSure = "Süre seçiniz";
+    }
+    if (zorunluAlanlar.includes("saglikRaporuTarihi")) {
+      if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
+      else if (!form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Süre seçiniz";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

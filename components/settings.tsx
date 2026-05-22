@@ -52,6 +52,20 @@ interface ModuleSettings {
   enabled: boolean;
 }
 
+const PERSONEL_ZORUNLU_ALANLAR = [
+  { key: "kimlikNo", label: "TC Kimlik No" },
+  { key: "ad", label: "Ad" },
+  { key: "soyad", label: "Soyad" },
+  { key: "isgEgitimTarihi", label: "İSG Eğitim Tarihi (tarih + süre)" },
+  { key: "yuksekteCalisma", label: "Yüksekte Çalışma (tarih + süre)" },
+  { key: "myk", label: "MYK (en az bir eğitim kaydı)" },
+  { key: "sertifika", label: "Sertifika (tarih + süre)" },
+  { key: "operatorBelgesi", label: "Operatör Belgesi (tarih + süre)" },
+  { key: "kkd", label: "KKD (tarih + süre)" },
+  { key: "oryantasyon", label: "Oryantasyon (tarih + süre)" },
+  { key: "saglikRaporuTarihi", label: "Sağlık Raporu (tarih + süre)" },
+];
+
 const defaultModules = [
   { key: "dashboard", label: "İSG Takip", description: "Ana sayfa ve istatistikler" },
   { key: "personel", label: "Personel", description: "Personel kayıt ve listeleme" },
@@ -131,6 +145,9 @@ export default function SettingsPage() {
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
   const [mykZorunluIds, setMykZorunluIds] = useState<string[]>([]);
   const [mykZorunluSaving, setMykZorunluSaving] = useState(false);
+  const [showZorunluAlanlar, setShowZorunluAlanlar] = useState(false);
+  const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
+  const [zorunluAlanlarSaving, setZorunluAlanlarSaving] = useState(false);
 
   const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
     { key: "personel", label: "Personel", grup: "kritik" },
@@ -174,7 +191,8 @@ export default function SettingsPage() {
     fetchMenuOrder();
     fetchAIEntries();
     fetchUyariAyarlari();
-    fetchMykZorunlu();
+      fetchMykZorunlu();
+      fetchZorunluAlanlar();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
     if (saved.color) setThemeColor(saved.color);
@@ -253,8 +271,26 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchZorunluAlanlar = async () => {
+    const { data } = await supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single();
+    if (data?.value) {
+      try { setZorunluAlanlar(JSON.parse(data.value)); } catch { setZorunluAlanlar(["kimlikNo", "ad", "soyad", "myk"]); }
+    }
+  };
+
   const toggleMykZorunlu = (id: string) => {
     setMykZorunluIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleZorunluAlan = (key: string) => {
+    setZorunluAlanlar(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]);
+  };
+
+  const saveZorunluAlanlar = async () => {
+    setZorunluAlanlarSaving(true);
+    await supabase.from("ayarlar").upsert({ key: "personel_zorunlu_alanalar", value: JSON.stringify(zorunluAlanlar), type: "personel", description: "Personel kaydında zorunlu alanlar" }, { onConflict: "key" });
+    setZorunluAlanlarSaving(false);
+    setStatus({ type: "success", message: "Zorunlu alanlar kaydedildi!" });
   };
 
   const saveMykZorunlu = async () => {
@@ -778,6 +814,42 @@ export default function SettingsPage() {
                   </label>
                 ))
               )}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
+          <button
+            onClick={() => setShowZorunluAlanlar(!showZorunluAlanlar)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Personel Kayıt Zorunlu Alanlar</h3>
+              <p className="text-sm text-gray-500">Personel kayıt formunda hangi alanların zorunlu olduğunu seçin</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showZorunluAlanlar && (
+                <button onClick={(e) => { e.stopPropagation(); saveZorunluAlanlar(); }} disabled={zorunluAlanlarSaving} className="btn btn-primary text-sm">
+                  {zorunluAlanlarSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showZorunluAlanlar ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showZorunluAlanlar && (
+            <div className="mt-4 space-y-1">
+              {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
+                <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={zorunluAlanlar.includes(alan.key)} onChange={() => toggleZorunluAlan(alan.key)} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">{alan.label}</span>
+                </label>
+              ))}
+              <div className="flex justify-end pt-2">
+                <button onClick={saveZorunluAlanlar} disabled={zorunluAlanlarSaving} className="btn btn-primary text-sm">
+                  {zorunluAlanlarSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
             </div>
           )}
         </div>
