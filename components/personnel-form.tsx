@@ -63,29 +63,25 @@ export default function PersonnelForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
-  const [selectedMykEgitimler, setSelectedMykEgitimler] = useState<Set<string>>(new Set());
-  const [showMykSecim, setShowMykSecim] = useState(false);
-  const mykPopoverRef = useRef<HTMLDivElement>(null);
+  const [mykKayitlar, setMykKayitlar] = useState<{ myk_egitim_id: string; alis_tarihi: string; gecerlilik_suresi: string }[]>([]);
+  const [mykSecim, setMykSecim] = useState("");
+  const [mykSecimTarih, setMykSecimTarih] = useState("");
+  const [mykSecimSure, setMykSecimSure] = useState("");
 
   useEffect(() => {
     supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
       if (data) setMykEgitimListesi(data);
     });
-    const handleClick = (e: MouseEvent) => {
-      if (mykPopoverRef.current && !mykPopoverRef.current.contains(e.target as Node)) {
-        setShowMykSecim(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const toggleMykEgitim = (id: string) => {
-    setSelectedMykEgitimler(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const mykEkle = () => {
+    if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
+    setMykKayitlar(prev => [...prev, { myk_egitim_id: mykSecim, alis_tarihi: mykSecimTarih, gecerlilik_suresi: mykSecimSure }]);
+    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
+  };
+
+  const mykKaldir = (idx: number) => {
+    setMykKayitlar(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleTcChange = (value: string) => {
@@ -181,10 +177,12 @@ export default function PersonnelForm() {
   };
 
   const saveMykEgitimler = async (personelId: string) => {
-    if (selectedMykEgitimler.size === 0) return;
-    const inserts = Array.from(selectedMykEgitimler).map(mykEgitimId => ({
+    if (mykKayitlar.length === 0) return;
+    const inserts = mykKayitlar.map(k => ({
       personel_id: personelId,
-      myk_egitim_id: mykEgitimId,
+      myk_egitim_id: k.myk_egitim_id,
+      alis_tarihi: k.alis_tarihi || null,
+      gecerlilik_suresi: k.gecerlilik_suresi ? parseInt(k.gecerlilik_suresi) : null,
     }));
     await supabase.from("personel_myk_egitimleri").insert(inserts);
   };
@@ -236,7 +234,7 @@ export default function PersonnelForm() {
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
       });
-      setSelectedMykEgitimler(new Set());
+      setMykKayitlar([]);
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
       setPendingFiles([]);
     } catch (err: any) {
@@ -376,29 +374,42 @@ export default function PersonnelForm() {
                 const errField = item.field as keyof typeof errors;
                 const hasErr = errors[errField as string];
                 const fc = fieldFileCount(item.field);
-                return (
-                <div key={item.field} className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>
-                  <span className="text-xs text-gray-700 w-28 flex items-center gap-1">
-                    {item.label}
-                    {item.field === "myk" && (
-                      <div className="relative inline-block" ref={mykPopoverRef}>
-                        <button type="button" onClick={() => setShowMykSecim(!showMykSecim)} className={`text-[10px] px-1.5 py-0.5 rounded border ${selectedMykEgitimler.size > 0 ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600"}`}>
-                          {selectedMykEgitimler.size > 0 ? `${selectedMykEgitimler.size} eğitim` : "+ seç"}
-                        </button>
-                        {showMykSecim && (
-                          <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto" onClick={e => e.stopPropagation()}>
-                            {mykEgitimListesi.length === 0 && <p className="text-xs text-gray-400 p-2">Eğitim bulunamadı</p>}
-                            {mykEgitimListesi.map(eg => (
-                              <label key={eg.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-xs">
-                                <input type="checkbox" checked={selectedMykEgitimler.has(eg.id)} onChange={() => toggleMykEgitim(eg.id)} className="w-3.5 h-3.5 accent-blue-600" />
-                                {eg.ad}
-                              </label>
-                            ))}
-                          </div>
-                        )}
+                return item.field === "myk" ? (
+                  <div key={item.field} className="px-3 py-2">
+                    <div className="flex items-center gap-1 mb-2">
+                      <span className="text-xs text-gray-700 w-20 shrink-0">{item.label}</span>
+                      <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs flex-1 min-w-0">
+                        <option value="">Eğitim seçiniz</option>
+                        {mykEgitimListesi.map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                      </select>
+                      <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
+                      <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
+                        <option value="">y</option>
+                        {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
+                    </div>
+                    {mykKayitlar.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {mykKayitlar.map((k, i) => {
+                          const eg = mykEgitimListesi.find(e => e.id === k.myk_egitim_id);
+                          return (
+                            <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
+                              <span className="text-blue-700 truncate max-w-24">{eg?.ad || k.myk_egitim_id}</span>
+                              <span className="text-blue-400">|</span>
+                              <span className="text-blue-600">{k.alis_tarihi || "?"}</span>
+                              <span className="text-blue-400">|</span>
+                              <span className="text-blue-600">{k.gecerlilik_suresi}y</span>
+                              <button type="button" onClick={() => mykKaldir(i)} className="text-red-400 hover:text-red-600 ml-0.5"><X className="w-2.5 h-2.5" /></button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
-                  </span>
+                  </div>
+                ) : (
+                <div className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>
+                  <span className="text-xs text-gray-700 w-28">{item.label}</span>
                   <div className="flex items-center gap-0.5">
                     <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form[item.field as keyof typeof form] as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange(item.field, toDb(v)); setErrors((p) => ({ ...p, [item.field]: "" })); }} className={`input text-xs ${hasErr ? "border-red-500" : ""}`} style={{ width: "5rem" }} />
                     <button type="button" onClick={() => { const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement; if (!picker) return; const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id={`dp-btn-${item.field}`} className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
@@ -414,7 +425,7 @@ export default function PersonnelForm() {
                   </div>
                   {hasErr && <p className="text-xs text-red-500">{hasErr}</p>}
                 </div>
-              );
+                );
               })}
             </div>
 

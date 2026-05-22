@@ -66,23 +66,27 @@ export default function PersonnelList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
-  const [selectedMykEgitimler, setSelectedMykEgitimler] = useState<Set<string>>(new Set());
-  const [showMykSecim, setShowMykSecim] = useState(false);
-  const mykPopoverRef = useRef<HTMLDivElement>(null);
+  const [mykKayitlar, setMykKayitlar] = useState<{ myk_egitim_id: string; alis_tarihi: string; gecerlilik_suresi: string }[]>([]);
+  const [mykSecim, setMykSecim] = useState("");
+  const [mykSecimTarih, setMykSecimTarih] = useState("");
+  const [mykSecimSure, setMykSecimSure] = useState("");
 
   useEffect(() => {
     fetchPersonnel();
     supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
       if (data) setMykEgitimListesi(data);
     });
-    const handleClick = (e: MouseEvent) => {
-      if (mykPopoverRef.current && !mykPopoverRef.current.contains(e.target as Node)) {
-        setShowMykSecim(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const mykEkle = () => {
+    if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
+    setMykKayitlar(prev => [...prev, { myk_egitim_id: mykSecim, alis_tarihi: mykSecimTarih, gecerlilik_suresi: mykSecimSure }]);
+    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
+  };
+
+  const mykKaldir = (idx: number) => {
+    setMykKayitlar(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const fetchPersonnel = async () => {
     const { data } = await supabase.from("personel").select("*").order("created_at", { ascending: false });
@@ -159,15 +163,20 @@ export default function PersonnelList() {
     setEditBelgeler([]);
     setEditStatus(null);
     setLockedFiles(new Set());
-    setShowMykSecim(false);
+    setMykKayitlar([]);
+    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
     fetchEditBelgeler(p.id);
     fetchPersonelMykEgitimler(p.id);
   };
 
   const fetchPersonelMykEgitimler = async (personelId: string) => {
-    const { data } = await supabase.from("personel_myk_egitimleri").select("myk_egitim_id").eq("personel_id", personelId);
+    const { data } = await supabase.from("personel_myk_egitimleri").select("myk_egitim_id, alis_tarihi, gecerlilik_suresi").eq("personel_id", personelId);
     if (data) {
-      setSelectedMykEgitimler(new Set(data.map((r: any) => r.myk_egitim_id)));
+      setMykKayitlar(data.map((r: any) => ({
+        myk_egitim_id: r.myk_egitim_id,
+        alis_tarihi: r.alis_tarihi || "",
+        gecerlilik_suresi: r.gecerlilik_suresi ? r.gecerlilik_suresi.toString() : "",
+      })));
     }
   };
 
@@ -253,10 +262,12 @@ export default function PersonnelList() {
   const saveEditMykEgitimler = async () => {
     if (!editingPerson) return;
     await supabase.from("personel_myk_egitimleri").delete().eq("personel_id", editingPerson.id);
-    if (selectedMykEgitimler.size > 0) {
-      const inserts = Array.from(selectedMykEgitimler).map(mykEgitimId => ({
+    if (mykKayitlar.length > 0) {
+      const inserts = mykKayitlar.map(k => ({
         personel_id: editingPerson.id,
-        myk_egitim_id: mykEgitimId,
+        myk_egitim_id: k.myk_egitim_id,
+        alis_tarihi: k.alis_tarihi || null,
+        gecerlilik_suresi: k.gecerlilik_suresi ? parseInt(k.gecerlilik_suresi) : null,
       }));
       await supabase.from("personel_myk_egitimleri").insert(inserts);
     }
@@ -592,34 +603,13 @@ export default function PersonnelList() {
                   {[
                     { label: "İSG", field: "isg_egitim_tarihi", sureField: "isg_egitim_gecerlilik_suresi" },
                     { label: "Yüksekte", field: "yuksekte_calisma_tarihi", sureField: "yuksekte_calisma_gecerlilik_suresi" },
-                    { label: "MYK", field: "myk_tarihi", sureField: "myk_gecerlilik_suresi" },
                     { label: "Sertifika", field: "sertifika_tarihi", sureField: "sertifika_gecerlilik_suresi" },
                     { label: "Operatör", field: "operator_belgesi_tarihi", sureField: "operator_belgesi_gecerlilik_suresi" },
                     { label: "KKD", field: "kkd_tarihi", sureField: "kkd_gecerlilik_suresi" },
                     { label: "Oryantasyon", field: "oryantasyon_tarihi", sureField: "oryantasyon_gecerlilik_suresi" },
                   ].map(item => (
                     <div key={item.field} className="flex items-center gap-1">
-                      <label className="text-xs text-gray-500 w-12 shrink-0 flex items-center gap-0.5">
-                        {item.label}
-                        {item.field === "myk_tarihi" && (
-                          <div className="relative inline-block" ref={mykPopoverRef}>
-                            <button type="button" onClick={() => setShowMykSecim(!showMykSecim)} className={`text-[9px] px-1 py-0.5 rounded border ${selectedMykEgitimler.size > 0 ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600"}`}>
-                              {selectedMykEgitimler.size > 0 ? `${selectedMykEgitimler.size}` : "+"}
-                            </button>
-                            {showMykSecim && (
-                              <div className="absolute left-0 top-full mt-1 z-50 w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto" onClick={e => e.stopPropagation()}>
-                                {mykEgitimListesi.length === 0 && <p className="text-xs text-gray-400 p-2">Eğitim bulunamadı</p>}
-                                {mykEgitimListesi.map(eg => (
-                                  <label key={eg.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-xs">
-                                    <input type="checkbox" checked={selectedMykEgitimler.has(eg.id)} onChange={() => { const next = new Set(selectedMykEgitimler); if (next.has(eg.id)) next.delete(eg.id); else next.add(eg.id); setSelectedMykEgitimler(next); }} className="w-3.5 h-3.5 accent-blue-600" />
-                                    {eg.ad}
-                                  </label>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </label>
+                      <label className="text-xs text-gray-500 w-12 shrink-0">{item.label}</label>
                       <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs flex-1 min-w-0" />
                       <select value={editForm[item.sureField] || ""} onChange={e => setEditForm({...editForm, [item.sureField]: e.target.value})} className="input text-xs" style={{ width: "3rem" }}>
                         <option value="">y</option>
@@ -632,6 +622,39 @@ export default function PersonnelList() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="pt-2 mt-2 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">MYK Eğitim Kayıtları</h4>
+                <div className="flex items-center gap-1 mb-2">
+                  <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs flex-1 min-w-0">
+                    <option value="">Eğitim seçiniz</option>
+                    {mykEgitimListesi.map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                  </select>
+                  <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4rem" }} />
+                  <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
+                    <option value="">y</option>
+                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5 shrink-0" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
+                </div>
+                {mykKayitlar.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {mykKayitlar.map((k, i) => {
+                      const eg = mykEgitimListesi.find(e => e.id === k.myk_egitim_id);
+                      return (
+                        <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
+                          <span className="text-blue-700 truncate max-w-24">{eg?.ad || k.myk_egitim_id}</span>
+                          <span className="text-blue-400">|</span>
+                          <span className="text-blue-600">{k.alis_tarihi || "?"}</span>
+                          <span className="text-blue-400">|</span>
+                          <span className="text-blue-600">{k.gecerlilik_suresi}y</span>
+                          <button type="button" onClick={() => mykKaldir(i)} className="text-red-400 hover:text-red-600 ml-0.5"><X className="w-2.5 h-2.5" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
