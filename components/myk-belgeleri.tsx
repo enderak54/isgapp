@@ -22,7 +22,7 @@ export default function MykBelgeleri() {
   const fetchData = async () => {
     const [egitimRes, personelRes, kayitRes, matrixRes] = await Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true }),
-      supabase.from("personel").select("id, kimlik_no, ad, soyad").order("ad", { ascending: true }),
+      supabase.from("personel").select("id, kimlik_no, ad, soyad").eq("arsivde", false).order("ad", { ascending: true }),
       supabase.from("personel_myk_egitimleri").select("*").order("alis_tarihi", { ascending: false }),
       supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id"),
     ]);

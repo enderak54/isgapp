@@ -197,6 +197,13 @@ export default function PersonnelForm() {
     setLoading(true);
     setStatus(null);
     try {
+      // Arşivde aynı TC var mı kontrol et
+      const { data: arsivKayit } = await supabase.from("personel").select("id, ad, soyad").eq("kimlik_no", sanitize(form.kimlikNo)).eq("arsivde", true).maybeSingle();
+      if (arsivKayit) {
+        if (!confirm(`UYARI: Bu TC kimlik numarası arşivde "${arsivKayit.ad} ${arsivKayit.soyad}" adına kayıtlıdır. Yine de kaydetmek istiyor musunuz?`)) {
+          setLoading(false); return;
+        }
+      }
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,

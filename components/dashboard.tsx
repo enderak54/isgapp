@@ -98,7 +98,7 @@ export default function Dashboard() {
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date30),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date7),
       supabase.from("is_kazalari").select("yaralanma_durumu").gte("tarih", date365),
-      supabase.from("personel").select("ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz"),
+      supabase.from("personel").select("ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz").eq("arsivde", false),
       supabase.from("ayarlar").select("key, value").eq("type", "egitim_uyari"),
     ]);
 

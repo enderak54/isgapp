@@ -23,7 +23,7 @@ export default function PersonelDosyasi() {
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad");
+    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad").eq("arsivde", false);
     if (data) setPersonel(data);
   };
 

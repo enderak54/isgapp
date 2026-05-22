@@ -63,6 +63,7 @@ export default function PersonnelList() {
   const [uploadDragOver, setUploadDragOver] = useState(false);
   const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set());
   const [lockedPersons, setLockedPersons] = useState<Set<string>>(new Set());
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
@@ -89,22 +90,26 @@ export default function PersonnelList() {
   };
 
   const fetchPersonnel = async () => {
-    const { data } = await supabase.from("personel").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("personel").select("*").eq("arsivde", false).order("created_at", { ascending: false });
     if (data) setPersonnel(data);
     setLoading(false);
   };
 
-  const deletePerson = async (id: string) => {
+  const deletePerson = async (id: string, tur: "istirak_ayrilis" | "hatali_kayit") => {
     if (!checkRateLimit("personel_delete", 3, 60000)) {
       alert("Çok fazla silme denemesi. Lütfen bekleyin.");
       return;
     }
-    if (confirm("Bu personeli silmek istediğinize emin misiniz?")) {
-      const person = personnel.find(p => p.id === id);
+    const person = personnel.find(p => p.id === id);
+    if (tur === "hatali_kayit") {
       await supabase.from("personel").delete().eq("id", id);
       await logAudit("personel", "DELETE", id, person, null);
-      fetchPersonnel();
+    } else {
+      await supabase.from("personel").update({ arsivde: true, ayrilis_tarihi: new Date().toISOString().split("T")[0], ayrilis_nedeni: "istirak_ayrilis" }).eq("id", id);
+      await logAudit("personel", "ARCHIVE", id, person, null);
     }
+    setDeleteModal({ open: false, id: "" });
+    fetchPersonnel();
   };
 
   const fetchBelgeler = async (personelId: string) => {
@@ -429,7 +434,7 @@ export default function PersonnelList() {
                           <button type="button" onClick={() => toggleLockPerson(p.id)} className={`p-1 rounded border transition ${lockedPersons.has(p.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedPersons.has(p.id) ? "Kilidi aç" : "Kilitli"}>
                             {lockedPersons.has(p.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                           </button>
-                          <button onClick={() => deletePerson(p.id)} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
+                          <button onClick={() => setDeleteModal({ open: true, id: p.id })} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
                             <Trash2 className="w-3.5 h-3.5" /> Sil
                           </button>
                         </div>
@@ -817,6 +822,29 @@ export default function PersonnelList() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Silme Modalı */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteModal({ open: false, id: "" })}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Personel Sil</h3>
+              <button onClick={() => setDeleteModal({ open: false, id: "" })} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Bu personel için hangi işlemi yapmak istiyorsunuz?</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => deletePerson(deleteModal.id, "istirak_ayrilis")} className="w-full py-3 px-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition text-sm font-medium text-left">
+                <div className="font-semibold">İşten Ayrılış</div>
+                <div className="text-xs text-amber-500 mt-0.5">Personel arşive taşınır, veriler korunur</div>
+              </button>
+              <button onClick={() => deletePerson(deleteModal.id, "hatali_kayit")} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-left">
+                <div className="font-semibold">Hatalı Kayıt</div>
+                <div className="text-xs text-red-500 mt-0.5">Personel tamamen silinir, geri alınamaz</div>
+              </button>
             </div>
           </div>
         </div>

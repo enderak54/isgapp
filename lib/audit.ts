@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export async function logAudit(
   tableName: string,
-  action: "INSERT" | "UPDATE" | "DELETE",
+  action: "INSERT" | "UPDATE" | "DELETE" | "ARCHIVE",
   recordId: string | null,
   oldValues: Record<string, any> | null = null,
   newValues: Record<string, any> | null = null

@@ -37,7 +37,7 @@ export default function YetkinlikMatrisi() {
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, ad, soyad");
+    const { data } = await supabase.from("personel").select("id, ad, soyad").eq("arsivde", false);
     if (data) setPersonel(data);
   };
 
