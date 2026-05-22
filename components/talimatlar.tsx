@@ -142,18 +142,18 @@ export default function Talimatlar() {
       ) : (
         <div className="flex-1 overflow-auto px-6">
           <div className="overflow-x-auto pb-4">
-            <table className="w-full border-collapse" style={{ minWidth: sutunlar.length * 160 + 420 }}>
+            <table className="w-full border-collapse" style={{ minWidth: sutunlar.length * 100 + 320 }}>
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="sticky left-0 z-20 bg-gray-100 px-3 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 100 }}>Kimlik No</th>
-                  <th className="sticky left-[100px] z-20 bg-gray-100 px-3 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 140 }}>Ad Soyad</th>
-                  <th className="sticky left-[240px] z-20 bg-gray-100 px-3 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 100 }}>Görev</th>
+                  <th className="sticky left-0 z-20 bg-gray-100 px-2 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 90 }}>Kimlik No</th>
+                  <th className="sticky left-[90px] z-20 bg-gray-100 px-2 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 130 }}>Ad Soyad</th>
+                  <th className="sticky left-[220px] z-20 bg-gray-100 px-2 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200" style={{ minWidth: 80 }}>Görev</th>
                   {sutunlar.map((ad) => (
-                    <th key={ad} className="px-3 py-3 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200 relative group" style={{ minWidth: 150 }}>
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="truncate">{ad}</span>
-                        <button onClick={() => sutunSil(ad)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition p-0.5" title="Sütunu Sil">
-                          <X className="w-3 h-3" />
+                    <th key={ad} className="px-2 py-2 text-center text-[10px] font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200 relative group" style={{ minWidth: 100 }}>
+                      <div className="flex items-start justify-center gap-0.5">
+                        <span className="text-center leading-tight whitespace-normal">{ad}</span>
+                        <button onClick={() => sutunSil(ad)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition p-0.5 flex-shrink-0 mt-0.5" title="Sütunu Sil">
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     </th>
@@ -163,15 +163,15 @@ export default function Talimatlar() {
               <tbody className="divide-y divide-gray-100">
                 {filteredPersonel.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition">
-                    <td className="sticky left-0 z-10 bg-white px-3 py-2.5 text-xs text-gray-600 font-mono border-r border-gray-200">{p.kimlik_no || "-"}</td>
-                    <td className="sticky left-[100px] z-10 bg-white px-3 py-2.5 text-xs font-medium text-gray-800 border-r border-gray-200">{p.ad} {p.soyad}</td>
-                    <td className="sticky left-[240px] z-10 bg-white px-3 py-2.5 text-xs text-gray-500 border-r border-gray-200">{p.meslek_kodu || "-"}</td>
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 text-xs text-gray-600 font-mono border-r border-gray-200">{p.kimlik_no || "-"}</td>
+                    <td className="sticky left-[90px] z-10 bg-white px-2 py-2 text-xs font-medium text-gray-800 border-r border-gray-200">{p.ad} {p.soyad}</td>
+                    <td className="sticky left-[220px] z-10 bg-white px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{p.meslek_kodu || "-"}</td>
                     {sutunlar.map((ad) => {
                       const key = cellKey(p.id, ad);
                       const val = cellData[key] || "";
                       const isSecili = seciliHucre?.personel_id === p.id && seciliHucre?.talimat_adi === ad;
                       return (
-                        <td key={ad} className="px-3 py-2 border-r border-gray-100 text-center relative">
+                        <td key={ad} className="px-2 py-1.5 border-r border-gray-100 text-center relative">
                           {isSecili ? (
                             <input
                               ref={dateInputRef}
