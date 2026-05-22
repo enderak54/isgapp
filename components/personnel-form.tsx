@@ -71,6 +71,7 @@ export default function PersonnelForm() {
   const [mykSecim, setMykSecim] = useState("");
   const [mykSecimTarih, setMykSecimTarih] = useState("");
   const [mykSecimSure, setMykSecimSure] = useState("");
+  const [mykShowAll, setMykShowAll] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -395,12 +396,20 @@ export default function PersonnelForm() {
                   <div key={item.field} className="px-3 py-2">
                     <div className="flex items-center gap-1 mb-2">
                       <span className="text-xs text-gray-700 w-20 shrink-0">{item.label}</span>
-                      <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs flex-1 min-w-0">
-                        <option value="">Eğitim seçiniz</option>
-                        {mykZorunluIds.length > 0 && mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
-                        {mykZorunluIds.length > 0 && <option disabled>──────────</option>}
-                        {mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
-                      </select>
+                      <div className="flex-1 min-w-0">
+                        <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
+                          <option value="">Eğitim seçiniz</option>
+                          {mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                          {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).length > 0 && <option disabled>──────────</option>}
+                          {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                        </select>
+                        {!mykShowAll && mykEgitimListesi.length > mykZorunluIds.length && (
+                          <button type="button" onClick={() => setMykShowAll(true)} className="text-[10px] text-blue-500 hover:text-blue-700 mt-0.5">Tümünü Göster ({mykEgitimListesi.length})</button>
+                        )}
+                        {mykShowAll && (
+                          <button type="button" onClick={() => setMykShowAll(false)} className="text-[10px] text-blue-500 hover:text-blue-700 mt-0.5">Sadece Zorunlu Göster</button>
+                        )}
+                      </div>
                       <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
                       <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
                         <option value="">y</option>
