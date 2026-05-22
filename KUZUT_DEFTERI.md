@@ -38,7 +38,8 @@ isgapp/
 │   ├── ayarlar/page.tsx    # Ayarlar
 │   ├── risk/ → performans/ # ISO 45001 Ek Modüller (9 adet)
 │   └── api/                # API route'lar
-│       └── commits/route.ts # GitHub commit proxy
+│       ├── commits/route.ts  # GitHub commit proxy
+│       └── backup/route.ts   # Veritabanı yedekleme (JSON dışa aktarım)
 ├── components/             # Tüm UI bileşenleri
 │   ├── sidebar.tsx         # Sol menü (dinamik sıralama + modül gizleme)
 │   ├── personnel-form.tsx  # Personel kayıt formu
@@ -93,6 +94,7 @@ Tüm ISG eğitim alanları (`isg_egitim_tarihi`, `yuksekte_calisma_tarihi`, `myk
 ### `kvkk_consents` — KVKK onayları
 ### `versiyonlar` — Sürüm kayıtları (manuel)
 ### `operator_belgeri`, `is_kazalari`, `ihtarlar` vb.
+### `yedekleme_log` — Yedekleme geçmişi (Migration 030)
 
 **RLS**: Tüm tablolar public (auth yok). Geliştirme modu.
 
@@ -168,6 +170,8 @@ Her listede `lockedX` Set state'i ile yönetilir.
 - **Modül Ayarları**: Tüm menü öğelerinin göster/gizle
 - **Uyarı Süreleri**: Her ISG eğitimi için ayrı bitiş uyarı eşiği (gün)
 - **Menü Düzenle**: Drag-drop ile sıralama
+- **Yapay Zeka Entegrasyonları**: Projeye katkı sağlayan YZ sistemleri listesi
+- **Yedekleme**: Tam (tüm tablolar + dosya URL'leri) veya Kısmi (seçili tablolar) — API route `/api/backup` JSON olarak dışa aktarır, `yedekleme_log` tablosuna kaydeder
 - **Sürüm Takip**: GitHub commit geçmişi
 
 ## 6. Ek Modüller (ISO 45001)

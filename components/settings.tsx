@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 
 const colorOptions = [
@@ -122,6 +122,45 @@ export default function SettingsPage() {
   const [showUyari, setShowUyari] = useState(false);
   const [uyariAyarlari, setUyariAyarlari] = useState<Record<string, string>>({});
   const [uyariSaving, setUyariSaving] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupMode, setBackupMode] = useState<"full" | "partial">("full");
+  const [backupTables, setBackupTables] = useState<Record<string, boolean>>({});
+  const [backupIncludeFiles, setBackupIncludeFiles] = useState(true);
+
+  const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
+    { key: "personel", label: "Personel", grup: "kritik" },
+    { key: "personel_belgeleri", label: "Personel Belgeleri", grup: "kritik" },
+    { key: "personel_myk_egitimleri", label: "MYK Eğitim Kayıtları", grup: "kritik" },
+    { key: "myk_egitim_listesi", label: "MYK Eğitim Listesi", grup: "kritik" },
+    { key: "ayarlar", label: "Ayarlar", grup: "kritik" },
+    { key: "audit_log", label: "Denetim Günlüğü", grup: "kritik" },
+    { key: "versiyonlar", label: "Sürümler", grup: "kritik" },
+    { key: "kvkk_consents", label: "KVKK Onayları", grup: "kritik" },
+    { key: "operator_belgeri", label: "Operatör Belgeleri", grup: "kritik" },
+    { key: "is_kazalari", label: "İş Kazaları", grup: "kritik" },
+    { key: "ihtar_tutanagi", label: "İhtar Tutanakları", grup: "kritik" },
+    { key: "ihtar_dosyalari", label: "İhtar Dosyaları", grup: "kritik" },
+    { key: "santiyeler", label: "Şantiyeler", grup: "diger" },
+    { key: "taseronlar", label: "Taşeronlar", grup: "diger" },
+    { key: "saha_sorumlulari", label: "Saha Sorumluları", grup: "diger" },
+    { key: "is_ekipmanlari", label: "İş Ekipmanları", grup: "diger" },
+    { key: "egitimler", label: "Eğitimler", grup: "diger" },
+    { key: "talimatlar", label: "Talimatlar", grup: "diger" },
+    { key: "personel_dosyasi", label: "Personel Dosyası", grup: "diger" },
+    { key: "notlar", label: "Notlar", grup: "diger" },
+    { key: "myk_belgeri", label: "MYK Belgeleri (Legacy)", grup: "diger" },
+    { key: "risk_degerlendirme", label: "Risk Değerlendirme", grup: "modul" },
+    { key: "yasal_uygunluk", label: "Yasal Uygunluk", grup: "modul" },
+    { key: "ic_denetim", label: "İç Denetim", grup: "modul" },
+    { key: "denetim_bulgulari", label: "Denetim Bulguları", grup: "modul" },
+    { key: "acil_durum", label: "Acil Durum", grup: "modul" },
+    { key: "duzeltici_faaliyet", label: "Düzeltici Faaliyet", grup: "modul" },
+    { key: "yonetim_gozden_gecirme", label: "YGG", grup: "modul" },
+    { key: "dokuman_kontrol", label: "Doküman Kontrol", grup: "modul" },
+    { key: "yetkinlik_matrisi", label: "Yetkinlik Matrisi", grup: "modul" },
+    { key: "performans_izleme", label: "Performans İzleme", grup: "modul" },
+  ];
 
   useEffect(() => {
     setupDatabase();
@@ -203,6 +242,33 @@ export default function SettingsPage() {
     if (data?.value) {
       try { setAiEntries(JSON.parse(data.value)); } catch { setAiEntries([]); }
     }
+  };
+
+  const startBackup = async () => {
+    setBackupLoading(true);
+    setStatus(null);
+    try {
+      const tables = backupMode === "full"
+        ? ALL_TABLES.map(t => t.key)
+        : Object.entries(backupTables).filter(([, v]) => v).map(([k]) => k);
+      if (tables.length === 0) { setStatus({ type: "error", message: "En az bir tablo seçin" }); setBackupLoading(false); return; }
+      const res = await fetch("/api/backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tables, includeFiles: backupIncludeFiles, mod: backupMode }),
+      });
+      if (!res.ok) { setStatus({ type: "error", message: "Yedekleme başarısız" }); setBackupLoading(false); return; }
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `isgapp_yedek_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus({ type: "success", message: `Yedekleme tamam: ${data.metadata.tablo_sayisi} tablo, ${data.metadata.toplam_kayit} kayıt` });
+    } catch { setStatus({ type: "error", message: "Yedekleme sırasında hata oluştu" }); }
+    setBackupLoading(false);
   };
 
   const fetchSettings = async () => {
@@ -589,6 +655,67 @@ export default function SettingsPage() {
                 ))}
               </div>
               {aiEntries.length === 0 && <p className="text-center py-6 text-gray-400">AI kaydı bulunamadı</p>}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
+          <button onClick={() => setShowBackup(!showBackup)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Yedekleme</h3>
+              <p className="text-sm text-gray-500">Veritabanı ve dosya yedekleme</p>
+            </div>
+            {showBackup ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showBackup && (
+            <div className="mt-4">
+              <div className="flex gap-3 mb-4">
+                <button onClick={() => { setBackupMode("full"); setBackupTables({}); }}
+                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "full" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                  <HardDrive className="w-5 h-5 text-blue-500 mb-1" />
+                  <p className="font-medium text-gray-800 text-sm">Tam Yedekleme</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Tüm tablolar + dosyalar</p>
+                </button>
+                <button onClick={() => setBackupMode("partial")}
+                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "partial" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                  <Database className="w-5 h-5 text-green-500 mb-1" />
+                  <p className="font-medium text-gray-800 text-sm">Kısmi Yedekleme</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Seçili tablo ve alanlar</p>
+                </button>
+              </div>
+
+              {backupMode === "partial" && (
+                <div className="mb-4 space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                  {(["kritik", "modul", "diger"] as const).map(grup => (
+                    <div key={grup}>
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 mt-2 first:mt-0">
+                        {grup === "kritik" ? "Ana Tablolar" : grup === "modul" ? "ISO 45001 Modülleri" : "Diğer"}
+                      </p>
+                      {ALL_TABLES.filter(t => t.grup === grup).map(t => (
+                        <label key={t.key} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                          <input type="checkbox" checked={backupTables[t.key] ?? true} onChange={e => setBackupTables(p => ({ ...p, [t.key]: e.target.checked }))} className="rounded border-gray-300" />
+                          <span className="text-sm text-gray-700">{t.label}</span>
+                          <span className="text-[10px] text-gray-300 font-mono ml-auto">{t.key}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {backupMode === "full" && (
+                <label className="flex items-center gap-2 mb-4 px-1">
+                  <input type="checkbox" checked={backupIncludeFiles} onChange={e => setBackupIncludeFiles(e.target.checked)} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">Dosya referanslarını (imzalı URL'ler) dahil et</span>
+                </label>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button onClick={startBackup} disabled={backupLoading} className="btn btn-primary text-sm flex items-center gap-2">
+                  {backupLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {backupLoading ? "Yedekleniyor..." : backupMode === "full" ? "Tam Yedekleme Al" : "Seçili Tabloları Yedekle"}
+                </button>
+              </div>
             </div>
           )}
         </div>
