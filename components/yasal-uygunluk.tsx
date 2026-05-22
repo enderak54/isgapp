@@ -78,7 +78,7 @@ export default function YasalUygunluk() {
           <div className="card p-4"><p className="text-xs text-gray-500">Bekleyen</p><p className="text-2xl font-bold text-amber-600">{stats.bekleyen}</p></div>
         </div>
 
-        <div className="card p-4 mb-6"><div className="search-input"><input type="text" placeholder="Yasal metin ara..." value={search} onChange={e => setSearch(e.target.value)} /><Search /></div></div>
+        <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Yasal metin ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
 
         <div className="card overflow-hidden">
           <table>

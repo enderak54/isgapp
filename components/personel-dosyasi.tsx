@@ -121,14 +121,14 @@ export default function PersonelDosyasi() {
             <span className="text-sm font-semibold text-gray-700">Personel Seçimi</span>
           </div>
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Personel adı veya TC kimlik no ile ara..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); setSelectedPerson(null); setSelectedFolder(null); }}
-              onFocus={() => setShowDropdown(true)}
-              className="input pl-10 pr-4"
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Personel adı veya TC kimlik no ile ara..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); setSelectedPerson(null); setSelectedFolder(null); }}
+                onFocus={() => setShowDropdown(true)}
+                className="input pr-12"
             />
             {showDropdown && search && filteredPersonel.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-30">

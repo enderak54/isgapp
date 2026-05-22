@@ -87,12 +87,13 @@ export default function AuditLogViewer() {
           <span className="text-xs text-gray-400 font-mono">audit_log</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Tablo, işlem veya kayıt ID ara..." value={search}
-              onChange={e => setSearch(e.target.value)} className="bg-transparent outline-none text-sm flex-1" />
-          </div>
+        <div className="card p-4 mb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input type="text" placeholder="Tablo, işlem veya kayıt ID ara..." value={search}
+                onChange={e => setSearch(e.target.value)} className="input pr-12" />
+            </div>
           <select value={tableFilter} onChange={e => setTableFilter(e.target.value)} className="input text-xs">
             <option value="">Tüm Tablolar</option>
             {allTables.map(t => <option key={t} value={t}>{tableLabels[t] || t}</option>)}
@@ -102,6 +103,7 @@ export default function AuditLogViewer() {
             {Object.entries(actionMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
+      </div>
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loading ? (

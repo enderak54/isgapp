@@ -41,10 +41,10 @@ export default function Egitimler() {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="card p-4 mb-6">
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input type="text" placeholder="Eğitim ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-10 py-2 border rounded-lg" />
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input type="text" placeholder="Eğitim ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
         </div>
       </div>
 

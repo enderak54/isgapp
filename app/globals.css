@@ -197,24 +197,6 @@ tr:hover td {
   padding: 1.5rem;
 }
 
-/* Search input */
-.search-input {
-  position: relative;
-}
-
-.search-input svg {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #9ca3af;
-}
-
-.search-input input {
-  padding-right: 3rem;
-}
 
 /* Loading spinner */
 .spinner {
