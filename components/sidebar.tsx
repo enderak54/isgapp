@@ -1,35 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Briefcase,
-  Users,
-  GraduationCap,
-  Shield,
-  FolderOpen,
-  FileText,
-  Building2,
-  HardHat,
-  UserCog,
-  Wrench,
-  AlertTriangle,
-  LayoutDashboard,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ShieldCheck,
-  Scale,
-  ClipboardCheck,
-  Siren,
-  RotateCcw,
-  Eye,
-  FileCheck,
-  Award,
-  TrendingUp,
-  AlertOctagon,
-  Archive,
-  ScrollText,
+  Briefcase, Users, GraduationCap, Shield, FolderOpen, FileText,
+  Building2, HardHat, UserCog, Wrench, AlertTriangle, LayoutDashboard,
+  Settings, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Scale,
+  ClipboardCheck, Siren, RotateCcw, Eye, FileCheck, Award, TrendingUp,
+  AlertOctagon, ScrollText, Menu, X,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -63,13 +40,14 @@ const ekModulItems = [
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [ekModulOpen, setEkModulOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(localStorage.getItem("isg_modules") || "{}"); } catch { return {}; }
   });
@@ -83,7 +61,13 @@ export default function Sidebar() {
   useEffect(() => {
     loadModuleSettings();
     loadMenuOrder();
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const loadMenuOrder = async () => {
     const { data } = await supabase.from("ayarlar").select("key, value").in("key", ["menu_order_main", "menu_order_ek"]);
@@ -139,18 +123,18 @@ export default function Sidebar() {
     visibleModules[item.key || ""] !== false
   );
 
-  return (
-    <aside className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+  const menuContent = (mobile: boolean) => (
+    <>
       <div className="p-3 border-b border-gray-100">
-        <Link href="/" className="flex items-center justify-between group">
+        <Link href="/" className="flex items-center justify-between group" onClick={() => mobile && setMobileOpen(false)}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-white" />
             </div>
-            {!collapsed && <span className="text-sm font-semibold text-gray-800">İSG Takip</span>}
+            {(!collapsed || mobile) && <span className="text-sm font-semibold text-gray-800">İSG Takip</span>}
           </div>
         </Link>
-        {!collapsed && <div className="text-[10px] text-gray-300 mt-1 select-none text-center">v1.1.0</div>}
+        {(!collapsed || mobile) && <div className="text-[10px] text-gray-300 mt-1 select-none text-center">v1.1.0</div>}
       </div>
       
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
@@ -158,19 +142,18 @@ export default function Sidebar() {
           <Link
             key={index}
             href={item.href}
+            onClick={() => mobile && setMobileOpen(false)}
             className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
-              pathname === item.href 
-                ? "bg-gray-200 text-gray-900" 
-                : "text-gray-600 hover:bg-gray-100"
+              pathname === item.href ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             <item.icon className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-medium">{item.label}</span>}
+            {(!collapsed || mobile) && <span className="text-xs font-medium">{item.label}</span>}
           </Link>
         ))}
 
-        {!collapsed && filteredEk.length > 0 && (
-          <div className="pt-2">
+        {(!collapsed || mobile) && filteredEk.length > 0 && (
+          <div className={`pt-2 ${collapsed && !mobile ? "hidden" : ""}`}>
             <button
               onClick={() => setEkModulOpen(!ekModulOpen)}
               className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
@@ -184,10 +167,9 @@ export default function Sidebar() {
                   <Link
                     key={index}
                     href={item.href}
+                    onClick={() => mobile && setMobileOpen(false)}
                     className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
-                      pathname === item.href 
-                        ? "bg-gray-200 text-gray-900" 
-                        : "text-gray-600 hover:bg-gray-100"
+                      pathname === item.href ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -198,44 +180,68 @@ export default function Sidebar() {
             )}
           </div>
         )}
-
-        {collapsed && filteredEk.some(item => pathname === item.href) && (
-          <div className="pt-1">
-            <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Ek</div>
-            {filteredEk.map((item, index) => (
-              pathname === item.href && (
-                <Link
-                  key={index}
-                  href={item.href}
-                  className="flex items-center gap-1 px-2 py-2 rounded-lg bg-gray-200 text-gray-900 transition-colors"
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                </Link>
-              )
-            ))}
-          </div>
-        )}
       </nav>
       
       <div className="p-2 border-t border-gray-100">
         <Link
           href="/ayarlar"
+          onClick={() => mobile && setMobileOpen(false)}
           className={`flex items-center gap-1 px-2 py-2 rounded-lg transition-colors ${
-            pathname === "/ayarlar" 
-              ? "bg-gray-200 text-gray-900" 
-              : "text-gray-600 hover:bg-gray-100"
+            pathname === "/ayarlar" ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"
           }`}
         >
           <Settings className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="text-xs font-medium">Ayarlar</span>}
+          {(!collapsed || mobile) && <span className="text-xs font-medium">Ayarlar</span>}
         </Link>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500 mt-1"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        {!mobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-500 mt-1"
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger */}
+      {isMobile && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-3 left-3 z-50 w-9 h-9 bg-white border border-gray-200 rounded-lg shadow-md flex items-center justify-center text-gray-600 hover:bg-gray-50"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Mobile drawer backdrop */}
+      {isMobile && mobileOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Mobile drawer */}
+      {isMobile && (
+        <aside
+          className={`fixed top-0 left-0 z-50 h-full bg-white border-r border-gray-100 flex flex-col transition-transform duration-300 w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="absolute top-3 right-3">
+            <button onClick={() => setMobileOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {menuContent(true)}
+        </aside>
+      )}
+
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <aside className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+          {menuContent(false)}
+        </aside>
+      )}
+    </>
   );
 }

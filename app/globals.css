@@ -329,6 +329,15 @@ tr:hover td {
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
+/* Responsive table container */
+.table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Mobile padding for content areas */
+@media (max-width: 1023px) {
+  .page-content { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .page-content .card { border-radius: 0.75rem; }
+}
+
 /* App background (uses --bg var for theme support) */
 .app-bg { background: var(--bg); }
 .app-surface { background: var(--surface); }

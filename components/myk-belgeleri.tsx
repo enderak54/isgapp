@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
 import { displayDate, kalanSureText } from "@/lib/tarih";
+import * as XLSX from "xlsx";
 
 type SortDir = "asc" | "desc";
 
@@ -74,6 +75,33 @@ export default function MykBelgeleri() {
     });
   };
 
+  const exportListToExcel = () => {
+    const data = sorted.map(k => ({
+      Personel: k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-",
+      "MYK Eğitim": k.myk_egitim_listesi?.ad || "-",
+      "Alış Tarihi": k.alis_tarihi || "",
+      "Geçerlilik (yıl)": k.gecerlilik_suresi || "",
+      "Bitiş Tarihi": k.alis_tarihi && k.gecerlilik_suresi ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0] : "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "MYK Listesi");
+    XLSX.writeFile(wb, `myk_listesi_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const exportMatrixToExcel = () => {
+    const header = ["Personel", ...mykEgitimListesi.map(e => e.ad)];
+    const rows = personel.map(p => {
+      const egitimler = personelMykEgitimler[p.id] || new Set();
+      return [`${p.ad} ${p.soyad}`, ...mykEgitimListesi.map(e => egitimler.has(e.id) ? "X" : "")];
+    });
+    const data = [header, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "MYK Matrisi");
+    XLSX.writeFile(wb, `myk_matrisi_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
     await supabase.from("personel_myk_egitimleri").delete().eq("id", id);
@@ -104,7 +132,11 @@ export default function MykBelgeleri() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-800">MYK Belgeleri</h2>
-          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2">
+            <button onClick={viewMode === "list" ? exportListToExcel : exportMatrixToExcel} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition">
+              <Download className="w-3.5 h-3.5" /> Excel Aktar
+            </button>
+            <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
             <button onClick={() => setViewMode("list")} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${viewMode === "list" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
               <List className="w-3.5 h-3.5" /> Liste
             </button>
@@ -113,6 +145,7 @@ export default function MykBelgeleri() {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       {viewMode === "list" ? (
