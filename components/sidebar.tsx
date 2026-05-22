@@ -71,8 +71,8 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [ekModulOpen, setEkModulOpen] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
-  const [menuOrderMain, setMenuOrderMain] = useState<string[]>([]);
-  const [menuOrderEk, setMenuOrderEk] = useState<string[]>([]);
+  const [menuOrderMain, setMenuOrderMain] = useState<string[]>(mainMenuItems.map(i => i.key).filter(Boolean) as string[]);
+  const [menuOrderEk, setMenuOrderEk] = useState<string[]>(ekModulItems.map(i => i.key).filter(Boolean) as string[]);
 
   useEffect(() => {
     loadModuleSettings();
