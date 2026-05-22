@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown } from "lucide-react";
 import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
-import { displayDate } from "@/lib/tarih";
+import { displayDate, kalanSureText } from "@/lib/tarih";
 
 type SortDir = "asc" | "desc";
 
@@ -144,8 +144,8 @@ export default function MykBelgeleri() {
                       ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0]
                       : null;
                     const expired = expiryDate ? isExpired(k.alis_tarihi, k.gecerlilik_suresi) : false;
-                    const kalanGun = expiryDate ? daysUntil(new Date(expiryDate)) : null;
                     const warning = expiryDate && !expired ? isWarningNeeded(k.alis_tarihi, k.gecerlilik_suresi, 30) : false;
+                    const kalanText = expiryDate ? kalanSureText(expiryDate) : null;
                     return (
                       <tr key={k.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-800">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-"}</td>
@@ -156,9 +156,9 @@ export default function MykBelgeleri() {
                           {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{displayDate(expiryDate)}</span> : "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {kalanGun !== null ? (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${kalanGun <= 0 ? "bg-red-100 text-red-700" : kalanGun <= 30 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                              {kalanGun <= 0 ? "Süre doldu" : kalanGun === 1 ? "1 gün kaldı" : kalanGun < 30 ? `${kalanGun} gün kaldı` : `${Math.floor(kalanGun / 30)} ay ${kalanGun % 30} gün kaldı`}
+                          {kalanText ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${kalanText === "Süre doldu" ? "bg-red-100 text-red-700" : (expiryDate && daysUntil(new Date(expiryDate)) <= 30) ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                              {kalanText}
                             </span>
                           ) : "-"}
                         </td>

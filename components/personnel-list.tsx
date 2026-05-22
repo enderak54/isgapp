@@ -67,6 +67,7 @@ export default function PersonnelList() {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
   const [sortCol, setSortCol] = useState<string>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [arsivGoster, setArsivGoster] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
@@ -93,7 +94,9 @@ export default function PersonnelList() {
   };
 
   const fetchPersonnel = async () => {
-    const { data } = await supabase.from("personel").select("*").eq("arsivde", false).order("created_at", { ascending: false });
+    const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
+    query.eq("arsivde", arsivGoster);
+    const { data } = await query;
     if (data) setPersonnel(data);
     setLoading(false);
   };
@@ -329,7 +332,7 @@ export default function PersonnelList() {
       await saveEditMykEgitimler();
       await logAudit("personel", "UPDATE", editingPerson.id, oldValues, payload);
       setEditStatus({ type: "success", message: "Personel güncellendi!" });
-      fetchPersonnel();
+    fetchPersonnel();
     } catch (err: any) {
       setEditStatus({ type: "error", message: err.message || "Güncelleme hatası" });
     } finally {
@@ -392,6 +395,14 @@ export default function PersonnelList() {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
+  const arsivDegistir = (v: boolean) => {
+    setArsivGoster(v);
+    setLoading(true);
+    const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
+    query.eq("arsivde", v);
+    query.then(({ data }) => { if (data) setPersonnel(data); setLoading(false); });
+  };
+
   return (
     <main className="flex-1 p-8 app-bg min-h-screen">
       <div className="flex justify-between items-center mb-8">
@@ -399,11 +410,17 @@ export default function PersonnelList() {
           <h2 className="text-2xl font-semibold text-gray-800">Personel Listesi</h2>
           <p className="text-gray-500 mt-1">Toplam {personnel.length} kayıtlı personel</p>
         </div>
-        <Link href="/" className="btn btn-primary">
+        <div className="flex items-center gap-3">
+          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <button onClick={() => arsivDegistir(false)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${!arsivGoster ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Aktif</button>
+            <button onClick={() => arsivDegistir(true)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${arsivGoster ? "bg-amber-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Arşiv</button>
+          </div>
+          <Link href="/" className="btn btn-primary">
           <UserPlus className="w-4 h-4" />
           Yeni Personel
         </Link>
       </div>
+    </div>
 
       <div className="card p-4 mb-6">
         <div className="relative">
