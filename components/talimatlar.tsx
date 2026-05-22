@@ -121,14 +121,17 @@ export default function Talimatlar() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-800 tracking-tight">Personel Talimat Takibi Matrisi</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => setShowYeniSutun(true)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-green-700 transition">
-              <Plus className="w-3.5 h-3.5" /> Yeni Talimat Sütunu Ekle
-            </button>
-            <div className="relative">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-3 pr-8 py-1.5 border border-gray-200 rounded-lg text-xs w-44 focus:outline-none focus:ring-1 focus:ring-green-500" />
-            </div>
+          <button onClick={() => setShowYeniSutun(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-700 transition">
+            <Plus className="w-4 h-4" /> Yeni Talimat Sütunu Ekle
+          </button>
+        </div>
+      </div>
+
+      <div className="px-6 py-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="relative">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input type="text" placeholder="Personel ara (ad, TC)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
           </div>
         </div>
       </div>
@@ -137,7 +140,7 @@ export default function Talimatlar() {
       {loading ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">Yükleniyor...</div>
       ) : (
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-6">
           <div className="overflow-x-auto pb-4">
             <table className="w-full border-collapse" style={{ minWidth: sutunlar.length * 160 + 420 }}>
               <thead>
