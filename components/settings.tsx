@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock } from "lucide-react";
+import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -110,17 +111,30 @@ export default function SettingsPage() {
   const [versions, setVersions] = useState<any[]>([]);
   const [showAddVersion, setShowAddVersion] = useState(false);
   const [newVersion, setNewVersion] = useState({ versiyon: "", tip: "minor" as string, aciklama: "", detaylar: "", yazar: "" });
+  const [showUyari, setShowUyari] = useState(false);
+  const [uyariAyarlari, setUyariAyarlari] = useState<Record<string, string>>({});
+  const [uyariSaving, setUyariSaving] = useState(false);
 
   useEffect(() => {
     setupDatabase();
     fetchSettings();
     fetchVersions();
+    fetchUyariAyarlari();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
     if (saved.color) setThemeColor(saved.color);
     if (saved.font) setThemeFont(saved.font);
     if (saved.size) setThemeSize(saved.size);
   }, []);
+
+  const fetchUyariAyarlari = async () => {
+    const { data } = await supabase.from("ayarlar").select("*").eq("type", "egitim_uyari");
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((d: any) => { map[d.key] = d.value; });
+      setUyariAyarlari(map);
+    }
+  };
 
   const fetchVersions = async () => {
     const { data } = await supabase.from("versiyonlar").select("*").order("tarih", { ascending: false });
@@ -212,6 +226,18 @@ export default function SettingsPage() {
       await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
     } catch {}
     setStatus({ type: "success", message: "Tema kaydedildi!" });
+  };
+
+  const saveUyari = async () => {
+    setUyariSaving(true);
+    for (const field of EGITIM_FIELDS) {
+      const val = uyariAyarlari[field.ayarKey];
+      if (val) {
+        await supabase.from("ayarlar").upsert(sanitizeForm({ key: field.ayarKey, value: val, type: "egitim_uyari", description: field.label + " - bitiş uyarı günü" }), { onConflict: "key" });
+      }
+    }
+    setUyariSaving(false);
+    setStatus({ type: "success", message: "Uyarı süreleri kaydedildi!" });
   };
 
   const saveVersion = async () => {
@@ -386,6 +412,46 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
+          <button
+            onClick={() => setShowUyari(!showUyari)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Uyarı Süreleri</h3>
+              <p className="text-sm text-gray-500">Her ISG eğitimi için bitiş uyarı süresi (gün)</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showUyari && (
+                <button onClick={(e) => { e.stopPropagation(); saveUyari(); }} disabled={uyariSaving} className="btn btn-primary text-sm">
+                  {uyariSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showUyari ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showUyari && (
+            <div className="space-y-3 mt-4">
+              {EGITIM_FIELDS.map((field) => (
+                <div key={field.ayarKey} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium text-gray-800">{field.label}</p>
+                      <p className="text-xs text-gray-400">{field.ayarKey}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} max={365} value={uyariAyarlari[field.ayarKey] || "7"} onChange={(e) => setUyariAyarlari((prev) => ({ ...prev, [field.ayarKey]: e.target.value }))} className="input text-xs text-center" style={{ width: "4rem" }} />
+                    <span className="text-xs text-gray-500">gün</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

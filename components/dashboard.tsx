@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb } from "lucide-react";
+import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded, getWarningMessage } from "@/lib/egitim-uyari";
 
 const motivasyonSozleri = [
   "Güvenlik bir alışkanlıktır, tesadüf değil. — Her gün bir adım daha güvenliye.",
@@ -50,13 +51,18 @@ interface ISGStats {
   kaza30: number;
   kaza7: number;
   uyarilar: number;
-  kso: number; // Kaza Sıklık Oranı
+  kso: number;
   toplamCalismaGunu: number;
   agirYaralanma: number;
   olum: number;
   riskSkoru: number;
   egitimOrani: number;
   saglikRaporuOrani: number;
+}
+
+interface EgitimUyari {
+  label: string;
+  count: number;
 }
 
 export default function Dashboard() {
@@ -66,6 +72,7 @@ export default function Dashboard() {
     riskSkoru: 0, egitimOrani: 0, saglikRaporuOrani: 0
   });
   const [loading, setLoading] = useState(true);
+  const [egitimUyarilari, setEgitimUyarilari] = useState<EgitimUyari[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -83,61 +90,75 @@ export default function Dashboard() {
       { count: kaza30 },
       { count: kaza7 },
       { data: kazalar365 },
-      { data: mykBelgeler },
-      { data: egitimler },
-      { data: personel }
+      { data: personel },
+      { data: uyariAyarlari },
     ] = await Promise.all([
       supabase.from("personel").select("*", { count: "exact", head: true }),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date365),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date30),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date7),
       supabase.from("is_kazalari").select("yaralanma_durumu").gte("tarih", date365),
-      supabase.from("myk_belgeri").select("*"),
-      supabase.from("egitimler").select("*"),
-      supabase.from("personel").select("yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz")
+      supabase.from("personel").select("ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz"),
+      supabase.from("ayarlar").select("key, value").eq("type", "egitim_uyari"),
     ]);
 
     const agirYaralanma = kazalar365?.filter(k => k.yaralanma_durumu === "agri").length || 0;
     const olum = kazalar365?.filter(k => k.yaralanma_durumu === "olum").length || 0;
-    
-    // KSO (Kaza Sıklık Oranı) = (Kaza Sayısı / Toplam Çalışılan Gün) x 1.000.000
-    const toplamCalismaGunu = (totalPersonel || 0) * 300; // Ortalama yıllık çalışma günü
+
+    const toplamCalismaGunu = (totalPersonel || 0) * 300;
     const kso = toplamCalismaGunu > 0 ? Math.round(((kaza365 || 0) / toplamCalismaGunu) * 1000000) : 0;
 
-    // Risk Skoru (basit hesaplama)
-    const riskSkoru = Math.min(100, Math.round(
-      (kaza365 || 0) * 10 + 
-      agirYaralanma * 20 + 
-      olum * 30 + 
-      (mykBelgeler?.filter(b => new Date(b.gecerlilik_tarihi) < today).length || 0) * 5
-    ));
-
-    // Eğitim oranı
-    const egitimliPersonel = egitimler?.length || 0;
-    const egitimOrani = totalPersonel ? Math.round((egitimliPersonel / (totalPersonel || 1)) * 100) : 0;
-
-    // Sağlık raporu durumu
     const saglikSorunlu = personel?.filter(p => p.yuksekte_calisamaz || p.gece_calisamaz || p.vardiyali_calisamaz).length || 0;
     const saglikRaporuOrani = totalPersonel ? Math.round(((totalPersonel - saglikSorunlu) / (totalPersonel || 1)) * 100) : 100;
 
-    const { data: expiredDocs } = await supabase
-      .from("myk_belgeri")
-      .select("*")
-      .lt("gecerlilik_tarihi", today.toISOString().split("T")[0]);
+    // Build threshold map
+    const thresholdMap: Record<string, number> = {};
+    uyariAyarlari?.forEach((a: any) => { thresholdMap[a.key] = parseInt(a.value) || 7; });
 
+    // Calculate training expiry warnings
+    const uyariCounts: Record<string, number> = {};
+    EGITIM_FIELDS.forEach(f => { uyariCounts[f.label] = 0; });
+
+    if (personel) {
+      for (const p of personel) {
+        for (const f of EGITIM_FIELDS) {
+          const tarih = (p as any)[f.tarihField];
+          const sure = (p as any)[f.sureField];
+          const threshold = thresholdMap[f.ayarKey] || (f.ayarKey === "uyari_myk" ? 30 : 7);
+          if (isWarningNeeded(tarih, sure, threshold) || isExpired(tarih, sure)) {
+            uyariCounts[f.label] = (uyariCounts[f.label] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    const egitimUyariList = EGITIM_FIELDS
+      .map(f => ({ label: f.label, count: uyariCounts[f.label] || 0 }))
+      .filter(u => u.count > 0);
+
+    const totalUyarilar = egitimUyariList.reduce((sum, u) => sum + u.count, 0);
+
+    const riskSkoru = Math.min(100, Math.round(
+      (kaza365 || 0) * 10 +
+      agirYaralanma * 20 +
+      olum * 30 +
+      totalUyarilar * 2
+    ));
+
+    setEgitimUyarilari(egitimUyariList);
     setStats({
       totalPersonel: totalPersonel || 0,
       kaza365: kaza365 || 0,
       kaza30: kaza30 || 0,
       kaza7: kaza7 || 0,
-      uyarilar: (expiredDocs?.length || 0) + 5,
+      uyarilar: totalUyarilar,
       kso,
       toplamCalismaGunu,
       agirYaralanma,
       olum,
       riskSkoru,
-      egitimOrani,
-      saglikRaporuOrani
+      egitimOrani: 0,
+      saglikRaporuOrani,
     });
     setLoading(false);
   };
@@ -194,7 +215,7 @@ export default function Dashboard() {
           <p className="text-2xl font-bold text-gray-800">{stats.totalPersonel}</p>
           <p className="text-xs text-gray-500 mt-0.5">Toplam Personel</p>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
@@ -204,7 +225,7 @@ export default function Dashboard() {
           <p className="text-2xl font-bold text-gray-800">{stats.uyarilar}</p>
           <p className="text-xs text-gray-500 mt-0.5">Aktif Uyarılar</p>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -214,7 +235,7 @@ export default function Dashboard() {
           <p className={`text-2xl font-bold ${getRiskColor(stats.riskSkoru)}`}>{stats.riskSkoru}</p>
           <p className="text-xs text-gray-500 mt-0.5">Risk Skoru</p>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ksoDurum.renk === "green" ? "bg-green-50" : ksoDurum.renk === "amber" ? "bg-amber-50" : "bg-red-50"}`}>
@@ -254,7 +275,7 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-red-600">{stats.olum}</p>
             </div>
           </div>
-           
+
           <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
             <div className="text-center">
               <p className="text-[10px] text-gray-500">KSO</p>
@@ -275,25 +296,25 @@ export default function Dashboard() {
 
         {/* Uyarılar */}
         <div className="card p-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Uyarılar</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">ISG Uyarıları</h3>
           <div className="space-y-2">
-            {[
-              { label: "Tarihi geçen KKD'ler", count: 3 },
-              { label: "Süresi dolan sağlık raporları", count: 2 },
-              { label: "MYK belgeleri", count: 1 },
-              { label: "Periyodik kontrol", count: 4 },
-              { label: "Süresi dolan evraklar", count: 5 },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                <span className="text-xs text-gray-600">{item.label}</span>
-                <span className="w-5 h-5 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[10px] font-medium">{item.count}</span>
-              </div>
-            ))}
+            {egitimUyarilari.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">Aktif uyarı bulunmuyor</p>
+            ) : (
+              egitimUyarilari.map((item, i) => (
+                <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  <span className="text-xs text-gray-600">{item.label}</span>
+                  <span className="w-5 h-5 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[10px] font-medium">{item.count}</span>
+                </div>
+              ))
+            )}
           </div>
-          <button className="w-full mt-3 btn btn-primary text-xs py-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            {stats.uyarilar} Aktif Uyarı
-          </button>
+          {egitimUyarilari.length > 0 && (
+            <button className="w-full mt-3 btn btn-primary text-xs py-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {stats.uyarilar} Aktif Uyarı
+            </button>
+          )}
         </div>
       </div>
 

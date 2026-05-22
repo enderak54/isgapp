@@ -6,6 +6,7 @@ import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calenda
 import { maskTC, sanitizeForm, checkRateLimit } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
+import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
@@ -152,6 +153,28 @@ export default function PersonnelList() {
   const belgeTipiLabel = (tip: string) => {
     const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", diger: "Diğer" };
     return labels[tip] || tip;
+  };
+
+  const getEgitimDurumu = (p: any, f: typeof EGITIM_FIELDS[0]) => {
+    const tarih = p[f.tarihField];
+    const sure = p[f.sureField];
+    if (!tarih || !sure) return null;
+    if (isExpired(tarih, sure)) return "expired";
+    const threshold = f.ayarKey === "uyari_myk" ? 30 : 7;
+    if (isWarningNeeded(tarih, sure, threshold)) return "warning";
+    return "ok";
+  };
+
+  const getDurumRenk = (durum: string | null) => {
+    if (durum === "expired") return "text-red-500";
+    if (durum === "warning") return "text-amber-500";
+    return "text-gray-300";
+  };
+
+  const getDurumIcon = (durum: string | null) => {
+    if (durum === "expired") return "●";
+    if (durum === "warning") return "◉";
+    return "○";
   };
 
   const addFiles = (field: string, files: File[]) => {
@@ -399,13 +422,18 @@ export default function PersonnelList() {
                 <div className="pt-4 border-t border-gray-100">
                   <h5 className="text-sm font-medium text-gray-500 mb-3">İSG Belgeleri</h5>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">İSG Eğitim:</span> {selectedPerson.isg_egitim_tarihi || "-"}{selectedPerson.isg_egitim_gecerlilik_suresi ? ` (${selectedPerson.isg_egitim_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Yüksekte:</span> {selectedPerson.yuksekte_calisma_tarihi || "-"}{selectedPerson.yuksekte_calisma_gecerlilik_suresi ? ` (${selectedPerson.yuksekte_calisma_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">MYK:</span> {selectedPerson.myk_tarihi || "-"}{selectedPerson.myk_gecerlilik_suresi ? ` (${selectedPerson.myk_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Operatör:</span> {selectedPerson.operator_belgesi_tarihi || "-"}{selectedPerson.operator_belgesi_gecerlilik_suresi ? ` (${selectedPerson.operator_belgesi_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">KKD:</span> {selectedPerson.kkd_tarihi || "-"}{selectedPerson.kkd_gecerlilik_suresi ? ` (${selectedPerson.kkd_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Oryantasyon:</span> {selectedPerson.oryantasyon_tarihi || "-"}{selectedPerson.oryantasyon_gecerlilik_suresi ? ` (${selectedPerson.oryantasyon_gecerlilik_suresi} yıl)` : ""}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Sertifika:</span> {selectedPerson.sertifika_tarihi || "-"}{selectedPerson.sertifika_gecerlilik_suresi ? ` (${selectedPerson.sertifika_gecerlilik_suresi} yıl)` : ""}</div>
+                    {EGITIM_FIELDS.map(f => {
+                      const durum = getEgitimDurumu(selectedPerson, f);
+                      const tarih = selectedPerson[f.tarihField];
+                      const sure = selectedPerson[f.sureField];
+                      return (
+                        <div key={f.tarihField} className="p-2 bg-gray-50 rounded flex items-center gap-1.5">
+                          <span className={`text-[10px] ${getDurumRenk(durum)}`}>{getDurumIcon(durum)}</span>
+                          <span className="text-gray-500">{f.label}:</span>
+                          <span className="text-gray-700">{tarih || "-"}{sure ? ` (${sure} yıl)` : ""}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {belgeler.length > 0 && (
@@ -432,7 +460,16 @@ export default function PersonnelList() {
                     {selectedPerson.kan_grubu && <span className="badge bg-gray-100 text-gray-600">Kan: {selectedPerson.kan_grubu}</span>}
                   </div>
                   {selectedPerson.kronik_rahatlik && <p className="text-sm text-gray-600 bg-red-50 p-3 rounded-lg mt-2"><strong>Kronik Rahatsızlık:</strong> {selectedPerson.kronik_rahatlik}</p>}
-                  {selectedPerson.saglik_raporu_tarihi && <p className="text-xs text-gray-500 mt-2"><strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}{selectedPerson.saglik_raporu_gecerlilik_suresi ? ` (${selectedPerson.saglik_raporu_gecerlilik_suresi} yıl)` : ""}</p>}
+                  {(() => {
+                    const srField = EGITIM_FIELDS.find(f => f.tarihField === "saglik_raporu_tarihi");
+                    const durum = srField ? getEgitimDurumu(selectedPerson, srField) : null;
+                    return (
+                      <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                        {durum && <span className={`${getDurumRenk(durum)}`}>{getDurumIcon(durum)}</span>}
+                        <strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}{selectedPerson.saglik_raporu_gecerlilik_suresi ? ` (${selectedPerson.saglik_raporu_gecerlilik_suresi} yıl)` : ""}
+                      </p>
+                    );
+                  })()}
                 </div>
                 {selectedPerson.notlar && (
                   <div className="pt-4 border-t border-gray-100">
