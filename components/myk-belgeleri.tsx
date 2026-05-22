@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock } from "lucide-react";
 import { isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 export default function MykBelgeleri() {
@@ -13,6 +13,7 @@ export default function MykBelgeleri() {
   const [personel, setPersonel] = useState<any[]>([]);
   const [kayitlar, setKayitlar] = useState<any[]>([]);
   const [personelMykEgitimler, setPersonelMykEgitimler] = useState<Record<string, Set<string>>>({});
+  const [lockedKayitlar, setLockedKayitlar] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -51,9 +52,18 @@ export default function MykBelgeleri() {
     setLoading(false);
   };
 
+  const toggleLock = (id: string) => {
+    setLockedKayitlar(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
     await supabase.from("personel_myk_egitimleri").delete().eq("id", id);
+    setLockedKayitlar(prev => { const n = new Set(prev); n.delete(id); return n; });
     fetchData();
   };
 
@@ -118,7 +128,14 @@ export default function MykBelgeleri() {
                           {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{expiryDate}</span> : "-"}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button type="button" onClick={() => toggleLock(k.id)} className={`p-1 rounded border transition ${lockedKayitlar.has(k.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedKayitlar.has(k.id) ? "Kilidi aç" : "Kilitli"}>
+                              {lockedKayitlar.has(k.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                            </button>
+                            {lockedKayitlar.has(k.id) && (
+                              <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded border border-red-200"><Trash2 className="w-4 h-4" /></button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
