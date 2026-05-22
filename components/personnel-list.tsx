@@ -95,7 +95,11 @@ export default function PersonnelList() {
 
   const fetchPersonnel = async () => {
     const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
-    query.eq("arsivde", arsivGoster);
+    if (arsivGoster) {
+      query.eq("arsivde", true);
+    } else {
+      query.or("arsivde.eq.false,arsivde.is.null");
+    }
     const { data } = await query;
     if (data) setPersonnel(data);
     setLoading(false);
@@ -399,7 +403,11 @@ export default function PersonnelList() {
     setArsivGoster(v);
     setLoading(true);
     const query = supabase.from("personel").select("*").order("created_at", { ascending: false });
-    query.eq("arsivde", v);
+    if (v) {
+      query.eq("arsivde", true);
+    } else {
+      query.or("arsivde.eq.false,arsivde.is.null");
+    }
     query.then(({ data }) => { if (data) setPersonnel(data); setLoading(false); });
   };
 
