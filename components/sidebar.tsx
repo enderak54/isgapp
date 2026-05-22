@@ -29,6 +29,7 @@ import {
   TrendingUp,
   AlertOctagon,
   Archive,
+  ScrollText,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -45,6 +46,7 @@ const mainMenuItems = [
   { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
   { icon: GraduationCap, label: "Eğitimler", href: "/egitimler", key: "egitimler" },
   { icon: AlertOctagon, label: "İhtar Tutanağı", href: "/ihtar", key: "ihtar" },
+  { icon: ScrollText, label: "Denetim Günlüğü", href: "/audit-log", key: "audit-log" },
 ];
 
 const ekModulItems = [

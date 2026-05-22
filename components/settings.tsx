@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 
 const colorOptions = [
@@ -109,6 +109,8 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [showVersion, setShowVersion] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [aiEntries, setAiEntries] = useState<any[]>([]);
   const [versions, setVersions] = useState<any[]>([]);
   const [commits, setCommits] = useState<any[]>([]);
   const [commitsLoading, setCommitsLoading] = useState(false);
@@ -127,6 +129,7 @@ export default function SettingsPage() {
     fetchVersions();
     fetchCommits();
     fetchMenuOrder();
+    fetchAIEntries();
     fetchUyariAyarlari();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
@@ -193,6 +196,13 @@ export default function SettingsPage() {
     await supabase.from("ayarlar").upsert({ key: "menu_order_ek", value: JSON.stringify(ekKeys), type: "menu_order" }, { onConflict: "key" });
     setMenuSaving(false);
     setStatus({ type: "success", message: "Menü sırası kaydedildi!" });
+  };
+
+  const fetchAIEntries = async () => {
+    const { data } = await supabase.from("ayarlar").select("value").eq("key", "ai_entries").single();
+    if (data?.value) {
+      try { setAiEntries(JSON.parse(data.value)); } catch { setAiEntries([]); }
+    }
   };
 
   const fetchSettings = async () => {
@@ -542,6 +552,43 @@ export default function SettingsPage() {
                   <Save className="w-4 h-4" /> {menuSaving ? "Kaydediliyor..." : "Sırayı Kaydet"}
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
+          <button onClick={() => setShowAI(!showAI)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Yapay Zeka Entegrasyonları</h3>
+              <p className="text-sm text-gray-500">Projeye katkı sağlayan YZ sistemleri</p>
+            </div>
+            {showAI ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showAI && (
+            <div className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {aiEntries.map((ai: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 bg-white">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center flex-shrink-0 border border-blue-100">
+                      {idx % 2 === 0 ? <Brain className="w-5 h-5 text-indigo-500" /> : <Cpu className="w-5 h-5 text-blue-500" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-800 text-sm">{ai.name}</p>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-mono">{ai.model}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{ai.role}</p>
+                      {ai.url && (
+                        <a href={ai.url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1.5">
+                          <ExternalLink className="w-3 h-3" /> {new URL(ai.url).hostname}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {aiEntries.length === 0 && <p className="text-center py-6 text-gray-400">AI kaydı bulunamadı</p>}
             </div>
           )}
         </div>
