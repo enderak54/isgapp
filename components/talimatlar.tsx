@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
-import { Search, Plus, Calendar, Pin, X, ChevronDown } from "lucide-react";
+import { Search, Plus, Calendar, Pin, X, ChevronDown, Lock, Unlock } from "lucide-react";
 
 const DEFAULT_SUTUNLAR = [
   "Vinç Kullanımı",
@@ -25,8 +25,8 @@ export default function Talimatlar() {
   const [sutunlar, setSutunlar] = useState<string[]>(DEFAULT_SUTUNLAR);
   const [showYeniSutun, setShowYeniSutun] = useState(false);
   const [yeniSutunAdi, setYeniSutunAdi] = useState("");
-  const [showYeniPersonel, setShowYeniPersonel] = useState(false);
   const [notlar, setNotlar] = useState<string[]>(["", "", ""]);
+  const [lockedNotes, setLockedNotes] = useState<Set<number>>(new Set());
   const [seciliHucre, setSeciliHucre] = useState<{ personel_id: string; talimat_adi: string } | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -122,9 +122,6 @@ export default function Talimatlar() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-800 tracking-tight">Personel Talimat Takibi Matrisi</h1>
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => setShowYeniPersonel(true)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-green-700 transition">
-              <Plus className="w-3.5 h-3.5" /> Yeni Personel Ekle
-            </button>
             <button onClick={() => setShowYeniSutun(true)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-green-700 transition">
               <Plus className="w-3.5 h-3.5" /> Yeni Talimat Sütunu Ekle
             </button>
@@ -214,8 +211,18 @@ export default function Talimatlar() {
         <div className="flex flex-wrap gap-4">
           {notlar.map((note, idx) => (
             <div key={idx} className="relative bg-amber-50 border border-amber-200 rounded-lg p-3 w-56 shadow-sm">
-              <div className="absolute -top-1.5 left-3 text-amber-400">
-                <Pin className="w-3.5 h-3.5 fill-amber-400" />
+              <div className="flex items-center justify-between mb-1">
+                <Pin className="w-3 h-3 text-amber-400 fill-amber-400" />
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setLockedNotes(prev => { const n = new Set(prev); if (n.has(idx)) n.delete(idx); else n.add(idx); return n; })} className={`p-0.5 rounded transition ${lockedNotes.has(idx) ? "text-amber-500" : "text-gray-300 hover:text-gray-500"}`}>
+                    {lockedNotes.has(idx) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  </button>
+                  {lockedNotes.has(idx) && (
+                    <button onClick={() => { const yeni = notlar.filter((_, i) => i !== idx); saveNotlar(yeni); }} className="text-red-300 hover:text-red-500 p-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
               <textarea
                 value={note}
@@ -225,18 +232,9 @@ export default function Talimatlar() {
                   saveNotlar(yeni);
                 }}
                 placeholder="Not ekle..."
-                className="w-full bg-transparent text-xs text-gray-700 resize-none outline-none mt-1 placeholder-gray-300"
+                className="w-full bg-transparent text-xs text-gray-700 resize-none outline-none placeholder-gray-300"
                 rows={3}
               />
-              {note && (
-                <button onClick={() => {
-                  const yeni = [...notlar];
-                  yeni[idx] = "";
-                  saveNotlar(yeni);
-                }} className="absolute -top-1.5 right-2 text-red-300 hover:text-red-500">
-                  <X className="w-3 h-3" />
-                </button>
-              )}
             </div>
           ))}
           <button onClick={() => saveNotlar([...notlar, ""])} className="border-2 border-dashed border-gray-200 rounded-lg p-3 w-56 flex items-center justify-center text-gray-300 hover:text-gray-500 hover:border-gray-300 transition">
@@ -244,20 +242,6 @@ export default function Talimatlar() {
           </button>
         </div>
       </div>
-
-      {/* Yeni Personel Modal */}
-      {showYeniPersonel && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowYeniPersonel(false)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Yeni Personel</h3>
-              <button onClick={() => setShowYeniPersonel(false)}><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">Personel eklemek için lütfen Personel sayfasını kullanın.</p>
-            <a href="/personel" className="block w-full text-center bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">Personel Sayfasına Git</a>
-          </div>
-        </div>
-      )}
 
       {/* Yeni Sütun Modal */}
       {showYeniSutun && (
