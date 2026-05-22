@@ -127,6 +127,10 @@ export default function SettingsPage() {
   const [backupMode, setBackupMode] = useState<"full" | "partial">("full");
   const [backupTables, setBackupTables] = useState<Record<string, boolean>>({});
   const [backupIncludeFiles, setBackupIncludeFiles] = useState(true);
+  const [showMykZorunlu, setShowMykZorunlu] = useState(false);
+  const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [mykZorunluIds, setMykZorunluIds] = useState<string[]>([]);
+  const [mykZorunluSaving, setMykZorunluSaving] = useState(false);
 
   const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
     { key: "personel", label: "Personel", grup: "kritik" },
@@ -170,6 +174,7 @@ export default function SettingsPage() {
     fetchMenuOrder();
     fetchAIEntries();
     fetchUyariAyarlari();
+    fetchMykZorunlu();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
     if (saved.color) setThemeColor(saved.color);
@@ -235,6 +240,28 @@ export default function SettingsPage() {
     await supabase.from("ayarlar").upsert({ key: "menu_order_ek", value: JSON.stringify(ekKeys), type: "menu_order" }, { onConflict: "key" });
     setMenuSaving(false);
     setStatus({ type: "success", message: "Menü sırası kaydedildi!" });
+  };
+
+  const fetchMykZorunlu = async () => {
+    const [egitimRes, ayarRes] = await Promise.all([
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true }),
+      supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
+    ]);
+    if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
+    if (ayarRes.data?.value) {
+      try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch { setMykZorunluIds([]); }
+    }
+  };
+
+  const toggleMykZorunlu = (id: string) => {
+    setMykZorunluIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const saveMykZorunlu = async () => {
+    setMykZorunluSaving(true);
+    await supabase.from("ayarlar").upsert({ key: "myk_zorunlu_ids", value: JSON.stringify(mykZorunluIds), type: "myk_zorunlu", description: "Zorunlu MYK meslekleri" }, { onConflict: "key" });
+    setMykZorunluSaving(false);
+    setStatus({ type: "success", message: "Zorunlu meslekler kaydedildi!" });
   };
 
   const fetchAIEntries = async () => {
@@ -720,7 +747,42 @@ export default function SettingsPage() {
           )}
         </div>
 
-          <div className="card p-6 mt-6">
+        <div className="card p-6 mt-6">
+          <button
+            onClick={() => setShowMykZorunlu(!showMykZorunlu)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">MYK Zorunlu Meslekler</h3>
+              <p className="text-sm text-gray-500">Personel kaydında üstte gösterilecek zorunlu MYK mesleklerini seçin</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showMykZorunlu && (
+                <button onClick={(e) => { e.stopPropagation(); saveMykZorunlu(); }} disabled={mykZorunluSaving} className="btn btn-primary text-sm">
+                  {mykZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showMykZorunlu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showMykZorunlu && (
+            <div className="mt-4 space-y-1 max-h-72 overflow-y-auto">
+              {mykEgitimListesi.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-6">MYK eğitim listesi yüklenmedi</p>
+              ) : (
+                mykEgitimListesi.map((eg) => (
+                  <label key={eg.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={mykZorunluIds.includes(eg.id)} onChange={() => toggleMykZorunlu(eg.id)} className="rounded border-gray-300" />
+                    <span className="text-sm text-gray-700">{eg.ad}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
             <button onClick={() => setShowVersion(!showVersion)} className="w-full flex items-center justify-between">
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-gray-800">Sürüm Takip</h3>

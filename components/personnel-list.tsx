@@ -77,6 +77,7 @@ export default function PersonnelList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [mykZorunluIds, setMykZorunluIds] = useState<string[]>([]);
   const [mykKayitlar, setMykKayitlar] = useState<{ myk_egitim_id: string; alis_tarihi: string; gecerlilik_suresi: string }[]>([]);
   const [mykSecim, setMykSecim] = useState("");
   const [mykSecimTarih, setMykSecimTarih] = useState("");
@@ -84,8 +85,14 @@ export default function PersonnelList() {
 
   useEffect(() => {
     fetchPersonnel();
-    supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
-      if (data) setMykEgitimListesi(data);
+    Promise.all([
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
+      supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
+    ]).then(([egitimRes, ayarRes]) => {
+      if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
+      if (ayarRes.data?.value) {
+        try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
+      }
     });
   }, []);
 
@@ -714,7 +721,9 @@ export default function PersonnelList() {
                 <div className="flex items-center gap-1 mb-2">
                   <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs flex-1 min-w-0">
                     <option value="">Eğitim seçiniz</option>
-                    {mykEgitimListesi.map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                    {mykZorunluIds.length > 0 && mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                    {mykZorunluIds.length > 0 && <option disabled>──────────</option>}
+                    {mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
                   </select>
                   <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4rem" }} />
                   <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
@@ -744,7 +753,7 @@ export default function PersonnelList() {
 
               <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Sağlık</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
                   <div className="flex items-center gap-1">
                     <label className="text-xs text-gray-500 w-16 shrink-0">Sağlık Rap.</label>
                     <input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
@@ -757,13 +766,36 @@ export default function PersonnelList() {
                       {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length}</span>}
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-12 shrink-0">Kan</label>
-                    <select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select>
-                  </div>
-                  <div className="flex items-center gap-2 col-span-2">
-                    <label className="text-xs text-gray-500 w-12 shrink-0">Kronik</label>
-                    <input type="text" value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="Varsa..." />
+                  {[
+                    { label: "Yüksekte", canWork: "yuksekte_calisir", cannotWork: "yuksekte_calisamaz", uploadField: "yuksekte_calisamaz" },
+                    { label: "Gece", canWork: "gece_calisir", cannotWork: "gece_calisamaz", uploadField: "gece_calisamaz" },
+                    { label: "Vardiyalı", canWork: "vardiyali_calisir", cannotWork: "vardiyali_calisamaz", uploadField: "vardiyali_calisamaz" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-4 text-sm">
+                      <span className="text-xs text-gray-700 w-16 shrink-0">{item.label}</span>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name={item.label} checked={(editForm as any)[item.canWork]} onChange={() => { setEditForm({...editForm, [item.canWork]: true, [item.cannotWork]: false}); }} className="w-4 h-4 accent-gray-600" />
+                        <span className="text-gray-600 text-xs">Çalışır</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name={item.label} checked={(editForm as any)[item.cannotWork]} onChange={() => { setEditForm({...editForm, [item.cannotWork]: true, [item.canWork]: false}); }} className="w-4 h-4 accent-gray-600" />
+                        <span className="text-gray-600 text-xs">Çalışamaz</span>
+                      </label>
+                      <button type="button" onClick={() => setUploadModalField(item.uploadField)} className={`p-1 rounded transition relative ${pendingFiles.filter(f => f.field === item.uploadField).length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                        <Paperclip className="w-3 h-3" />
+                        {pendingFiles.filter(f => f.field === item.uploadField).length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === item.uploadField).length}</span>}
+                      </button>
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 w-12 shrink-0">Kan</label>
+                      <select value={editForm.kan_grubu} onChange={e => setEditForm({...editForm, kan_grubu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["A+","A-","B+","B-","AB+","AB-","0+","0-"].map(kg=><option key={kg} value={kg}>{kg}</option>)}</select>
+                    </div>
+                    <div className="flex items-center gap-2 col-span-2">
+                      <label className="text-xs text-gray-500 w-12 shrink-0">Kronik</label>
+                      <input type="text" value={editForm.kronik_rahatlik} onChange={e => setEditForm({...editForm, kronik_rahatlik: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="Varsa..." />
+                    </div>
                   </div>
                 </div>
 

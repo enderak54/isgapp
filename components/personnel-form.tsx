@@ -66,14 +66,21 @@ export default function PersonnelForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [mykZorunluIds, setMykZorunluIds] = useState<string[]>([]);
   const [mykKayitlar, setMykKayitlar] = useState<{ myk_egitim_id: string; alis_tarihi: string; gecerlilik_suresi: string }[]>([]);
   const [mykSecim, setMykSecim] = useState("");
   const [mykSecimTarih, setMykSecimTarih] = useState("");
   const [mykSecimSure, setMykSecimSure] = useState("");
 
   useEffect(() => {
-    supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
-      if (data) setMykEgitimListesi(data);
+    Promise.all([
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
+      supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
+    ]).then(([egitimRes, ayarRes]) => {
+      if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
+      if (ayarRes.data?.value) {
+        try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
+      }
     });
   }, []);
 
@@ -390,7 +397,9 @@ export default function PersonnelForm() {
                       <span className="text-xs text-gray-700 w-20 shrink-0">{item.label}</span>
                       <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs flex-1 min-w-0">
                         <option value="">Eğitim seçiniz</option>
-                        {mykEgitimListesi.map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                        {mykZorunluIds.length > 0 && mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                        {mykZorunluIds.length > 0 && <option disabled>──────────</option>}
+                        {mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
                       </select>
                       <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
                       <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
