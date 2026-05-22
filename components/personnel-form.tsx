@@ -47,6 +47,7 @@ export default function PersonnelForm() {
     santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
+    isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -80,10 +81,15 @@ export default function PersonnelForm() {
     if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
     if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
     if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
+    if (form.isgEgitimTarihi && !form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Zorunludur";
     if (!form.yuksekteCalisma) newErrors.yuksekteCalisma = "Zorunludur";
+    if (form.yuksekteCalisma && !form.yuksekteSure) newErrors.yuksekteSure = "Zorunludur";
     if (!form.myk) newErrors.myk = "Zorunludur";
+    if (form.myk && !form.mykSure) newErrors.mykSure = "Zorunludur";
     if (!form.kkd) newErrors.kkd = "Zorunludur";
+    if (form.kkd && !form.kkdSure) newErrors.kkdSure = "Zorunludur";
     if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
+    if (form.saglikRaporuTarihi && !form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Zorunludur";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -165,6 +171,14 @@ export default function PersonnelForm() {
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, sertifika_tarihi: form.sertifika || null,
+        isg_egitim_gecerlilik_suresi: form.isgEgitimSuresi ? parseInt(form.isgEgitimSuresi) : null,
+        yuksekte_calisma_gecerlilik_suresi: form.yuksekteSure ? parseInt(form.yuksekteSure) : null,
+        myk_gecerlilik_suresi: form.mykSure ? parseInt(form.mykSure) : null,
+        sertifika_gecerlilik_suresi: form.sertifikaSure ? parseInt(form.sertifikaSure) : null,
+        operator_belgesi_gecerlilik_suresi: form.operatorSure ? parseInt(form.operatorSure) : null,
+        kkd_gecerlilik_suresi: form.kkdSure ? parseInt(form.kkdSure) : null,
+        oryantasyon_gecerlilik_suresi: form.oryantasyonSure ? parseInt(form.oryantasyonSure) : null,
+        saglik_raporu_gecerlilik_suresi: form.saglikRaporuSuresi ? parseInt(form.saglikRaporuSuresi) : null,
         kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
@@ -184,6 +198,7 @@ export default function PersonnelForm() {
         santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
+        isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
       });
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
       setPendingFiles([]);
@@ -197,14 +212,16 @@ export default function PersonnelForm() {
   const fieldFileCount = (field: string) => pendingFiles.filter(f => f.field === field).length;
 
   const belgeFields = [
-    { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi" },
-    { label: "Yüksekte Çalışma", field: "yuksekteCalisma" },
-    { label: "MYK", field: "myk" },
-    { label: "Sertifika", field: "sertifika" },
-    { label: "Operatör Belgesi", field: "operatorBelgesi" },
-    { label: "KKD", field: "kkd" },
-    { label: "Oryantasyon", field: "oryantasyon" },
+    { label: "İSG Eğitim Tarihi", field: "isgEgitimTarihi", sureField: "isgEgitimSuresi" },
+    { label: "Yüksekte Çalışma", field: "yuksekteCalisma", sureField: "yuksekteSure" },
+    { label: "MYK", field: "myk", sureField: "mykSure" },
+    { label: "Sertifika", field: "sertifika", sureField: "sertifikaSure" },
+    { label: "Operatör Belgesi", field: "operatorBelgesi", sureField: "operatorSure" },
+    { label: "KKD", field: "kkd", sureField: "kkdSure" },
+    { label: "Oryantasyon", field: "oryantasyon", sureField: "oryantasyonSure" },
   ];
+
+  const sureOptions = [1, 2, 3, 4, 5];
 
   return (
     <main className="flex-1 p-4 app-bg min-h-screen">
@@ -324,12 +341,16 @@ export default function PersonnelForm() {
                 const fc = fieldFileCount(item.field);
                 return (
                 <div key={item.field} className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>
-                  <span className="text-xs text-gray-700 w-40">{item.label}</span>
+                  <span className="text-xs text-gray-700 w-28">{item.label}</span>
                   <div className="flex items-center gap-0.5">
-                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form[item.field as keyof typeof form] as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange(item.field, toDb(v)); setErrors((p) => ({ ...p, [item.field]: "" })); }} className={`input text-xs ${hasErr ? "border-red-500" : ""}`} style={{ width: "5.5rem" }} />
+                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form[item.field as keyof typeof form] as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange(item.field, toDb(v)); setErrors((p) => ({ ...p, [item.field]: "" })); }} className={`input text-xs ${hasErr ? "border-red-500" : ""}`} style={{ width: "5rem" }} />
                     <button type="button" onClick={() => { const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement; if (!picker) return; const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id={`dp-btn-${item.field}`} className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
                     <input id={`dp-${item.field}`} type="date" className="hidden" value={form[item.field as keyof typeof form] as string} onChange={(e) => { handleChange(item.field, e.target.value); }} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
-                    <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition ${fc > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                    <select value={form[item.sureField as keyof typeof form] as string} onChange={(e) => { handleChange(item.sureField, e.target.value); setErrors((p) => ({ ...p, [item.sureField]: "" })); }} className={`input text-xs ${errors[item.sureField] ? "border-red-500" : ""}`} style={{ width: "3.5rem" }}>
+                      <option value="">yıl</option>
+                      {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition relative ${fc > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
                       <Paperclip className="w-3.5 h-3.5" />
                       {fc > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fc}</span>}
                     </button>
@@ -375,9 +396,13 @@ export default function PersonnelForm() {
                 <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu Tarihi</label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-0.5">
-                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.saglikRaporuTarihi)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("saglikRaporuTarihi", toDb(v)); setErrors((p) => ({ ...p, saglikRaporuTarihi: "" })); }} className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`} style={{ width: "5.5rem" }} />
+                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.saglikRaporuTarihi)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("saglikRaporuTarihi", toDb(v)); setErrors((p) => ({ ...p, saglikRaporuTarihi: "" })); }} className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`} style={{ width: "5rem" }} />
                     <button type="button" onClick={() => { const picker = document.getElementById("dp-saglikRaporu") as HTMLInputElement; if (!picker) return; const rect = (document.getElementById("dp-btn-saglikRaporu") as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id="dp-btn-saglikRaporu" className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
                     <input id="dp-saglikRaporu" type="date" className="hidden" value={form.saglikRaporuTarihi} onChange={(e) => handleChange("saglikRaporuTarihi", e.target.value)} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <select value={form.saglikRaporuSuresi} onChange={(e) => { handleChange("saglikRaporuSuresi", e.target.value); setErrors((p) => ({ ...p, saglikRaporuSuresi: "" })); }} className={`input text-xs ${errors.saglikRaporuSuresi ? "border-red-500" : ""}`} style={{ width: "3.5rem" }}>
+                      <option value="">yıl</option>
+                      {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
                     <button type="button" onClick={() => setUploadModalField("saglikRaporuTarihi")} className={`p-1 rounded transition relative ${fieldFileCount("saglikRaporuTarihi") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
                       <Paperclip className="w-3.5 h-3.5" />
                       {fieldFileCount("saglikRaporuTarihi") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("saglikRaporuTarihi")}</span>}

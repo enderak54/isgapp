@@ -96,6 +96,8 @@ export default function PersonnelList() {
     fetchBelgeler(p.id);
   };
 
+  const sureOptions = [1, 2, 3, 4, 5];
+
   const openEdit = (p: any) => {
     setEditingPerson(p);
     setEditForm({
@@ -117,6 +119,14 @@ export default function PersonnelList() {
       oryantasyon_tarihi: p.oryantasyon_tarihi || "",
       sertifika_tarihi: p.sertifika_tarihi || "",
       saglik_raporu_tarihi: p.saglik_raporu_tarihi || "",
+      isg_egitim_gecerlilik_suresi: p.isg_egitim_gecerlilik_suresi || "",
+      yuksekte_calisma_gecerlilik_suresi: p.yuksekte_calisma_gecerlilik_suresi || "",
+      myk_gecerlilik_suresi: p.myk_gecerlilik_suresi || "",
+      sertifika_gecerlilik_suresi: p.sertifika_gecerlilik_suresi || "",
+      operator_belgesi_gecerlilik_suresi: p.operator_belgesi_gecerlilik_suresi || "",
+      kkd_gecerlilik_suresi: p.kkd_gecerlilik_suresi || "",
+      oryantasyon_gecerlilik_suresi: p.oryantasyon_gecerlilik_suresi || "",
+      saglik_raporu_gecerlilik_suresi: p.saglik_raporu_gecerlilik_suresi || "",
       kan_grubu: p.kan_grubu || "",
       kronik_rahatlik: p.kronik_rahatlik || "",
       yuksekte_calisir: p.yuksekte_calisir || false,
@@ -214,6 +224,14 @@ export default function PersonnelList() {
         oryantasyon_tarihi: editForm.oryantasyon_tarihi || null,
         sertifika_tarihi: editForm.sertifika_tarihi || null,
         saglik_raporu_tarihi: editForm.saglik_raporu_tarihi || null,
+        isg_egitim_gecerlilik_suresi: editForm.isg_egitim_gecerlilik_suresi ? parseInt(editForm.isg_egitim_gecerlilik_suresi) : null,
+        yuksekte_calisma_gecerlilik_suresi: editForm.yuksekte_calisma_gecerlilik_suresi ? parseInt(editForm.yuksekte_calisma_gecerlilik_suresi) : null,
+        myk_gecerlilik_suresi: editForm.myk_gecerlilik_suresi ? parseInt(editForm.myk_gecerlilik_suresi) : null,
+        sertifika_gecerlilik_suresi: editForm.sertifika_gecerlilik_suresi ? parseInt(editForm.sertifika_gecerlilik_suresi) : null,
+        operator_belgesi_gecerlilik_suresi: editForm.operator_belgesi_gecerlilik_suresi ? parseInt(editForm.operator_belgesi_gecerlilik_suresi) : null,
+        kkd_gecerlilik_suresi: editForm.kkd_gecerlilik_suresi ? parseInt(editForm.kkd_gecerlilik_suresi) : null,
+        oryantasyon_gecerlilik_suresi: editForm.oryantasyon_gecerlilik_suresi ? parseInt(editForm.oryantasyon_gecerlilik_suresi) : null,
+        saglik_raporu_gecerlilik_suresi: editForm.saglik_raporu_gecerlilik_suresi ? parseInt(editForm.saglik_raporu_gecerlilik_suresi) : null,
         kan_grubu: editForm.kan_grubu,
         kronik_rahatlik: editForm.kronik_rahatlik,
         yuksekte_calisir: !!editForm.yuksekte_calisir,
@@ -381,12 +399,13 @@ export default function PersonnelList() {
                 <div className="pt-4 border-t border-gray-100">
                   <h5 className="text-sm font-medium text-gray-500 mb-3">İSG Belgeleri</h5>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">İSG Eğitim:</span> {selectedPerson.isg_egitim_tarihi || "-"}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Yüksekte:</span> {selectedPerson.yuksekte_calisma_tarihi || "-"}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">MYK:</span> {selectedPerson.myk_tarihi || "-"}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Operatör:</span> {selectedPerson.operator_belgesi_tarihi || "-"}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">KKD:</span> {selectedPerson.kkd_tarihi || "-"}</div>
-                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Oryantasyon:</span> {selectedPerson.oryantasyon_tarihi || "-"}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">İSG Eğitim:</span> {selectedPerson.isg_egitim_tarihi || "-"}{selectedPerson.isg_egitim_gecerlilik_suresi ? ` (${selectedPerson.isg_egitim_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Yüksekte:</span> {selectedPerson.yuksekte_calisma_tarihi || "-"}{selectedPerson.yuksekte_calisma_gecerlilik_suresi ? ` (${selectedPerson.yuksekte_calisma_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">MYK:</span> {selectedPerson.myk_tarihi || "-"}{selectedPerson.myk_gecerlilik_suresi ? ` (${selectedPerson.myk_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Operatör:</span> {selectedPerson.operator_belgesi_tarihi || "-"}{selectedPerson.operator_belgesi_gecerlilik_suresi ? ` (${selectedPerson.operator_belgesi_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">KKD:</span> {selectedPerson.kkd_tarihi || "-"}{selectedPerson.kkd_gecerlilik_suresi ? ` (${selectedPerson.kkd_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Oryantasyon:</span> {selectedPerson.oryantasyon_tarihi || "-"}{selectedPerson.oryantasyon_gecerlilik_suresi ? ` (${selectedPerson.oryantasyon_gecerlilik_suresi} yıl)` : ""}</div>
+                    <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">Sertifika:</span> {selectedPerson.sertifika_tarihi || "-"}{selectedPerson.sertifika_gecerlilik_suresi ? ` (${selectedPerson.sertifika_gecerlilik_suresi} yıl)` : ""}</div>
                   </div>
                 </div>
                 {belgeler.length > 0 && (
@@ -413,7 +432,7 @@ export default function PersonnelList() {
                     {selectedPerson.kan_grubu && <span className="badge bg-gray-100 text-gray-600">Kan: {selectedPerson.kan_grubu}</span>}
                   </div>
                   {selectedPerson.kronik_rahatlik && <p className="text-sm text-gray-600 bg-red-50 p-3 rounded-lg mt-2"><strong>Kronik Rahatsızlık:</strong> {selectedPerson.kronik_rahatlik}</p>}
-                  {selectedPerson.saglik_raporu_tarihi && <p className="text-xs text-gray-500 mt-2"><strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}</p>}
+                  {selectedPerson.saglik_raporu_tarihi && <p className="text-xs text-gray-500 mt-2"><strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}{selectedPerson.saglik_raporu_gecerlilik_suresi ? ` (${selectedPerson.saglik_raporu_gecerlilik_suresi} yıl)` : ""}</p>}
                 </div>
                 {selectedPerson.notlar && (
                   <div className="pt-4 border-t border-gray-100">
@@ -495,17 +514,21 @@ export default function PersonnelList() {
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">İSG Tarihleri</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "İSG", field: "isg_egitim_tarihi" },
-                    { label: "Yüksekte", field: "yuksekte_calisma_tarihi" },
-                    { label: "MYK", field: "myk_tarihi" },
-                    { label: "Sertifika", field: "sertifika_tarihi" },
-                    { label: "Operatör", field: "operator_belgesi_tarihi" },
-                    { label: "KKD", field: "kkd_tarihi" },
-                    { label: "Oryantasyon", field: "oryantasyon_tarihi" },
+                    { label: "İSG", field: "isg_egitim_tarihi", sureField: "isg_egitim_gecerlilik_suresi" },
+                    { label: "Yüksekte", field: "yuksekte_calisma_tarihi", sureField: "yuksekte_calisma_gecerlilik_suresi" },
+                    { label: "MYK", field: "myk_tarihi", sureField: "myk_gecerlilik_suresi" },
+                    { label: "Sertifika", field: "sertifika_tarihi", sureField: "sertifika_gecerlilik_suresi" },
+                    { label: "Operatör", field: "operator_belgesi_tarihi", sureField: "operator_belgesi_gecerlilik_suresi" },
+                    { label: "KKD", field: "kkd_tarihi", sureField: "kkd_gecerlilik_suresi" },
+                    { label: "Oryantasyon", field: "oryantasyon_tarihi", sureField: "oryantasyon_gecerlilik_suresi" },
                   ].map(item => (
-                    <div key={item.field} className="flex items-center gap-2">
-                      <label className="text-xs text-gray-500 w-16 shrink-0">{item.label}</label>
+                    <div key={item.field} className="flex items-center gap-1">
+                      <label className="text-xs text-gray-500 w-12 shrink-0">{item.label}</label>
                       <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                      <select value={editForm[item.sureField] || ""} onChange={e => setEditForm({...editForm, [item.sureField]: e.target.value})} className="input text-xs" style={{ width: "3rem" }}>
+                        <option value="">y</option>
+                        {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
                       <button type="button" onClick={() => setUploadModalField(item.field)} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === item.field).length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
                         <Paperclip className="w-3.5 h-3.5" />
                         {pendingFiles.filter(f => f.field === item.field).length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === item.field).length}</span>}
@@ -518,9 +541,13 @@ export default function PersonnelList() {
               <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Sağlık</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 w-20 shrink-0">Sağlık Raporu</label>
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-gray-500 w-16 shrink-0">Sağlık Rap.</label>
                     <input type="date" value={editForm.saglik_raporu_tarihi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                    <select value={editForm.saglik_raporu_gecerlilik_suresi || ""} onChange={e => setEditForm({...editForm, saglik_raporu_gecerlilik_suresi: e.target.value})} className="input text-xs" style={{ width: "3rem" }}>
+                      <option value="">y</option>
+                      {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
                     <button type="button" onClick={() => setUploadModalField("saglik_raporu_tarihi")} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
                       <Paperclip className="w-3.5 h-3.5" />
                       {pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "saglik_raporu_tarihi").length}</span>}
