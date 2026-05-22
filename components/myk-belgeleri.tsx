@@ -2,85 +2,56 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
-import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Grid3X3, List, Check, Minus } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar } from "lucide-react";
+import { isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 export default function MykBelgeleri() {
-  const [belgeler, setBelgeler] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [personel, setPersonel] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [personel, setPersonel] = useState<any[]>([]);
+  const [kayitlar, setKayitlar] = useState<any[]>([]);
   const [personelMykEgitimler, setPersonelMykEgitimler] = useState<Record<string, Set<string>>>({});
-  const [form, setForm] = useState({
-    personel_id: "",
-    belge_adi: "",
-    belge_no: "",
-    alis_tarihi: "",
-    gecerlilik_tarihi: "",
-    durum: "gecerli",
-    notlar: "",
-  });
 
   useEffect(() => {
-    fetchBelgeler();
-    fetchPersonel();
-    fetchMykEgitimListesi();
-    fetchPersonelMykEgitimler();
+    fetchData();
   }, []);
 
-  const fetchBelgeler = async () => {
-    const { data } = await supabase.from("myk_belgeri").select("*, personel(kimlik_no, ad, soyad)").order("gecerlilik_tarihi", { ascending: true });
-    if (data) setBelgeler(data);
-    setLoading(false);
-  };
+  const fetchData = async () => {
+    const [egitimRes, personelRes, kayitRes] = await Promise.all([
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true }),
+      supabase.from("personel").select("id, kimlik_no, ad, soyad").order("ad", { ascending: true }),
+      supabase.from("personel_myk_egitimleri").select("id, personel_id, myk_egitim_id, alis_tarihi, gecerlilik_suresi, personel!inner(id, kimlik_no, ad, soyad), myk_egitim_listesi!inner(id, ad)").order("alis_tarihi", { ascending: false }),
+    ]);
+    if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
+    if (personelRes.data) setPersonel(personelRes.data);
+    if (kayitRes.data) setKayitlar(kayitRes.data);
 
-  const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad").order("ad", { ascending: true });
-    if (data) setPersonel(data);
-  };
-
-  const fetchMykEgitimListesi = async () => {
-    const { data } = await supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true });
-    if (data) setMykEgitimListesi(data);
-  };
-
-  const fetchPersonelMykEgitimler = async () => {
-    const { data } = await supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id");
-    if (data) {
+    // Build matrix data
+    const { data: matrixData } = await supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id");
+    if (matrixData) {
       const map: Record<string, Set<string>> = {};
-      data.forEach((r: any) => {
+      matrixData.forEach((r: any) => {
         if (!map[r.personel_id]) map[r.personel_id] = new Set();
         map[r.personel_id].add(r.myk_egitim_id);
       });
       setPersonelMykEgitimler(map);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editing) {
-      await supabase.from("myk_belgeri").update(sanitizeForm(form)).eq("id", editing.id);
-    } else {
-      await supabase.from("myk_belgeri").insert(sanitizeForm(form));
-    }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" });
-    fetchBelgeler();
+    setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Bu belgeyi silmek istediğinize emin misiniz?")) {
-      await supabase.from("myk_belgeri").delete().eq("id", id);
-      fetchBelgeler();
-    }
+    if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
+    await supabase.from("personel_myk_egitimleri").delete().eq("id", id);
+    fetchData();
   };
 
-  const isExpired = (tarih: string) => tarih && new Date(tarih) < new Date();
+  const filteredKayitlar = kayitlar.filter((k) =>
+    !search ||
+    `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase().includes(search.toLowerCase()) ||
+    k.myk_egitim_listesi?.ad?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <main className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -96,9 +67,6 @@ export default function MykBelgeleri() {
             </button>
           </div>
         </div>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
-          <Plus className="w-5 h-5" /> Yeni Belge
-        </button>
       </div>
 
       {viewMode === "list" ? (
@@ -106,73 +74,56 @@ export default function MykBelgeleri() {
           <div className="bg-white rounded-lg shadow-md p-4 mb-6">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input type="text" placeholder="Belge ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-10 py-2 border rounded-lg" />
+              <input type="text" placeholder="Personel veya eğitim adı ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-10 py-2 border rounded-lg" />
             </div>
           </div>
 
-          {showForm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">{editing ? "Belge Düzenle" : "Yeni MYK Belgesi"}</h3>
-                  <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
-                    <option value="">Personel Seçin</option>
-                    {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
-                  </select>
-                  <input required placeholder="Belge Adı" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
-                  <input placeholder="Belge No" value={form.belge_no} onChange={(e) => setForm({ ...form, belge_no: e.target.value })} className="w-full p-2 border rounded-lg" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="date" placeholder="Alış Tarihi" value={form.alis_tarihi} onChange={(e) => setForm({ ...form, alis_tarihi: e.target.value })} className="p-2 border rounded-lg" />
-                    <input type="date" placeholder="Geçerlilik" value={form.gecerlilik_tarihi} onChange={(e) => setForm({ ...form, gecerlilik_tarihi: e.target.value })} className="p-2 border rounded-lg" />
-                  </div>
-                  <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="w-full p-2 border rounded-lg">
-                    <option value="gecerli">Geçerli</option>
-                    <option value="süresi_doldu">Süresi Doldu</option>
-                    <option value="yenileniyor">Yenileniyor</option>
-                  </select>
-                  <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {loading ? <div className="text-center py-12">Yükleniyor...</div> : (
+          {loading ? <div className="text-center py-12 text-gray-400">Yükleniyor...</div> : (
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Personel</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge Adı</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge No</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Durum</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">MYK Eğitim</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Alış Tarihi</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik Süresi</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Bitiş Tarihi</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {belgeler.filter((b) => !search || (b.personel && `${b.personel.ad || ""} ${b.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || b.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((b) => (
-                    <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm">{b.personel ? `${b.personel.ad || ""} ${b.personel.soyad || ""}`.trim() || "-" : "-"}</td>
-                      <td className="px-4 py-3 text-sm">{b.belge_adi}</td>
-                      <td className="px-4 py-3 text-sm">{b.belge_no || "-"}</td>
-                      <td className={`px-4 py-3 text-sm ${isExpired(b.gecerlilik_tarihi) ? "text-red-600 font-medium" : ""}`}>{b.gecerlilik_tarihi || "-"}</td>
-                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${b.durum === "gecerli" ? "bg-green-100 text-green-700" : b.durum === "süresi_doldu" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{b.durum}</span></td>
-                      <td className="px-4 py-3 flex justify-center gap-2">
-                        <button onClick={() => { setEditing(b); setForm({ personel_id: b.personel_id, belge_adi: b.belge_adi, belge_no: b.belge_no || "", alis_tarihi: b.alis_tarihi || "", gecerlilik_tarihi: b.gecerlilik_tarihi || "", durum: b.durum, notlar: b.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
-                      </td>
+                  {filteredKayitlar.map((k) => {
+                    const expiryDate = k.alis_tarihi && k.gecerlilik_suresi
+                      ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0]
+                      : null;
+                    const expired = expiryDate ? isExpired(k.alis_tarihi, k.gecerlilik_suresi) : false;
+                    const warning = expiryDate && !expired ? isWarningNeeded(k.alis_tarihi, k.gecerlilik_suresi, 30) : false;
+                    return (
+                      <tr key={k.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-"}</td>
+                        <td className="px-4 py-3 text-sm">{k.myk_egitim_listesi?.ad || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{k.alis_tarihi || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{k.gecerlilik_suresi ? `${k.gecerlilik_suresi} yıl` : "-"}</td>
+                        <td className={`px-4 py-3 text-sm ${expired ? "text-red-600 font-medium" : warning ? "text-amber-600 font-medium" : "text-gray-600"}`}>
+                          {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{expiryDate}</span> : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredKayitlar.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
           )}
         </>
       ) : (
-        /* Matris Görünümü */
         <div className="bg-white rounded-lg shadow-md overflow-auto">
           {mykEgitimListesi.length === 0 ? (
             <div className="text-center py-12 text-gray-400">Henüz MYK eğitim tanımı yapılmamış</div>
