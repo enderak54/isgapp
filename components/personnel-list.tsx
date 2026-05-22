@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive } from "lucide-react";
 import { maskTC, sanitizeForm, checkRateLimit } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
@@ -464,20 +464,38 @@ export default function PersonnelList() {
                     <td className="text-gray-500 align-middle">{displayDate(p.ise_giris_tarihi)}</td>
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => openDetail(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5" /> Detay
-                        </button>
-                        <button onClick={() => openEdit(p)} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1">
-                          <Edit className="w-3.5 h-3.5" /> Düzenle
-                        </button>
-                        <div className="flex items-center gap-0.5">
-                          <button type="button" onClick={() => toggleLockPerson(p.id)} className={`p-1 rounded border transition ${lockedPersons.has(p.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedPersons.has(p.id) ? "Kilidi aç" : "Kilitli"}>
-                            {lockedPersons.has(p.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                          </button>
-                          <button onClick={() => setDeleteModal({ open: true, id: p.id })} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
-                            <Trash2 className="w-3.5 h-3.5" /> Sil
-                          </button>
-                        </div>
+                        {arsivGoster ? (
+                          <>
+                            <button onClick={async () => { await supabase.from("personel").update({ arsivde: false, ayrilis_tarihi: null, ayrilis_nedeni: null }).eq("id", p.id); fetchPersonnel(); }} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1 border border-green-200">
+                              <Archive className="w-3.5 h-3.5" /> Geri Al
+                            </button>
+                            <div className="flex items-center gap-0.5">
+                              <button type="button" onClick={() => toggleLockPerson(p.id)} className={`p-1 rounded border transition ${lockedPersons.has(p.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedPersons.has(p.id) ? "Kilidi aç" : "Kilitli"}>
+                                {lockedPersons.has(p.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                              </button>
+                              <button onClick={() => setDeleteModal({ open: true, id: p.id })} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
+                                <Trash2 className="w-3.5 h-3.5" /> Sil
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => openDetail(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" /> Detay
+                            </button>
+                            <button onClick={() => openEdit(p)} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1">
+                              <Edit className="w-3.5 h-3.5" /> Düzenle
+                            </button>
+                            <div className="flex items-center gap-0.5">
+                              <button type="button" onClick={() => toggleLockPerson(p.id)} className={`p-1 rounded border transition ${lockedPersons.has(p.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedPersons.has(p.id) ? "Kilidi aç" : "Kilitli"}>
+                                {lockedPersons.has(p.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                              </button>
+                              <button onClick={() => setDeleteModal({ open: true, id: p.id })} disabled={!lockedPersons.has(p.id)} className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${lockedPersons.has(p.id) ? "text-red-600 hover:text-red-800 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>
+                                <Trash2 className="w-3.5 h-3.5" /> Sil
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -875,17 +893,28 @@ export default function PersonnelList() {
               <h3 className="text-lg font-bold text-gray-800">Personel Sil</h3>
               <button onClick={() => setDeleteModal({ open: false, id: "" })} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">Bu personel için hangi işlemi yapmak istiyorsunuz?</p>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => deletePerson(deleteModal.id, "istirak_ayrilis")} className="w-full py-3 px-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition text-sm font-medium text-left">
-                <div className="font-semibold">İşten Ayrılış</div>
-                <div className="text-xs text-amber-500 mt-0.5">Personel arşive taşınır, veriler korunur</div>
-              </button>
-              <button onClick={() => deletePerson(deleteModal.id, "hatali_kayit")} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-left">
-                <div className="font-semibold">Hatalı Kayıt</div>
-                <div className="text-xs text-red-500 mt-0.5">Personel tamamen silinir, geri alınamaz</div>
-              </button>
-            </div>
+            {arsivGoster ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-gray-600 mb-2">Bu personel arşivden kalıcı olarak silinecektir. Onaylıyor musunuz?</p>
+                <button onClick={() => deletePerson(deleteModal.id, "hatali_kayit")} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-center">
+                  Kalıcı Olarak Sil
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-4">Bu personel için hangi işlemi yapmak istiyorsunuz?</p>
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => deletePerson(deleteModal.id, "istirak_ayrilis")} className="w-full py-3 px-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition text-sm font-medium text-left">
+                    <div className="font-semibold">İşten Ayrılış</div>
+                    <div className="text-xs text-amber-500 mt-0.5">Personel arşive taşınır, veriler korunur</div>
+                  </button>
+                  <button onClick={() => deletePerson(deleteModal.id, "hatali_kayit")} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-left">
+                    <div className="font-semibold">Hatalı Kayıt</div>
+                    <div className="text-xs text-red-500 mt-0.5">Personel tamamen silinir, geri alınamaz</div>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
