@@ -45,7 +45,6 @@ const mainMenuItems = [
   { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
   { icon: GraduationCap, label: "Eğitimler", href: "/egitimler", key: "egitimler" },
   { icon: AlertOctagon, label: "İhtar Tutanağı", href: "/ihtar", key: "ihtar" },
-  { icon: Archive, label: "Arşiv", href: "/personel", key: "arsiv" },
 ];
 
 const ekModulItems = [
