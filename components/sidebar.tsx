@@ -70,9 +70,15 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [ekModulOpen, setEkModulOpen] = useState(false);
-  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
-  const [menuOrderMain, setMenuOrderMain] = useState<string[]>(mainMenuItems.map(i => i.key).filter(Boolean) as string[]);
-  const [menuOrderEk, setMenuOrderEk] = useState<string[]>(ekModulItems.map(i => i.key).filter(Boolean) as string[]);
+  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("isg_modules") || "{}"); } catch { return {}; }
+  });
+  const [menuOrderMain, setMenuOrderMain] = useState<string[]>(() => {
+    try { const v = localStorage.getItem("isg_menu_main"); return v ? JSON.parse(v) : mainMenuItems.map(i => i.key).filter(Boolean) as string[]; } catch { return mainMenuItems.map(i => i.key).filter(Boolean) as string[]; }
+  });
+  const [menuOrderEk, setMenuOrderEk] = useState<string[]>(() => {
+    try { const v = localStorage.getItem("isg_menu_ek"); return v ? JSON.parse(v) : ekModulItems.map(i => i.key).filter(Boolean) as string[]; } catch { return ekModulItems.map(i => i.key).filter(Boolean) as string[]; }
+  });
 
   useEffect(() => {
     loadModuleSettings();
@@ -84,8 +90,8 @@ export default function Sidebar() {
     data?.forEach((d: any) => {
       try {
         const arr = JSON.parse(d.value);
-        if (d.key === "menu_order_main" && Array.isArray(arr)) setMenuOrderMain(arr);
-        if (d.key === "menu_order_ek" && Array.isArray(arr)) setMenuOrderEk(arr);
+        if (d.key === "menu_order_main" && Array.isArray(arr)) { setMenuOrderMain(arr); localStorage.setItem("isg_menu_main", JSON.stringify(arr)); }
+        if (d.key === "menu_order_ek" && Array.isArray(arr)) { setMenuOrderEk(arr); localStorage.setItem("isg_menu_ek", JSON.stringify(arr)); }
       } catch {}
     });
   };
