@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { displayDate } from "@/lib/tarih";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar } from "lucide-react";
 
 export default function Egitimler() {
@@ -79,7 +80,7 @@ export default function Egitimler() {
                 <h3 className="font-semibold">{e.ad}</h3>
               </div>
               <div className="space-y-1 text-sm text-gray-600">
-                <p className="flex items-center gap-2"><Calendar className="w-4 h-4" />{e.tarih || "-"}</p>
+                <p className="flex items-center gap-2"><Calendar className="w-4 h-4" />{displayDate(e.tarih)}</p>
                 {e.sure && <p>Süre: {e.sure}</p>}
                 {e.egitmen && <p>Eğitmen: {e.egitmen}</p>}
                 {e.yer && <p>Yer: {e.yer}</p>}

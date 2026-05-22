@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown } from "lucide-react";
 import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
+import { displayDate } from "@/lib/tarih";
+
+type SortDir = "asc" | "desc";
 
 export default function MykBelgeleri() {
   const [loading, setLoading] = useState(true);
@@ -14,6 +17,8 @@ export default function MykBelgeleri() {
   const [kayitlar, setKayitlar] = useState<any[]>([]);
   const [personelMykEgitimler, setPersonelMykEgitimler] = useState<Record<string, Set<string>>>({});
   const [lockedKayitlar, setLockedKayitlar] = useState<Set<string>>(new Set());
+  const [sortCol, setSortCol] = useState<string>("alis_tarihi");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
     fetchData();
@@ -29,7 +34,6 @@ export default function MykBelgeleri() {
     if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
     if (personelRes.data) setPersonel(personelRes.data);
 
-    // Join data manually
     if (kayitRes.data) {
       const personelMap = new Map(personelRes.data?.map((p: any) => [p.id, p]) || []);
       const egitimMap = new Map(egitimRes.data?.map((e: any) => [e.id, e]) || []);
@@ -52,6 +56,16 @@ export default function MykBelgeleri() {
     setLoading(false);
   };
 
+  const toggleSort = (col: string) => {
+    if (sortCol === col) setSortDir(prev => prev === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const sortArrow = (col: string) => {
+    if (sortCol !== col) return null;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" /> : <ArrowDown className="w-3 h-3 inline ml-1" />;
+  };
+
   const toggleLock = (id: string) => {
     setLockedKayitlar(prev => {
       const next = new Set(prev);
@@ -67,11 +81,23 @@ export default function MykBelgeleri() {
     fetchData();
   };
 
-  const filteredKayitlar = kayitlar.filter((k) =>
-    !search ||
-    `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase().includes(search.toLowerCase()) ||
-    k.myk_egitim_listesi?.ad?.toLowerCase().includes(search.toLowerCase())
-  );
+  const sorted = [...kayitlar]
+    .filter((k) =>
+      !search ||
+      `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase().includes(search.toLowerCase()) ||
+      k.myk_egitim_listesi?.ad?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      let va = "", vb = "";
+      if (sortCol === "alis_tarihi") { va = a.alis_tarihi || ""; vb = b.alis_tarihi || ""; }
+      else if (sortCol === "bitis_tarihi") {
+        const ea = a.alis_tarihi && a.gecerlilik_suresi ? new Date(new Date(a.alis_tarihi).setFullYear(new Date(a.alis_tarihi).getFullYear() + a.gecerlilik_suresi)).toISOString().split("T")[0] : "";
+        const eb = b.alis_tarihi && b.gecerlilik_suresi ? new Date(new Date(b.alis_tarihi).setFullYear(new Date(b.alis_tarihi).getFullYear() + b.gecerlilik_suresi)).toISOString().split("T")[0] : "";
+        va = ea; vb = eb;
+      }
+      const cmp = va.localeCompare(vb);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
   return (
     <main className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -105,15 +131,15 @@ export default function MykBelgeleri() {
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Personel</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">MYK Eğitim</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Alış Tarihi</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-800 select-none" onClick={() => toggleSort("alis_tarihi")}>Alış Tarihi{sortArrow("alis_tarihi")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik Süresi</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Bitiş Tarihi</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-800 select-none" onClick={() => toggleSort("bitis_tarihi")}>Bitiş Tarihi{sortArrow("bitis_tarihi")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kalan Süre</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredKayitlar.map((k) => {
+                  {sorted.map((k) => {
                     const expiryDate = k.alis_tarihi && k.gecerlilik_suresi
                       ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0]
                       : null;
@@ -124,10 +150,10 @@ export default function MykBelgeleri() {
                       <tr key={k.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-800">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-"}</td>
                         <td className="px-4 py-3 text-sm">{k.myk_egitim_listesi?.ad || "-"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{k.alis_tarihi || "-"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{displayDate(k.alis_tarihi)}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{k.gecerlilik_suresi ? `${k.gecerlilik_suresi} yıl` : "-"}</td>
                         <td className={`px-4 py-3 text-sm ${expired ? "text-red-600 font-medium" : warning ? "text-amber-600 font-medium" : "text-gray-600"}`}>
-                          {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{expiryDate}</span> : "-"}
+                          {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{displayDate(expiryDate)}</span> : "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {kalanGun !== null ? (
@@ -149,7 +175,7 @@ export default function MykBelgeleri() {
                       </tr>
                     );
                   })}
-                  {filteredKayitlar.length === 0 && (
+                  {sorted.length === 0 && (
                     <tr>
                       <td colSpan={7} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
                     </tr>

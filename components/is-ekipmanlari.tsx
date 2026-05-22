@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { displayDate } from "@/lib/tarih";
 import { Wrench, Plus, Edit, Trash2, Search, X, Save, AlertTriangle } from "lucide-react";
 
 export default function IsEkipmanlari() {
@@ -103,7 +104,7 @@ export default function IsEkipmanlari() {
                   <td className="font-medium text-gray-800 flex items-center gap-2"><Wrench className="w-4 h-4 text-gray-400" />{e.ad}</td>
                   <td className="text-gray-600">{e.seri_no || "-"}</td>
                   <td className="text-gray-600">{e.santiyeler?.ad || "-"}</td>
-                  <td className="text-gray-600">{e.sonraki_kontrol_tarihi || "-"}</td>
+                  <td className="text-gray-600">{displayDate(e.sonraki_kontrol_tarihi)}</td>
                   <td><span className={`badge ${e.durum === "aktif" ? "bg-green-100 text-green-700" : e.durum === "bakimda" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>{e.durum}</span></td>
                   <td>
                     <div className="flex items-center justify-center gap-1">

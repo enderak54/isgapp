@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { displayDate } from "@/lib/tarih";
 import { FolderOpen, Plus, Edit, Trash2, Search, X, Save, File } from "lucide-react";
 
 export default function PersonelDosyasi() {
@@ -102,7 +103,7 @@ export default function PersonelDosyasi() {
                   <td className="px-4 py-3 text-sm">{d.personel ? `${d.personel.ad || ""} ${d.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td className="px-4 py-3 text-sm flex items-center gap-2"><File className="w-4 h-4 text-gray-400" />{d.belge_adi}</td>
                   <td className="px-4 py-3 text-sm"><span className="px-2 py-1 rounded text-xs bg-gray-100">{d.belge_turu || "-"}</span></td>
-                  <td className="px-4 py-3 text-sm">{d.tarih || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{displayDate(d.tarih)}</td>
                   <td className="px-4 py-3 flex justify-center gap-2">
                     <button onClick={() => { setEditing(d); setForm({ personel_id: d.personel_id, belge_adi: d.belge_adi, belge_turu: d.belge_turu || "", tarih: d.tarih || "", dosya_url: d.dosya_url || "", notlar: d.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => handleDelete(d.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { displayDate } from "@/lib/tarih";
 import { FileText, Plus, Edit, Trash2, Search, X, Save, Calendar } from "lucide-react";
 
 export default function Talimatlar() {
@@ -90,7 +91,7 @@ export default function Talimatlar() {
               </div>
               {t.icerik && <p className="text-sm text-gray-600 mb-2 line-clamp-3">{t.icerik}</p>}
               <div className="flex items-center gap-2 text-xs text-gray-500">
-                {t.tarih && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t.tarih}</span>}
+                {t.tarih && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{displayDate(t.tarih)}</span>}
                 {t.hedef && <span className="bg-gray-100 px-2 py-0.5 rounded">{t.hedef}</span>}
               </div>
               <div className="flex gap-2 mt-3 pt-3 border-t">

@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown } from "lucide-react";
 import { maskTC, sanitizeForm, checkRateLimit } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
+import { displayDate } from "@/lib/tarih";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
@@ -64,6 +65,8 @@ export default function PersonnelList() {
   const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set());
   const [lockedPersons, setLockedPersons] = useState<Set<string>>(new Set());
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+  const [sortCol, setSortCol] = useState<string>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
@@ -361,13 +364,33 @@ export default function PersonnelList() {
     });
   };
 
+  const toggleSort = (col: string) => {
+    if (sortCol === col) setSortDir(prev => prev === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const sortArrow = (col: string) => {
+    if (sortCol !== col) return null;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" /> : <ArrowDown className="w-3 h-3 inline ml-1" />;
+  };
+
   const filtered = personnel.filter(
     (p) =>
       p.ad?.toLowerCase().includes(search.toLowerCase()) ||
       p.soyad?.toLowerCase().includes(search.toLowerCase()) ||
       p.kimlik_no?.includes(search) ||
       p.santiye_adi?.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => {
+    let va = "", vb = "";
+    if (sortCol === "ad") { va = (a.ad || "").toLowerCase(); vb = (b.ad || "").toLowerCase(); }
+    else if (sortCol === "soyad") { va = (a.soyad || "").toLowerCase(); vb = (b.soyad || "").toLowerCase(); }
+    else if (sortCol === "kimlik_no") { va = a.kimlik_no || ""; vb = b.kimlik_no || ""; }
+    else if (sortCol === "santiye_adi") { va = (a.santiye_adi || "").toLowerCase(); vb = (b.santiye_adi || "").toLowerCase(); }
+    else if (sortCol === "ise_giris_tarihi") { va = a.ise_giris_tarihi || ""; vb = b.ise_giris_tarihi || ""; }
+    else if (sortCol === "created_at") { va = a.created_at || ""; vb = b.created_at || ""; }
+    const cmp = va.localeCompare(vb);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
 
   return (
     <main className="flex-1 p-8 app-bg min-h-screen">
@@ -400,14 +423,14 @@ export default function PersonnelList() {
             <table>
               <thead>
                 <tr>
-                  <th>Ad</th>
-                  <th>Soyad</th>
-                  <th>TC Kimlik No</th>
-                  <th>Şantiye</th>
+                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ad")}>Ad{sortArrow("ad")}</th>
+                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("soyad")}>Soyad{sortArrow("soyad")}</th>
+                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("kimlik_no")}>TC Kimlik No{sortArrow("kimlik_no")}</th>
+                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("santiye_adi")}>Şantiye{sortArrow("santiye_adi")}</th>
                   <th>Telefon</th>
                   <th>E-posta</th>
                   <th>Öğrenim</th>
-                  <th>İşe Giriş</th>
+                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ise_giris_tarihi")}>İşe Giriş{sortArrow("ise_giris_tarihi")}</th>
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
@@ -421,7 +444,7 @@ export default function PersonnelList() {
                     <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.email || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
-                    <td className="text-gray-500 align-middle">{p.ise_giris_tarihi || "-"}</td>
+                    <td className="text-gray-500 align-middle">{displayDate(p.ise_giris_tarihi)}</td>
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         <button onClick={() => openDetail(p)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition flex items-center gap-1">
@@ -485,7 +508,7 @@ export default function PersonnelList() {
                         <div key={f.tarihField} className="p-2 bg-gray-50 rounded flex items-center gap-1.5">
                           <span className={`text-[10px] ${getDurumRenk(durum)}`}>{getDurumIcon(durum)}</span>
                           <span className="text-gray-500">{f.label}:</span>
-                          <span className="text-gray-700">{tarih || "-"}{sure ? ` (${sure} yıl)` : ""}</span>
+                          <span className="text-gray-700">{displayDate(tarih)}{sure ? ` (${sure} yıl)` : ""}</span>
                         </div>
                       );
                     })}
@@ -521,7 +544,7 @@ export default function PersonnelList() {
                     return (
                       <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                         {durum && <span className={`${getDurumRenk(durum)}`}>{getDurumIcon(durum)}</span>}
-                        <strong>Sağlık Raporu Tarihi:</strong> {selectedPerson.saglik_raporu_tarihi}{selectedPerson.saglik_raporu_gecerlilik_suresi ? ` (${selectedPerson.saglik_raporu_gecerlilik_suresi} yıl)` : ""}
+                        <strong>Sağlık Raporu Tarihi:</strong> {displayDate(selectedPerson.saglik_raporu_tarihi)}{selectedPerson.saglik_raporu_gecerlilik_suresi ? ` (${selectedPerson.saglik_raporu_gecerlilik_suresi} yıl)` : ""}
                       </p>
                     );
                   })()}
@@ -651,7 +674,7 @@ export default function PersonnelList() {
                         <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
                           <span className="text-blue-700 truncate max-w-24">{eg?.ad || k.myk_egitim_id}</span>
                           <span className="text-blue-400">|</span>
-                          <span className="text-blue-600">{k.alis_tarihi || "?"}</span>
+                          <span className="text-blue-600">{displayDate(k.alis_tarihi) || "?"}</span>
                           <span className="text-blue-400">|</span>
                           <span className="text-blue-600">{k.gecerlilik_suresi}y</span>
                           <button type="button" onClick={() => mykKaldir(i)} className="text-red-400 hover:text-red-600 ml-0.5"><X className="w-2.5 h-2.5" /></button>

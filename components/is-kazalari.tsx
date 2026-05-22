@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { displayDate } from "@/lib/tarih";
 import { AlertTriangle, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
 export default function IsKazalari() {
@@ -103,7 +104,7 @@ export default function IsKazalari() {
             <tbody className="divide-y">
               {kazalar.filter((k) => !search || (k.personel && `${k.personel.ad || ""} ${k.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || k.yer?.toLowerCase().includes(search.toLowerCase())).map((k) => (
                 <tr key={k.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{k.tarih}</td>
+                  <td className="px-4 py-3 text-sm">{displayDate(k.tarih)}</td>
                   <td className="px-4 py-3 text-sm">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}</td>
                   <td className="px-4 py-3 text-sm">{k.yer || "-"}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${k.yaralanma_durumu === "yok" ? "bg-green-100 text-green-700" : k.yaralanma_durumu === "hafif" ? "bg-yellow-100 text-yellow-700" : k.yaralanma_durumu === "agri" ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>{k.yaralanma_durumu || "-"}</span></td>
