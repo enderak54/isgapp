@@ -19,20 +19,30 @@ export default function MykBelgeleri() {
   }, []);
 
   const fetchData = async () => {
-    const [egitimRes, personelRes, kayitRes] = await Promise.all([
+    const [egitimRes, personelRes, kayitRes, matrixRes] = await Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true }),
       supabase.from("personel").select("id, kimlik_no, ad, soyad").order("ad", { ascending: true }),
-      supabase.from("personel_myk_egitimleri").select("id, personel_id, myk_egitim_id, alis_tarihi, gecerlilik_suresi, personel!inner(id, kimlik_no, ad, soyad), myk_egitim_listesi!inner(id, ad)").order("alis_tarihi", { ascending: false }),
+      supabase.from("personel_myk_egitimleri").select("*").order("alis_tarihi", { ascending: false }),
+      supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id"),
     ]);
     if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
     if (personelRes.data) setPersonel(personelRes.data);
-    if (kayitRes.data) setKayitlar(kayitRes.data);
 
-    // Build matrix data
-    const { data: matrixData } = await supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id");
-    if (matrixData) {
+    // Join data manually
+    if (kayitRes.data) {
+      const personelMap = new Map(personelRes.data?.map((p: any) => [p.id, p]) || []);
+      const egitimMap = new Map(egitimRes.data?.map((e: any) => [e.id, e]) || []);
+      const joined = kayitRes.data.map((k: any) => ({
+        ...k,
+        personel: personelMap.get(k.personel_id) || null,
+        myk_egitim_listesi: egitimMap.get(k.myk_egitim_id) || null,
+      }));
+      setKayitlar(joined);
+    }
+
+    if (matrixRes.data) {
       const map: Record<string, Set<string>> = {};
-      matrixData.forEach((r: any) => {
+      matrixRes.data.forEach((r: any) => {
         if (!map[r.personel_id]) map[r.personel_id] = new Set();
         map[r.personel_id].add(r.myk_egitim_id);
       });
