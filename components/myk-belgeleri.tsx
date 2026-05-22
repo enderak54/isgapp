@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock } from "lucide-react";
-import { isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
+import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
 
 export default function MykBelgeleri() {
   const [loading, setLoading] = useState(true);
@@ -108,6 +108,7 @@ export default function MykBelgeleri() {
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Alış Tarihi</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik Süresi</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Bitiş Tarihi</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kalan Süre</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
                   </tr>
                 </thead>
@@ -117,6 +118,7 @@ export default function MykBelgeleri() {
                       ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0]
                       : null;
                     const expired = expiryDate ? isExpired(k.alis_tarihi, k.gecerlilik_suresi) : false;
+                    const kalanGun = expiryDate ? daysUntil(new Date(expiryDate)) : null;
                     const warning = expiryDate && !expired ? isWarningNeeded(k.alis_tarihi, k.gecerlilik_suresi, 30) : false;
                     return (
                       <tr key={k.id} className="hover:bg-gray-50">
@@ -126,6 +128,13 @@ export default function MykBelgeleri() {
                         <td className="px-4 py-3 text-sm text-gray-600">{k.gecerlilik_suresi ? `${k.gecerlilik_suresi} yıl` : "-"}</td>
                         <td className={`px-4 py-3 text-sm ${expired ? "text-red-600 font-medium" : warning ? "text-amber-600 font-medium" : "text-gray-600"}`}>
                           {expiryDate ? <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{expiryDate}</span> : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {kalanGun !== null ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${kalanGun <= 0 ? "bg-red-100 text-red-700" : kalanGun <= 30 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                              {kalanGun <= 0 ? "Süre doldu" : kalanGun === 1 ? "1 gün kaldı" : kalanGun < 30 ? `${kalanGun} gün kaldı` : `${Math.floor(kalanGun / 30)} ay ${kalanGun % 30} gün kaldı`}
+                            </span>
+                          ) : "-"}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -142,7 +151,7 @@ export default function MykBelgeleri() {
                   })}
                   {filteredKayitlar.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
+                      <td colSpan={7} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
                     </tr>
                   )}
                 </tbody>
