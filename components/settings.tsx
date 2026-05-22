@@ -109,6 +109,8 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [showVersion, setShowVersion] = useState(false);
   const [versions, setVersions] = useState<any[]>([]);
+  const [commits, setCommits] = useState<any[]>([]);
+  const [commitsLoading, setCommitsLoading] = useState(false);
   const [showAddVersion, setShowAddVersion] = useState(false);
   const [newVersion, setNewVersion] = useState({ versiyon: "", tip: "minor" as string, aciklama: "", detaylar: "", yazar: "" });
   const [showUyari, setShowUyari] = useState(false);
@@ -119,6 +121,7 @@ export default function SettingsPage() {
     setupDatabase();
     fetchSettings();
     fetchVersions();
+    fetchCommits();
     fetchUyariAyarlari();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
@@ -139,6 +142,16 @@ export default function SettingsPage() {
   const fetchVersions = async () => {
     const { data } = await supabase.from("versiyonlar").select("*").order("tarih", { ascending: false });
     if (data) setVersions(data);
+  };
+
+  const fetchCommits = async () => {
+    setCommitsLoading(true);
+    try {
+      const res = await fetch("https://api.github.com/repos/enderak54/isgapp/commits?per_page=30");
+      const data = await res.json();
+      if (Array.isArray(data)) setCommits(data);
+    } catch {}
+    setCommitsLoading(false);
   };
 
   const fetchSettings = async () => {
@@ -503,6 +516,26 @@ export default function SettingsPage() {
                   )}
                 </div>
               ))}
+              <div className="pt-2">
+                <h4 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                  <GitBranch className="w-4 h-4" /> Son Commit'ler
+                </h4>
+                {commitsLoading ? (
+                  <p className="text-xs text-gray-400 text-center py-3">Yükleniyor...</p>
+                ) : commits.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-3">Commit bilgisi alınamadı</p>
+                ) : (
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {commits.map((c: any) => (
+                      <div key={c.sha} className="flex items-start gap-2 py-1.5 px-2 rounded hover:bg-gray-50 text-xs">
+                        <span className="font-mono text-gray-400 flex-shrink-0 w-16">{c.sha.substring(0, 7)}</span>
+                        <span className="text-gray-700 flex-1 min-w-0 truncate">{c.commit.message.split("\n")[0]}</span>
+                        <span className="text-gray-400 flex-shrink-0">{new Date(c.commit.author.date).toLocaleDateString("tr-TR")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
