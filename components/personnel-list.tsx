@@ -65,7 +65,16 @@ export default function PersonnelList() {
   const [lockedPersons, setLockedPersons] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchPersonnel(); }, []);
+  const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [selectedMykEgitimler, setSelectedMykEgitimler] = useState<Set<string>>(new Set());
+  const [showMykSecim, setShowMykSecim] = useState(false);
+
+  useEffect(() => {
+    fetchPersonnel();
+    supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
+      if (data) setMykEgitimListesi(data);
+    });
+  }, []);
 
   const fetchPersonnel = async () => {
     const { data } = await supabase.from("personel").select("*").order("created_at", { ascending: false });
@@ -142,7 +151,16 @@ export default function PersonnelList() {
     setEditBelgeler([]);
     setEditStatus(null);
     setLockedFiles(new Set());
+    setShowMykSecim(false);
     fetchEditBelgeler(p.id);
+    fetchPersonelMykEgitimler(p.id);
+  };
+
+  const fetchPersonelMykEgitimler = async (personelId: string) => {
+    const { data } = await supabase.from("personel_myk_egitimleri").select("myk_egitim_id").eq("personel_id", personelId);
+    if (data) {
+      setSelectedMykEgitimler(new Set(data.map((r: any) => r.myk_egitim_id)));
+    }
   };
 
   const fetchEditBelgeler = async (personelId: string) => {
@@ -224,6 +242,18 @@ export default function PersonnelList() {
     fetchEditBelgeler(editingPerson.id);
   };
 
+  const saveEditMykEgitimler = async () => {
+    if (!editingPerson) return;
+    await supabase.from("personel_myk_egitimleri").delete().eq("personel_id", editingPerson.id);
+    if (selectedMykEgitimler.size > 0) {
+      const inserts = Array.from(selectedMykEgitimler).map(mykEgitimId => ({
+        personel_id: editingPerson.id,
+        myk_egitim_id: mykEgitimId,
+      }));
+      await supabase.from("personel_myk_egitimleri").insert(inserts);
+    }
+  };
+
   const saveEdit = async () => {
     setEditLoading(true);
     setEditStatus(null);
@@ -269,6 +299,7 @@ export default function PersonnelList() {
       const { error } = await supabase.from("personel").update(payload).eq("id", editingPerson.id);
       if (error) throw error;
       await uploadFiles();
+      await saveEditMykEgitimler();
       await logAudit("personel", "UPDATE", editingPerson.id, oldValues, payload);
       setEditStatus({ type: "success", message: "Personel güncellendi!" });
       fetchPersonnel();
@@ -560,7 +591,27 @@ export default function PersonnelList() {
                     { label: "Oryantasyon", field: "oryantasyon_tarihi", sureField: "oryantasyon_gecerlilik_suresi" },
                   ].map(item => (
                     <div key={item.field} className="flex items-center gap-1">
-                      <label className="text-xs text-gray-500 w-12 shrink-0">{item.label}</label>
+                      <label className="text-xs text-gray-500 w-12 shrink-0 flex items-center gap-0.5">
+                        {item.label}
+                        {item.field === "myk_tarihi" && (
+                          <div className="relative inline-block">
+                            <button type="button" onClick={() => setShowMykSecim(!showMykSecim)} className={`text-[9px] px-1 py-0.5 rounded border ${selectedMykEgitimler.size > 0 ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600"}`}>
+                              {selectedMykEgitimler.size > 0 ? `${selectedMykEgitimler.size}` : "+"}
+                            </button>
+                            {showMykSecim && (
+                              <div className="absolute left-0 top-full mt-1 z-50 w-56 bg-white border border-gray-200 rounded-lg shadow-lg p-2 max-h-60 overflow-y-auto" onClick={e => e.stopPropagation()}>
+                                {mykEgitimListesi.length === 0 && <p className="text-xs text-gray-400 p-2">Eğitim bulunamadı</p>}
+                                {mykEgitimListesi.map(eg => (
+                                  <label key={eg.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                                    <input type="checkbox" checked={selectedMykEgitimler.has(eg.id)} onChange={() => { const next = new Set(selectedMykEgitimler); if (next.has(eg.id)) next.delete(eg.id); else next.add(eg.id); setSelectedMykEgitimler(next); }} className="w-3.5 h-3.5 accent-blue-600" />
+                                    {eg.ad}
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </label>
                       <input type="date" value={editForm[item.field] || ""} onChange={e => setEditForm({...editForm, [item.field]: e.target.value})} className="input text-xs flex-1 min-w-0" />
                       <select value={editForm[item.sureField] || ""} onChange={e => setEditForm({...editForm, [item.sureField]: e.target.value})} className="input text-xs" style={{ width: "3rem" }}>
                         <option value="">y</option>

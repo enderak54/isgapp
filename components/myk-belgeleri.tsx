@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { GraduationCap, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
+import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Grid3X3, List, Check, Minus } from "lucide-react";
 
 export default function MykBelgeleri() {
   const [belgeler, setBelgeler] = useState<any[]>([]);
@@ -12,6 +12,9 @@ export default function MykBelgeleri() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [personel, setPersonel] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
+  const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [personelMykEgitimler, setPersonelMykEgitimler] = useState<Record<string, Set<string>>>({});
   const [form, setForm] = useState({
     personel_id: "",
     belge_adi: "",
@@ -25,6 +28,8 @@ export default function MykBelgeleri() {
   useEffect(() => {
     fetchBelgeler();
     fetchPersonel();
+    fetchMykEgitimListesi();
+    fetchPersonelMykEgitimler();
   }, []);
 
   const fetchBelgeler = async () => {
@@ -34,8 +39,25 @@ export default function MykBelgeleri() {
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad");
+    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad").order("ad", { ascending: true });
     if (data) setPersonel(data);
+  };
+
+  const fetchMykEgitimListesi = async () => {
+    const { data } = await supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true });
+    if (data) setMykEgitimListesi(data);
+  };
+
+  const fetchPersonelMykEgitimler = async () => {
+    const { data } = await supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id");
+    if (data) {
+      const map: Record<string, Set<string>> = {};
+      data.forEach((r: any) => {
+        if (!map[r.personel_id]) map[r.personel_id] = new Set();
+        map[r.personel_id].add(r.myk_egitim_id);
+      });
+      setPersonelMykEgitimler(map);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,77 +85,137 @@ export default function MykBelgeleri() {
   return (
     <main className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">MYK Belgeleri</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-800">MYK Belgeleri</h2>
+          <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <button onClick={() => setViewMode("list")} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${viewMode === "list" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
+              <List className="w-3.5 h-3.5" /> Liste
+            </button>
+            <button onClick={() => setViewMode("matrix")} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${viewMode === "matrix" ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
+              <Grid3X3 className="w-3.5 h-3.5" /> Matris
+            </button>
+          </div>
+        </div>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
           <Plus className="w-5 h-5" /> Yeni Belge
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input type="text" placeholder="Belge ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-10 py-2 border rounded-lg" />
-        </div>
-      </div>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{editing ? "Belge Düzenle" : "Yeni MYK Belgesi"}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+      {viewMode === "list" ? (
+        <>
+          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input type="text" placeholder="Belge ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-4 pr-10 py-2 border rounded-lg" />
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
-                <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
-              </select>
-              <input required placeholder="Belge Adı" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
-              <input placeholder="Belge No" value={form.belge_no} onChange={(e) => setForm({ ...form, belge_no: e.target.value })} className="w-full p-2 border rounded-lg" />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="date" placeholder="Alış Tarihi" value={form.alis_tarihi} onChange={(e) => setForm({ ...form, alis_tarihi: e.target.value })} className="p-2 border rounded-lg" />
-                <input type="date" placeholder="Geçerlilik" value={form.gecerlilik_tarihi} onChange={(e) => setForm({ ...form, gecerlilik_tarihi: e.target.value })} className="p-2 border rounded-lg" />
-              </div>
-              <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="w-full p-2 border rounded-lg">
-                <option value="gecerli">Geçerli</option>
-                <option value="süresi_doldu">Süresi Doldu</option>
-                <option value="yenileniyor">Yenileniyor</option>
-              </select>
-              <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
-            </form>
           </div>
-        </div>
-      )}
 
-      {loading ? <div className="text-center py-12">Yükleniyor...</div> : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Personel</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge Adı</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge No</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Durum</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {belgeler.filter((b) => !search || (b.personel && `${b.personel.ad || ""} ${b.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || b.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((b) => (
-                <tr key={b.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{b.personel ? `${b.personel.ad || ""} ${b.personel.soyad || ""}`.trim() || "-" : "-"}</td>
-                  <td className="px-4 py-3 text-sm">{b.belge_adi}</td>
-                  <td className="px-4 py-3 text-sm">{b.belge_no || "-"}</td>
-                  <td className={`px-4 py-3 text-sm ${isExpired(b.gecerlilik_tarihi) ? "text-red-600 font-medium" : ""}`}>{b.gecerlilik_tarihi || "-"}</td>
-                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${b.durum === "gecerli" ? "bg-green-100 text-green-700" : b.durum === "süresi_doldu" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{b.durum}</span></td>
-                  <td className="px-4 py-3 flex justify-center gap-2">
-                    <button onClick={() => { setEditing(b); setForm({ personel_id: b.personel_id, belge_adi: b.belge_adi, belge_no: b.belge_no || "", alis_tarihi: b.alis_tarihi || "", gecerlilik_tarihi: b.gecerlilik_tarihi || "", durum: b.durum, notlar: b.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(b.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
-                  </td>
+          {showForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold">{editing ? "Belge Düzenle" : "Yeni MYK Belgesi"}</h3>
+                  <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
+                    <option value="">Personel Seçin</option>
+                    {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
+                  </select>
+                  <input required placeholder="Belge Adı" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  <input placeholder="Belge No" value={form.belge_no} onChange={(e) => setForm({ ...form, belge_no: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="date" placeholder="Alış Tarihi" value={form.alis_tarihi} onChange={(e) => setForm({ ...form, alis_tarihi: e.target.value })} className="p-2 border rounded-lg" />
+                    <input type="date" placeholder="Geçerlilik" value={form.gecerlilik_tarihi} onChange={(e) => setForm({ ...form, gecerlilik_tarihi: e.target.value })} className="p-2 border rounded-lg" />
+                  </div>
+                  <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="w-full p-2 border rounded-lg">
+                    <option value="gecerli">Geçerli</option>
+                    <option value="süresi_doldu">Süresi Doldu</option>
+                    <option value="yenileniyor">Yenileniyor</option>
+                  </select>
+                  <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {loading ? <div className="text-center py-12">Yükleniyor...</div> : (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Personel</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge Adı</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Belge No</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Durum</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {belgeler.filter((b) => !search || (b.personel && `${b.personel.ad || ""} ${b.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || b.belge_adi?.toLowerCase().includes(search.toLowerCase())).map((b) => (
+                    <tr key={b.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm">{b.personel ? `${b.personel.ad || ""} ${b.personel.soyad || ""}`.trim() || "-" : "-"}</td>
+                      <td className="px-4 py-3 text-sm">{b.belge_adi}</td>
+                      <td className="px-4 py-3 text-sm">{b.belge_no || "-"}</td>
+                      <td className={`px-4 py-3 text-sm ${isExpired(b.gecerlilik_tarihi) ? "text-red-600 font-medium" : ""}`}>{b.gecerlilik_tarihi || "-"}</td>
+                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${b.durum === "gecerli" ? "bg-green-100 text-green-700" : b.durum === "süresi_doldu" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{b.durum}</span></td>
+                      <td className="px-4 py-3 flex justify-center gap-2">
+                        <button onClick={() => { setEditing(b); setForm({ personel_id: b.personel_id, belge_adi: b.belge_adi, belge_no: b.belge_no || "", alis_tarihi: b.alis_tarihi || "", gecerlilik_tarihi: b.gecerlilik_tarihi || "", durum: b.durum, notlar: b.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(b.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Matris Görünümü */
+        <div className="bg-white rounded-lg shadow-md overflow-auto">
+          {mykEgitimListesi.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">Henüz MYK eğitim tanımı yapılmamış</div>
+          ) : (
+            <table className="w-full min-w-max">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 sticky left-0 bg-gray-50 z-10">Personel</th>
+                  {mykEgitimListesi.map((eg) => (
+                    <th key={eg.id} className="px-3 py-3 text-center text-xs font-medium text-gray-600 min-w-[100px] max-w-[140px]">{eg.ad}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {personel.map((p) => {
+                  const personelEgitimler = personelMykEgitimler[p.id] || new Set();
+                  return (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2.5 text-sm text-gray-800 font-medium sticky left-0 bg-white z-10">{p.ad} {p.soyad}</td>
+                      {mykEgitimListesi.map((eg) => (
+                        <td key={eg.id} className="px-3 py-2.5 text-center">
+                          {personelEgitimler.has(eg.id) ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                              <Check className="w-3.5 h-3.5 text-green-600" />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-6 h-6 text-gray-300">
+                              <Minus className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {personel.length === 0 && (
+                  <tr>
+                    <td colSpan={mykEgitimListesi.length + 1} className="text-center py-12 text-gray-400">Kayıtlı personel bulunamadı</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </main>
