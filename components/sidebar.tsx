@@ -69,10 +69,30 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [ekModulOpen, setEkModulOpen] = useState(false);
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
+  const [menuOrderMain, setMenuOrderMain] = useState<string[]>([]);
+  const [menuOrderEk, setMenuOrderEk] = useState<string[]>([]);
 
   useEffect(() => {
     loadModuleSettings();
+    loadMenuOrder();
   }, []);
+
+  const loadMenuOrder = async () => {
+    const { data } = await supabase.from("ayarlar").select("key, value").in("key", ["menu_order_main", "menu_order_ek"]);
+    data?.forEach((d: any) => {
+      try {
+        const arr = JSON.parse(d.value);
+        if (d.key === "menu_order_main" && Array.isArray(arr)) setMenuOrderMain(arr);
+        if (d.key === "menu_order_ek" && Array.isArray(arr)) setMenuOrderEk(arr);
+      } catch {}
+    });
+  };
+
+  const applyOrder = (items: typeof mainMenuItems, order: string[]) => {
+    const ordered = order.map(k => items.find(i => i.key === k)).filter(Boolean) as typeof mainMenuItems;
+    const remaining = items.filter(i => !order.includes(i.key));
+    return [...ordered, ...remaining];
+  };
 
   const loadModuleSettings = async () => {
     try {
@@ -104,10 +124,10 @@ export default function Sidebar() {
     }
   };
 
-  const filteredMain = mainMenuItems.filter(item => 
+  const filteredMain = applyOrder(mainMenuItems, menuOrderMain).filter(item => 
     item.key === "dashboard" || visibleModules[item.key || ""] !== false
   );
-  const filteredEk = ekModulItems.filter(item => 
+  const filteredEk = applyOrder(ekModulItems, menuOrderEk).filter(item => 
     visibleModules[item.key || ""] !== false
   );
 

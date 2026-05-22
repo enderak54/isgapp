@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 
 const colorOptions = [
@@ -108,9 +108,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [showVersion, setShowVersion] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [versions, setVersions] = useState<any[]>([]);
   const [commits, setCommits] = useState<any[]>([]);
   const [commitsLoading, setCommitsLoading] = useState(false);
+  const [menuItems, setMenuItems] = useState<{ key: string; label: string; grup: "main" | "ek" }[]>([]);
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [showAddVersion, setShowAddVersion] = useState(false);
   const [newVersion, setNewVersion] = useState({ versiyon: "", tip: "minor" as string, aciklama: "", detaylar: "", yazar: "" });
   const [showUyari, setShowUyari] = useState(false);
@@ -122,6 +126,7 @@ export default function SettingsPage() {
     fetchSettings();
     fetchVersions();
     fetchCommits();
+    fetchMenuOrder();
     fetchUyariAyarlari();
     const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
     if (saved.mode) setThemeMode(saved.mode);
@@ -152,6 +157,42 @@ export default function SettingsPage() {
       if (Array.isArray(data)) setCommits(data);
     } catch {}
     setCommitsLoading(false);
+  };
+
+  const allMenuLabels: Record<string, string> = {
+    dashboard: "ISG Takip", personel: "Personel", myk: "MYK", operator: "Operator",
+    dosya: "Dosya", talimatlar: "Talimat Takibi", santiyeler: "Santiyeler",
+    taseronlar: "Taseronlar", sorumlular: "Sorumlular", ekipmanlar: "Ekipmanlar",
+    kazalar: "Is Kazalari", egitimler: "Egitimler", ihtar: "Ihtar Tutanagi",
+    risk: "Risk Degerlendirme", yasal: "Yasal Uygunluk", denetim: "Ic Denetim",
+    acil: "Acil Durum", duzeltici: "Duzeltici Faaliyet", ygg: "Yonetim Gozden Gecirme",
+    dokuman: "Dokuman Kontrol", yetkinlik: "Yetkinlik Matrisi", performans: "Performans Izleme",
+  };
+
+  const fetchMenuOrder = async () => {
+    const { data } = await supabase.from("ayarlar").select("key, value").in("key", ["menu_order_main", "menu_order_ek"]);
+    if (!data) return;
+    const allItems: { key: string; label: string; grup: "main" | "ek" }[] = [];
+    for (const d of data) {
+      try {
+        const keys = JSON.parse(d.value);
+        const grup = d.key === "menu_order_main" ? "main" : "ek";
+        keys.forEach((k: string) => {
+          if (allMenuLabels[k]) allItems.push({ key: k, label: allMenuLabels[k], grup });
+        });
+      } catch {}
+    }
+    setMenuItems(allItems);
+  };
+
+  const saveMenuOrder = async () => {
+    setMenuSaving(true);
+    const mainKeys = menuItems.filter(i => i.grup === "main").map(i => i.key);
+    const ekKeys = menuItems.filter(i => i.grup === "ek").map(i => i.key);
+    await supabase.from("ayarlar").upsert({ key: "menu_order_main", value: JSON.stringify(mainKeys), type: "menu_order" }, { onConflict: "key" });
+    await supabase.from("ayarlar").upsert({ key: "menu_order_ek", value: JSON.stringify(ekKeys), type: "menu_order" }, { onConflict: "key" });
+    setMenuSaving(false);
+    setStatus({ type: "success", message: "Menü sırası kaydedildi!" });
   };
 
   const fetchSettings = async () => {
@@ -465,6 +506,42 @@ export default function SettingsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
+          <button onClick={() => setShowMenu(!showMenu)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Menü Düzenle</h3>
+              <p className="text-sm text-gray-500">Sol menü öğelerini sürükleyip sıralayın</p>
+            </div>
+            {showMenu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showMenu && (
+            <div className="mt-4">
+              <div className="space-y-1">
+                {menuItems.map((item, idx) => (
+                  <div key={item.key}
+                    draggable
+                    onDragStart={() => setDragIdx(idx)}
+                    onDragOver={(e) => { e.preventDefault(); if (dragIdx === null || dragIdx === idx) return; const items = [...menuItems]; const [moved] = items.splice(dragIdx, 1); items.splice(idx, 0, moved); setMenuItems(items); setDragIdx(idx); }}
+                    onDragEnd={() => setDragIdx(null)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-colors ${item.grup === "main" ? "bg-white border-gray-200" : "bg-gray-50 border-gray-100"} ${dragIdx === idx ? "opacity-50" : ""}`}
+                  >
+                    <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                    <span className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wider text-gray-400 flex-shrink-0">{item.grup === "main" ? "Ana" : "Ek"}</span>
+                    <span className="text-sm text-gray-700 flex-1">{item.label}</span>
+                    <span className="text-[10px] text-gray-300 font-mono">{item.key}</span>
+                  </div>
+                ))}
+              </div>
+              {menuItems.length === 0 && <p className="text-center py-6 text-gray-400">Menü bilgisi yüklenmedi</p>}
+              <div className="flex justify-end mt-4">
+                <button onClick={saveMenuOrder} disabled={menuSaving} className="btn btn-primary text-sm flex items-center gap-2">
+                  <Save className="w-4 h-4" /> {menuSaving ? "Kaydediliyor..." : "Sırayı Kaydet"}
+                </button>
+              </div>
             </div>
           )}
         </div>
