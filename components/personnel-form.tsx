@@ -113,16 +113,12 @@ export default function PersonnelForm() {
     else if (!validateTC(form.kimlikNo)) newErrors.kimlikNo = "Geçersiz TC Kimlik No";
     if (!form.ad.trim()) newErrors.ad = "Ad zorunludur";
     if (!form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
-    if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
-    if (form.isgEgitimTarihi && !form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Zorunludur";
-    if (!form.yuksekteCalisma) newErrors.yuksekteCalisma = "Zorunludur";
-    if (form.yuksekteCalisma && !form.yuksekteSure) newErrors.yuksekteSure = "Zorunludur";
-    if (!form.myk) newErrors.myk = "Zorunludur";
-    if (form.myk && !form.mykSure) newErrors.mykSure = "Zorunludur";
-    if (!form.kkd) newErrors.kkd = "Zorunludur";
-    if (form.kkd && !form.kkdSure) newErrors.kkdSure = "Zorunludur";
-    if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
-    if (form.saglikRaporuTarihi && !form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Zorunludur";
+    if (form.isgEgitimTarihi && !form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Süre seçiniz";
+    if (form.yuksekteCalisma && !form.yuksekteSure) newErrors.yuksekteSure = "Süre seçiniz";
+    const hasMyk = mykKayitlar.length > 0 || form.myk;
+    if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
+    if (form.kkd && !form.kkdSure) newErrors.kkdSure = "Süre seçiniz";
+    if (form.saglikRaporuTarihi && !form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Süre seçiniz";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -200,7 +196,13 @@ export default function PersonnelForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setStatus({ type: "error", message: "Lütfen zorunlu alanları doldurun." });
+      const firstErr = document.querySelector<HTMLElement>(".border-red-500");
+      firstErr?.scrollIntoView({ behavior: "smooth", block: "center" });
+      firstErr?.focus();
+      return;
+    }
     if (!checkRateLimit("personel_insert", 5, 60000)) {
       setStatus({ type: "error", message: "Çok fazla kayıt denemesi. Lütfen bekleyin." });
       return;
@@ -434,6 +436,7 @@ export default function PersonnelForm() {
                         })}
                       </div>
                     )}
+                    {errors.myk && <p className="text-xs text-red-500 mt-1">{errors.myk}</p>}
                   </div>
                 ) : (
                 <div className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>

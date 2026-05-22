@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { displayDate } from "@/lib/tarih";
-import { Search, FolderOpen, File, FileText, Eye, Download, ChevronRight, User, Folder, Image as ImageIcon, FileText as FileDoc } from "lucide-react";
+import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Image as ImageIcon, FileText as FileDoc } from "lucide-react";
 
 const FOLDER_CATEGORIES = [
   { key: "isg_egitim", label: "İSG Eğitimleri", icon: FileText, color: "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100" },
@@ -82,7 +82,7 @@ export default function PersonelDosyasi() {
   );
 
   const getFolderFiles = (folderKey: string): any[] => {
-    if (folderKey === "talimat") return talimatlar;
+    if (folderKey === "talimat") return talimatlar.map(t => ({ ...t, _source: "talimat", _name: t.tanim || "Talimat", _url: null, _tarih: t.eklenme_tarihi }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
     const merged = [
@@ -90,6 +90,17 @@ export default function PersonelDosyasi() {
       ...fromDosyalar.map(d => ({ ...d, _source: "dosya", _name: d.belge_adi, _url: d.dosya_url, _tarih: d.tarih })),
     ];
     return merged.sort((a, b) => new Date(b._tarih || 0).getTime() - new Date(a._tarih || 0).getTime());
+  };
+
+  const getAllFiles = (): any[] => {
+    const all: any[] = [];
+    FOLDER_CATEGORIES.forEach(f => {
+      const files = getFolderFiles(f.key);
+      files.forEach(file => {
+        all.push({ ...file, _folderKey: f.key, _folderLabel: f.label });
+      });
+    });
+    return all.sort((a, b) => new Date(b._tarih || 0).getTime() - new Date(a._tarih || 0).getTime());
   };
 
   const folderFileCount = (folderKey: string): number => {
@@ -104,7 +115,8 @@ export default function PersonelDosyasi() {
     return <FileDoc className="w-4 h-4 text-amber-500" />;
   };
 
-  const currentFiles = selectedFolder ? getFolderFiles(selectedFolder) : [];
+  const currentFiles = selectedFolder ? (selectedFolder === "_all" ? getAllFiles() : getFolderFiles(selectedFolder)) : [];
+  const allFilesCount = FOLDER_CATEGORIES.reduce((sum, f) => sum + folderFileCount(f.key), 0);
 
   return (
     <main className="flex-1 min-h-screen bg-gray-50 flex flex-col">
@@ -169,6 +181,14 @@ export default function PersonelDosyasi() {
               <div className="text-center py-6 text-gray-400 text-sm">Yükleniyor...</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <button
+                  onClick={() => setSelectedFolder("_all")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedFolder === "_all" ? "border-green-500 bg-green-50" : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300"}`}
+                >
+                  <Folder className="w-8 h-8 text-gray-500" />
+                  <span className="text-xs font-medium text-gray-700 text-center">Tümünü Göster</span>
+                  <span className="text-[10px] text-gray-400">{allFilesCount} dosya</span>
+                </button>
                 {FOLDER_CATEGORIES.map((folder) => {
                   const count = folderFileCount(folder.key);
                   const Icon = folder.icon;
@@ -197,12 +217,56 @@ export default function PersonelDosyasi() {
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">3</div>
               <span className="text-sm font-semibold text-gray-700">
-                {FOLDER_CATEGORIES.find(f => f.key === selectedFolder)?.label || selectedFolder}
+                {selectedFolder === "_all" ? "Tüm Dosyalar" : FOLDER_CATEGORIES.find(f => f.key === selectedFolder)?.label || selectedFolder}
               </span>
               <span className="text-xs text-gray-400 ml-auto">{currentFiles.length} dosya bulundu</span>
             </div>
             {currentFiles.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 text-sm">Bu klasörde henüz dosya bulunmamaktadır.</div>
+              <div className="text-center py-10 text-gray-400 text-sm">Henüz dosya bulunmamaktadır.</div>
+            ) : selectedFolder === "_all" ? (
+              <div className="space-y-2">
+                {FOLDER_CATEGORIES.map(folder => {
+                  const files = currentFiles.filter(f => f._folderKey === folder.key);
+                  if (files.length === 0) return null;
+                  const Icon = folder.icon;
+                  return (
+                    <div key={folder.key}>
+                      <div className="flex items-center gap-2 mb-2 mt-4 first:mt-0">
+                        <Icon className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{folder.label}</span>
+                        <span className="text-[10px] text-gray-400">({files.length})</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {files.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                              {getFileIcon(item)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 break-words">{item._name || "Adsız"}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{item._tarih ? displayDate(item._tarih) : ""}</p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              {item._url ? (
+                                <a href={item._url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </a>
+                              ) : (
+                                <span className="p-1.5 text-gray-300" title="Dosya yok"><Eye className="w-3.5 h-3.5" /></span>
+                              )}
+                              {item._url && (
+                                <a href={item._url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {currentFiles.map((item, idx) => (
@@ -211,10 +275,10 @@ export default function PersonelDosyasi() {
                       {getFileIcon(item)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-800 truncate">{item._name || "Adsız"}</p>
+                      <p className="text-xs font-medium text-gray-800 break-words">{item._name || "Adsız"}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{item._tarih ? displayDate(item._tarih) : ""}</p>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-shrink-0">
                       {item._url ? (
                         <a href={item._url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
                           <Eye className="w-3.5 h-3.5" />
