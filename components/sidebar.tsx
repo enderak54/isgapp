@@ -207,6 +207,7 @@ export default function Sidebar() {
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+        {!collapsed && <div className="text-[10px] text-gray-300 text-center mt-2 select-none">v1.1.0</div>}
       </div>
     </aside>
   );
