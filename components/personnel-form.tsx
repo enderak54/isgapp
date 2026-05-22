@@ -23,6 +23,9 @@ const BELGE_TIPLERI: Record<string, string> = {
   oryantasyon: "oryantasyon",
   saglikRaporuTarihi: "saglik_raporu",
   sertifika: "sertifika",
+  yuksekteCalisamaz: "yuksekte_calisamaz",
+  geceCalisamaz: "gece_calisamaz",
+  vardiyaliCalisamaz: "vardiyali_calisamaz",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -507,9 +510,9 @@ export default function PersonnelForm() {
                     </div>
                   )}
                   {[
-                    { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz" },
-                    { label: "Gece", canWork: "geceCalisir", cannotWork: "geceCalisamaz" },
-                    { label: "Vardiyalı", canWork: "vardiyaliCalisir", cannotWork: "vardiyaliCalisamaz" },
+                    { label: "Yüksekte", canWork: "yuksekteCalisir", cannotWork: "yuksekteCalisamaz", uploadField: "yuksekteCalisamaz" },
+                    { label: "Gece", canWork: "geceCalisir", cannotWork: "geceCalisamaz", uploadField: "geceCalisamaz" },
+                    { label: "Vardiyalı", canWork: "vardiyaliCalisir", cannotWork: "vardiyaliCalisamaz", uploadField: "vardiyaliCalisamaz" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center gap-4 text-sm">
                       <span className="text-xs text-gray-700 w-20">{item.label}</span>
@@ -521,6 +524,10 @@ export default function PersonnelForm() {
                         <input type="radio" name={item.label} checked={form[item.cannotWork as keyof typeof form] as boolean} onChange={() => { handleChange(item.cannotWork, true); handleChange(item.canWork, false); }} className="w-4 h-4 accent-gray-600" />
                         <span className="text-gray-600">Çalışamaz</span>
                       </label>
+                      <button type="button" onClick={() => setUploadModalField(item.uploadField)} className={`p-1 rounded transition relative ${fieldFileCount(item.uploadField) > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {fieldFileCount(item.uploadField) > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount(item.uploadField)}</span>}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -561,7 +568,7 @@ export default function PersonnelForm() {
         <div className="modal-overlay" onClick={() => { setUploadModalField(null); setUploadDragOver(false); }}>
           <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Dosya Ekle — {belgeFields.find(b => b.field === uploadModalField)?.label || "Sağlık Raporu"}</h3>
+              <h3>Dosya Ekle — {belgeFields.find(b => b.field === uploadModalField)?.label || ({ yuksekteCalisamaz: "Yüksekte Çalışamaz", geceCalisamaz: "Gece Çalışamaz", vardiyaliCalisamaz: "Vardiyalı Çalışamaz" } as Record<string, string>)[uploadModalField] || "Sağlık Raporu"}</h3>
               <button onClick={() => { setUploadModalField(null); setUploadDragOver(false); }}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="modal-body">

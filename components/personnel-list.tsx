@@ -29,6 +29,12 @@ const BELGE_TIPLERI: Record<string, string> = {
   saglik_raporu_tarihi: "saglik_raporu",
   sertifika: "sertifika",
   sertifika_tarihi: "sertifika",
+  yuksekteCalisamaz: "yuksekte_calisamaz",
+  yuksekte_calisamaz: "yuksekte_calisamaz",
+  geceCalisamaz: "gece_calisamaz",
+  gece_calisamaz: "gece_calisamaz",
+  vardiyaliCalisamaz: "vardiyali_calisamaz",
+  vardiyali_calisamaz: "vardiyali_calisamaz",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -204,7 +210,7 @@ export default function PersonnelList() {
   };
 
   const belgeTipiLabel = (tip: string) => {
-    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", diger: "Diğer" };
+    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", yuksekte_calisamaz: "Yüksekte Çalışamaz", gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz", diger: "Diğer" };
     return labels[tip] || tip;
   };
 
@@ -785,7 +791,7 @@ export default function PersonnelList() {
               {editBelgeler.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Mevcut Belgeler ({editBelgeler.length})</h4>
-                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika"].map(tip => {
+                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika", "yuksekte_calisamaz", "gece_calisamaz", "vardiyali_calisamaz"].map(tip => {
                     const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
                     if (tipFiles.length === 0) return null;
                     return (

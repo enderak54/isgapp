@@ -150,6 +150,7 @@ export default function Sidebar() {
             {!collapsed && <span className="text-sm font-semibold text-gray-800">İSG Takip</span>}
           </div>
         </Link>
+        {!collapsed && <div className="text-[10px] text-gray-300 mt-1 select-none text-center">v1.1.0</div>}
       </div>
       
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
@@ -234,7 +235,6 @@ export default function Sidebar() {
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
-        {!collapsed && <div className="text-[10px] text-gray-300 text-center mt-2 select-none">v1.1.0</div>}
       </div>
     </aside>
   );
