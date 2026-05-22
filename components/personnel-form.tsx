@@ -65,11 +65,19 @@ export default function PersonnelForm() {
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
   const [selectedMykEgitimler, setSelectedMykEgitimler] = useState<Set<string>>(new Set());
   const [showMykSecim, setShowMykSecim] = useState(false);
+  const mykPopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
       if (data) setMykEgitimListesi(data);
     });
+    const handleClick = (e: MouseEvent) => {
+      if (mykPopoverRef.current && !mykPopoverRef.current.contains(e.target as Node)) {
+        setShowMykSecim(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const toggleMykEgitim = (id: string) => {
@@ -373,7 +381,7 @@ export default function PersonnelForm() {
                   <span className="text-xs text-gray-700 w-28 flex items-center gap-1">
                     {item.label}
                     {item.field === "myk" && (
-                      <div className="relative inline-block">
+                      <div className="relative inline-block" ref={mykPopoverRef}>
                         <button type="button" onClick={() => setShowMykSecim(!showMykSecim)} className={`text-[10px] px-1.5 py-0.5 rounded border ${selectedMykEgitimler.size > 0 ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600"}`}>
                           {selectedMykEgitimler.size > 0 ? `${selectedMykEgitimler.size} eğitim` : "+ seç"}
                         </button>

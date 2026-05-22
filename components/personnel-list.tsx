@@ -68,12 +68,20 @@ export default function PersonnelList() {
   const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
   const [selectedMykEgitimler, setSelectedMykEgitimler] = useState<Set<string>>(new Set());
   const [showMykSecim, setShowMykSecim] = useState(false);
+  const mykPopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPersonnel();
     supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).then(({ data }) => {
       if (data) setMykEgitimListesi(data);
     });
+    const handleClick = (e: MouseEvent) => {
+      if (mykPopoverRef.current && !mykPopoverRef.current.contains(e.target as Node)) {
+        setShowMykSecim(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const fetchPersonnel = async () => {
@@ -594,7 +602,7 @@ export default function PersonnelList() {
                       <label className="text-xs text-gray-500 w-12 shrink-0 flex items-center gap-0.5">
                         {item.label}
                         {item.field === "myk_tarihi" && (
-                          <div className="relative inline-block">
+                          <div className="relative inline-block" ref={mykPopoverRef}>
                             <button type="button" onClick={() => setShowMykSecim(!showMykSecim)} className={`text-[9px] px-1 py-0.5 rounded border ${selectedMykEgitimler.size > 0 ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-600"}`}>
                               {selectedMykEgitimler.size > 0 ? `${selectedMykEgitimler.size}` : "+"}
                             </button>
