@@ -147,7 +147,7 @@ export default function SettingsPage() {
   const fetchCommits = async () => {
     setCommitsLoading(true);
     try {
-      const res = await fetch("https://api.github.com/repos/enderak54/isgapp/commits?per_page=30");
+      const res = await fetch("/api/commits");
       const data = await res.json();
       if (Array.isArray(data)) setCommits(data);
     } catch {}
