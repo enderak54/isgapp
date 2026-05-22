@@ -189,16 +189,12 @@ Her listede `lockedX` Set state'i ile yönetilir.
 
 ## 7. Güvenlik Başlıkları
 
-### `middleware.ts` (Runtime)
-- CSP (Content Security Policy) — nonce tabanlı, `'strict-dynamic'` ile
-- `x-csp-nonce` header'ı layout'a iletilir
-- Tüm route'lar için geçerli (`matcher: "/:path*"`)
-
-### `next.config.ts` (Edge)
+### `next.config.ts` (Edge/Static)
+- CSP (Content Security Policy) — `'unsafe-inline'` ile (Next.js uyumluluğu)
 - HSTS (Strict-Transport-Security)
 - X-Frame-Options, X-Content-Type-Options
 - Referrer-Policy, Permissions-Policy
-- **Not**: CSP `middleware.ts`'den set edilir, burada yok
+- `connect-src`: Supabase + GitHub API
 
 ## 8. Genişletme Kılavuzu
 
