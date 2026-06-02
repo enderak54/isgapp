@@ -125,6 +125,7 @@ export default function SettingsPage() {
   const [themeSize, setThemeSize] = useState("normal");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [showVersion, setShowVersion] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -209,6 +210,11 @@ export default function SettingsPage() {
     if (saved.font) setThemeFont(saved.font);
     if (saved.size) setThemeSize(saved.size);
   }, []);
+
+  // Canlı tema önizleme — her değişiklikte UI hemen güncellenir
+  useEffect(() => {
+    applyTheme({ mode: themeMode, color: themeColor, font: themeFont, size: themeSize });
+  }, [themeMode, themeColor, themeFont, themeSize]);
 
   const fetchUyariAyarlari = async () => {
     const { data } = await supabase.from("ayarlar").select("*").eq("type", "egitim_uyari");
@@ -423,13 +429,20 @@ export default function SettingsPage() {
   };
 
   const saveTheme = async () => {
+    setThemeSaving(true);
+    setStatus(null);
     const theme = { mode: themeMode, color: themeColor, font: themeFont, size: themeSize };
     localStorage.setItem("isg_theme", JSON.stringify(theme));
     applyTheme(theme);
     try {
-      await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
-    } catch {}
-    setStatus({ type: "success", message: "Tema kaydedildi!" });
+      const { error } = await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
+      if (error) throw error;
+      setStatus({ type: "success", message: "Tema kaydedildi!" });
+    } catch (err: any) {
+      setStatus({ type: "error", message: "Tema kaydedilemedi: " + (err.message || "Bilinmeyen hata") });
+    } finally {
+      setThemeSaving(false);
+    }
   };
 
   const saveUyari = async () => {
@@ -540,7 +553,9 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center gap-3">
               {showTheme && (
-                <button onClick={(e) => { e.stopPropagation(); saveTheme(); }} className="btn btn-primary text-sm">Kaydet</button>
+                <button onClick={(e) => { e.stopPropagation(); saveTheme(); }} disabled={themeSaving} className="btn btn-primary text-sm">
+                  {themeSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
               )}
               {showTheme ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
             </div>
