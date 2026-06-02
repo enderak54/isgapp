@@ -36,7 +36,7 @@ export default async function RootLayout({
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark")r.classList.add("theme-dark");if(t.color)r.classList.add("theme-"+t.color);if(t.font)r.classList.add("font-"+t.font);if(t.size)r.classList.add("size-"+t.size);}catch(e){}})();`,
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark"&&!r.classList.contains("theme-dark"))r.classList.add("theme-dark");if(t.color&&t.color.trim())r.classList.add("theme-"+t.color.trim());if(t.font&&t.font.trim())r.classList.add("font-"+t.font.trim());if(t.size&&t.size!=="normal"&&t.size.trim())r.classList.add("size-"+t.size.trim());}catch(e){}})();`,
           }}
         />
       </head>

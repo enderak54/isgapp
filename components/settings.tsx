@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
+import { safeSetTheme } from "@/lib/dom";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -36,12 +37,7 @@ const sizeOptions = [
 ];
 
 function applyTheme(theme: { mode?: string; color?: string; font?: string; size?: string }) {
-  const root = document.documentElement;
-  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class).filter(Boolean), ...fontOptions.map(f => f.class).filter(Boolean), ...sizeOptions.map(s => "size-" + s.key));
-  if (theme.mode === "dark") root.classList.add("theme-dark");
-  if (theme.color) root.classList.add("theme-" + theme.color);
-  if (theme.font) root.classList.add("font-" + theme.font);
-  if (theme.size && theme.size !== "normal") root.classList.add("size-" + theme.size);
+  safeSetTheme(document.documentElement, theme);
 }
 
 interface ModuleSettings {

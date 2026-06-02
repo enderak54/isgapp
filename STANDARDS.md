@@ -279,6 +279,21 @@ sanitizeFileName(name): string
   - Güvenli olmayan karakterleri `_` ile değiştirir
 ```
 
+### 4.8 DOM Class Manipülasyonu (`lib/dom.ts`)
+
+`classList.add("")` veya `classList.remove("")` DOMException fırlatır. Bu hatayı önlemek için:
+
+```typescript
+safeAddClass(el, "class1", "class2")     // boş/geçersiz token'ları filtreler
+safeRemoveClass(el, "class1", "class2")  // aynı
+safeSetTheme(el, { mode, color, font, size })  // tema için hazır
+```
+
+Inline script'lerde de `.trim()` + falsy kontrolü zorunlu:
+```javascript
+if (val && val.trim()) el.classList.add(val.trim());
+```
+
 ---
 
 ## 5. Yeni Modül Checklist
