@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { Search, Plus, Calendar, Pin, X, ChevronDown, Lock, Unlock } from "lucide-react";
 
@@ -163,7 +163,7 @@ export default function Talimatlar() {
               <tbody className="divide-y divide-gray-100">
                 {filteredPersonel.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition">
-                    <td className="sticky left-0 z-10 bg-white px-2 py-2 text-xs text-gray-600 font-mono border-r border-gray-200">{p.kimlik_no || "-"}</td>
+                    <td className="sticky left-0 z-10 bg-white px-2 py-2 text-xs text-gray-600 font-mono border-r border-gray-200">{p.kimlik_no ? maskTC(p.kimlik_no) : "-"}</td>
                     <td className="sticky left-[90px] z-10 bg-white px-2 py-2 text-xs font-medium text-gray-800 border-r border-gray-200">{p.ad} {p.soyad}</td>
                     <td className="sticky left-[220px] z-10 bg-white px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{p.meslek_kodu || "-"}</td>
                     {sutunlar.map((ad) => {

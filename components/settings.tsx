@@ -89,6 +89,11 @@ const defaultModules = [
   { key: "dokuman", label: "Doküman Kontrol", description: "Doküman versiyon ve onay takibi" },
   { key: "yetkinlik", label: "Yetkinlik Matrisi", description: "Personel yetkinlik ve sertifika" },
   { key: "performans", label: "Performans İzleme", description: "İSG performans göstergeleri" },
+  { key: "baglam", label: "Bağlam Analizi", description: "Kuruluş bağlamı ve ilgili taraflar (4.1/4.2)" },
+  { key: "katilim", label: "İşçi Katılımı", description: "Çalışan katılımı ve danışma (5.4)" },
+  { key: "hedefler", label: "OHS Hedefleri", description: "İSG hedefleri ve planlama (6.2)" },
+  { key: "iletisim", label: "İletişim Kaydı", description: "İç ve dış iletişim kayıtları (7.4)" },
+  { key: "politika", label: "Politika Yönetimi", description: "İSG politikası ve taahhüt belgeleri (5.1)" },
 ];
 
 async function setupDatabase() {
@@ -181,6 +186,11 @@ export default function SettingsPage() {
     { key: "dokuman_kontrol", label: "Doküman Kontrol", grup: "modul" },
     { key: "yetkinlik_matrisi", label: "Yetkinlik Matrisi", grup: "modul" },
     { key: "performans_izleme", label: "Performans İzleme", grup: "modul" },
+    { key: "baglam_analizi", label: "Bağlam Analizi", grup: "modul" },
+    { key: "isci_katilimi", label: "İşçi Katılımı", grup: "modul" },
+    { key: "ohs_hedefleri", label: "OHS Hedefleri", grup: "modul" },
+    { key: "iletisim_kaydi", label: "İletişim Kaydı", grup: "modul" },
+    { key: "politika_yonetimi", label: "Politika Yönetimi", grup: "modul" },
   ];
 
   useEffect(() => {
@@ -232,6 +242,7 @@ export default function SettingsPage() {
     risk: "Risk Degerlendirme", yasal: "Yasal Uygunluk", denetim: "Ic Denetim",
     acil: "Acil Durum", duzeltici: "Duzeltici Faaliyet", ygg: "Yonetim Gozden Gecirme",
     dokuman: "Dokuman Kontrol", yetkinlik: "Yetkinlik Matrisi", performans: "Performans Izleme",
+    baglam: "Baglam Analizi", katilim: "Isci Katilimi", hedefler: "OHS Hedefleri", iletisim: "Iletisim Kaydi", politika: "Politika Yonetimi",
   };
 
   const fetchMenuOrder = async () => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { AlertTriangle, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
@@ -64,7 +64,7 @@ export default function IsKazalari() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
+                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({maskTC(p.kimlik_no)})</option>)}
               </select>
               <div className="grid grid-cols-2 gap-4">
                 <input type="date" required value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} className="p-2 border rounded-lg" />

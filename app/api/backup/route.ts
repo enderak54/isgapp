@@ -33,9 +33,20 @@ const TURKISH_LABELS: Record<string, string> = {
   dokuman_kontrol: "Doküman Kontrol",
   yetkinlik_matrisi: "Yetkinlik Matrisi",
   performans_izleme: "Performans İzleme",
+  baglam_analizi: "Bağlam Analizi",
+  isci_katilimi: "İşçi Katılımı",
+  ohs_hedefleri: "OHS Hedefleri",
+  iletisim_kaydi: "İletişim Kaydı",
+  politika_yonetimi: "Politika Yönetimi",
 };
 
 export async function POST(request: NextRequest) {
+  const apiKey = request.headers.get("x-api-key");
+  const backupApiKey = process.env.BACKUP_API_KEY;
+  if (backupApiKey && apiKey !== backupApiKey) {
+    return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

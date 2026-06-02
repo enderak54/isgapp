@@ -6,7 +6,7 @@ import {
   Building2, HardHat, UserCog, Wrench, AlertTriangle, LayoutDashboard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Scale,
   ClipboardCheck, Siren, RotateCcw, Eye, FileCheck, Award, TrendingUp,
-  AlertOctagon, ScrollText, Menu, X,
+  AlertOctagon, ScrollText, Menu, X, Target, MessageCircle,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -36,6 +36,11 @@ const ekModulItems = [
   { icon: FileCheck, label: "Doküman Kontrol", href: "/dokuman", key: "dokuman" },
   { icon: Award, label: "Yetkinlik Matrisi", href: "/yetkinlik", key: "yetkinlik" },
   { icon: TrendingUp, label: "Performans İzleme", href: "/performans", key: "performans" },
+  { icon: Building2, label: "Bağlam Analizi", href: "/baglam", key: "baglam" },
+  { icon: Users, label: "İşçi Katılımı", href: "/katilim", key: "katilim" },
+  { icon: Target, label: "OHS Hedefleri", href: "/hedefler", key: "hedefler" },
+  { icon: MessageCircle, label: "İletişim Kaydı", href: "/iletisim", key: "iletisim" },
+  { icon: ScrollText, label: "Politika Yönetimi", href: "/politika", key: "politika" },
 ];
 
 import Link from "next/link";

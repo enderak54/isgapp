@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive } from "lucide-react";
-import { maskTC, sanitizeForm, checkRateLimit } from "@/lib/security";
+import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
@@ -123,10 +123,6 @@ export default function PersonnelList() {
   };
 
   const deletePerson = async (id: string, tur: "istirak_ayrilis" | "hatali_kayit") => {
-    if (!checkRateLimit("personel_delete", 3, 60000)) {
-      alert("Çok fazla silme denemesi. Lütfen bekleyin.");
-      return;
-    }
     const person = personnel.find(p => p.id === id);
     if (tur === "hatali_kayit") {
       await supabase.from("personel").delete().eq("id", id);
@@ -849,7 +845,7 @@ export default function PersonnelList() {
                                 </div>
                               </a>
                               <div className="flex items-center gap-1">
-                                <button type="button" onClick={() => { console.log("toggleLock", b.id, lockedFiles.has(b.id)); toggleLock(b.id); }} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                <button type="button" onClick={() => toggleLock(b.id)} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
                                   {lockedFiles.has(b.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                 </button>
                                 <button type="button" onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1.5 rounded transition ${lockedFiles.has(b.id) ? "bg-red-50 text-red-500 hover:bg-red-100" : "bg-gray-100 text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
@@ -875,7 +871,7 @@ export default function PersonnelList() {
                                 <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                               </div>
                               <div className="flex items-center gap-1">
-                                <button type="button" onClick={() => { console.log("toggleLock", b.id, lockedFiles.has(b.id)); toggleLock(b.id); }} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
+                                <button type="button" onClick={() => toggleLock(b.id)} className={`p-1.5 rounded border transition ${lockedFiles.has(b.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"}`} title={lockedFiles.has(b.id) ? "Kilidi aç" : "Kilitli"}>
                                   {lockedFiles.has(b.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                 </button>
                                 <button type="button" onClick={() => deleteBelge(b)} disabled={!lockedFiles.has(b.id)} className={`p-1.5 rounded transition ${lockedFiles.has(b.id) ? "bg-red-50 text-red-500 hover:bg-red-100" : "bg-gray-100 text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>

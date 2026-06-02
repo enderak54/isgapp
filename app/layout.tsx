@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -17,11 +18,14 @@ export const metadata: Metadata = {
   description: "İş Sağlığı ve Güvenliği Yönetim Sistemi",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") || "";
+
   return (
     <html
       lang="tr"
@@ -30,6 +34,7 @@ export default function RootLayout({
     >
       <head>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark")r.classList.add("theme-dark");if(t.color)r.classList.add("theme-"+t.color);if(t.font)r.classList.add("font-"+t.font);if(t.size)r.classList.add("size-"+t.size);}catch(e){}})();`,
           }}

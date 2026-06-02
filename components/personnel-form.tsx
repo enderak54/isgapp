@@ -6,7 +6,7 @@ import {
   Upload, X, Paperclip, Eye, Trash2, Image as ImageIcon, FileText as FileDoc, Award
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { sanitize, validateTC, checkRateLimit } from "@/lib/security";
+import { sanitize, validateTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { validateFile } from "@/lib/file-validation";
 import Link from "next/link";
@@ -234,10 +234,6 @@ export default function PersonnelForm() {
       const firstErr = document.querySelector<HTMLElement>(".border-red-500");
       firstErr?.scrollIntoView({ behavior: "smooth", block: "center" });
       firstErr?.focus();
-      return;
-    }
-    if (!checkRateLimit("personel_insert", 5, 60000)) {
-      setStatus({ type: "error", message: "Çok fazla kayıt denemesi. Lütfen bekleyin." });
       return;
     }
     setLoading(true);

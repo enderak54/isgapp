@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { Shield, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
 
@@ -66,7 +66,7 @@ export default function OperatorBelgeleri() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <select required value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({p.kimlik_no})</option>)}
+                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({maskTC(p.kimlik_no)})</option>)}
               </select>
               <input required placeholder="Belge Adı (Forklift, Vinç, vb.)" value={form.belge_adi} onChange={(e) => setForm({ ...form, belge_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
               <input placeholder="Belge No" value={form.belge_no} onChange={(e) => setForm({ ...form, belge_no: e.target.value })} className="w-full p-2 border rounded-lg" />

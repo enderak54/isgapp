@@ -1,14 +1,27 @@
-// XSS Prevention - Strip dangerous HTML tags and attributes
+// XSS Prevention - Strip dangerous content from user input
 export const sanitize = (s: string): string => {
   if (!s) return "";
-  return s
-    .replace(/[<>]/g, "") // Strip HTML tags
-    .replace(/javascript:/gi, "") // Strip javascript: protocol
-    .replace(/on\w+=/gi, "") // Strip event handlers
-    .trim();
+  let r = s;
+  // Null byte
+  r = r.replace(/\0/g, "");
+  // Protocol-based attacks
+  r = r.replace(/javascript\s*:/gi, "");
+  r = r.replace(/vbscript\s*:/gi, "");
+  r = r.replace(/data\s*:\s*text\/html/gi, "");
+  r = r.replace(/expression\s*\(/gi, "");
+  // Strip all HTML tags (blocks event handlers, SVG onload, etc.)
+  r = r.replace(/<[^>]*>/g, "");
+  // Decode and re-strip to catch double-encoded attacks
+  try {
+    const dec = decodeURIComponent(r);
+    if (dec !== r) r = dec.replace(/<[^>]*>/g, "");
+  } catch {}
+  // Max length protection
+  if (r.length > 10000) r = r.slice(0, 10000);
+  return r.trim();
 };
 
-// Sanitize entire form object
+// Sanitize entire form object (recursive, safe for nested objects/arrays)
 export const sanitizeForm = <T extends Record<string, unknown>>(form: T): T => {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(form)) {
@@ -18,6 +31,12 @@ export const sanitizeForm = <T extends Record<string, unknown>>(form: T): T => {
       result[key] = !!value;
     } else if (typeof value === "number") {
       result[key] = value;
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        typeof item === "string" ? sanitize(item) : item
+      );
+    } else if (value && typeof value === "object") {
+      result[key] = sanitizeForm(value as Record<string, unknown>);
     } else {
       result[key] = value;
     }
@@ -70,26 +89,6 @@ export const decryptField = (encrypted: string): string => {
     bytes.push(parseInt(encrypted.slice(i, i + 2), 16));
   }
   return bytes.map((b) => String.fromCharCode(b ^ XOR_KEY)).join("");
-};
-
-// Rate limiting helper (client-side)
-const RATE_LIMIT_MAP = new Map<string, { count: number; resetTime: number }>();
-
-export const checkRateLimit = (key: string, maxRequests: number = 10, windowMs: number = 60000): boolean => {
-  const now = Date.now();
-  const entry = RATE_LIMIT_MAP.get(key);
-
-  if (!entry || now > entry.resetTime) {
-    RATE_LIMIT_MAP.set(key, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-
-  if (entry.count >= maxRequests) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
 };
 
 // Content Security Policy nonce generator

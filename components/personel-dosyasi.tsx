@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Image as ImageIcon, FileText as FileDoc } from "lucide-react";
 
@@ -152,7 +153,7 @@ export default function PersonelDosyasi() {
                   >
                     <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <span className="font-medium text-gray-800">{p.ad} {p.soyad}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{p.kimlik_no}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{maskTC(p.kimlik_no)}</span>
                   </button>
                 ))}
               </div>
@@ -163,7 +164,7 @@ export default function PersonelDosyasi() {
           </div>
           {selectedPerson && (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
-              <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{selectedPerson.kimlik_no}</span>
+              <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{maskTC(selectedPerson.kimlik_no)}</span>
             </div>
           )}
         </div>
