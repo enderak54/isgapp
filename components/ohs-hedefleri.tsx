@@ -19,7 +19,7 @@ export default function OhsHedefleri() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ hedef_adi: "", aciklama: "", kpi: "", hedef_deger: "", mevcut_deger: "", birim: "", baslangic_tarihi: "", hedef_tarih: "", sorumlu: "", durum: "devam" });
 
   useEffect(() => { fetchItems(); }, []);
@@ -28,12 +28,15 @@ export default function OhsHedefleri() {
     try {
       const { data } = await supabase.from("ohs_hedefleri").select("*").order("olusturma_tarihi", { ascending: false });
       if (data) setItems(data);
-    } catch { setError("Veriler yüklenirken hata oluştu"); }
-    setLoading(false);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: "Veriler yüklenirken hata oluştu" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = items.filter(i =>
-    i.hedef_adi.toLowerCase().includes(search.toLowerCase()) || (i.aciklama && i.aciklama.toLowerCase().includes(search.toLowerCase()))
+    (i.hedef_adi || "").toLowerCase().includes(search.toLowerCase()) || (i.aciklama && i.aciklama.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleSubmit = async () => {
@@ -57,11 +60,11 @@ export default function OhsHedefleri() {
       }
       setShowForm(false);
       setEditing(null);
-      setError(null);
+      setEditStatus({ type: "success", message: editing ? "Hedef güncellendi" : "Hedef eklendi" });
       setForm({ hedef_adi: "", aciklama: "", kpi: "", hedef_deger: "", mevcut_deger: "", birim: "", baslangic_tarihi: "", hedef_tarih: "", sorumlu: "", durum: "devam" });
       fetchItems();
     } catch (e: any) {
-      setError(e.message || "Kayıt işlemi başarısız");
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
     }
   };
 
@@ -74,7 +77,7 @@ export default function OhsHedefleri() {
       hedef_tarih: item.hedef_tarih?.split("T")[0] || "", sorumlu: item.sorumlu || "", durum: item.durum,
     });
     setShowForm(true);
-    setError(null);
+    setEditStatus(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -84,10 +87,10 @@ export default function OhsHedefleri() {
       const { error: deleteError } = await supabase.from("ohs_hedefleri").delete().eq("id", id);
       if (deleteError) throw deleteError;
       if (item) await logAudit("ohs_hedefleri", "DELETE", id, item, null);
-      setError(null);
+      setEditStatus({ type: "success", message: "Hedef silindi" });
       fetchItems();
     } catch (e: any) {
-      setError(e.message || "Silme işlemi başarısız");
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
     }
   };
 
@@ -111,12 +114,17 @@ export default function OhsHedefleri() {
               <p className="text-sm text-gray-500">ISO 45001 Madde 6.2 - İSG hedefleri ve planlama</p>
             </div>
           </div>
-          <button onClick={() => { setShowForm(true); setEditing(null); setError(null); setForm({ hedef_adi: "", aciklama: "", kpi: "", hedef_deger: "", mevcut_deger: "", birim: "", baslangic_tarihi: "", hedef_tarih: "", sorumlu: "", durum: "devam" }); }} className="btn btn-primary">
+          <button onClick={() => { setShowForm(true); setEditing(null); setEditStatus(null); setForm({ hedef_adi: "", aciklama: "", kpi: "", hedef_deger: "", mevcut_deger: "", birim: "", baslangic_tarihi: "", hedef_tarih: "", sorumlu: "", durum: "devam" }); }} className="btn btn-primary">
             <Plus className="w-4 h-4" /> Yeni Hedef
           </button>
         </div>
 
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="card p-4"><p className="text-xs text-gray-500">Toplam Hedef</p><p className="text-2xl font-bold text-gray-800">{stats.toplam}</p></div>
@@ -237,7 +245,7 @@ export default function OhsHedefleri() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <button onClick={() => setShowForm(false)} className="btn" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button>
+                <button onClick={() => setShowForm(false)} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
                 <button onClick={handleSubmit} className="btn btn-primary">{editing ? "Güncelle" : "Kaydet"}</button>
               </div>
             </div>

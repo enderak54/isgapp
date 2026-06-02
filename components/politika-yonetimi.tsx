@@ -18,7 +18,7 @@ export default function PolitikaYonetimi() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ baslik: "", politika_metni: "", versiyon: "1.0", onay_tarihi: "", gecerlilik_tarihi: "", durum: "aktif", onaylayan: "" });
 
   useEffect(() => { fetchItems(); }, []);
@@ -27,12 +27,16 @@ export default function PolitikaYonetimi() {
     try {
       const { data } = await supabase.from("politika_yonetimi").select("*").order("onay_tarihi", { ascending: false });
       if (data) setItems(data);
-    } catch { setError("Veriler yüklenirken hata oluştu"); }
-    setLoading(false);
+    } catch (e: any) {
+      console.error("Politika yükleme hatası:", e);
+      setEditStatus({ type: "error", message: "Veriler yüklenirken hata oluştu" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = items.filter(i =>
-    i.baslik.toLowerCase().includes(search.toLowerCase()) || (i.politika_metni && i.politika_metni.toLowerCase().includes(search.toLowerCase()))
+    (i.baslik || "").toLowerCase().includes(search.toLowerCase()) || (i.politika_metni && i.politika_metni.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleSubmit = async () => {
@@ -50,11 +54,11 @@ export default function PolitikaYonetimi() {
       }
       setShowForm(false);
       setEditing(null);
-      setError(null);
+      setEditStatus({ type: "success", message: editing ? "Politika güncellendi" : "Politika eklendi" });
       setForm({ baslik: "", politika_metni: "", versiyon: "1.0", onay_tarihi: "", gecerlilik_tarihi: "", durum: "aktif", onaylayan: "" });
       fetchItems();
     } catch (e: any) {
-      setError(e.message || "Kayıt işlemi başarısız");
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
     }
   };
 
@@ -66,7 +70,7 @@ export default function PolitikaYonetimi() {
       gecerlilik_tarihi: item.gecerlilik_tarihi?.split("T")[0] || "", durum: item.durum, onaylayan: item.onaylayan || "",
     });
     setShowForm(true);
-    setError(null);
+    setEditStatus(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -76,10 +80,10 @@ export default function PolitikaYonetimi() {
       const { error: deleteError } = await supabase.from("politika_yonetimi").delete().eq("id", id);
       if (deleteError) throw deleteError;
       if (item) await logAudit("politika_yonetimi", "DELETE", id, item, null);
-      setError(null);
+      setEditStatus({ type: "success", message: "Politika silindi" });
       fetchItems();
     } catch (e: any) {
-      setError(e.message || "Silme işlemi başarısız");
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
     }
   };
 
@@ -100,12 +104,17 @@ export default function PolitikaYonetimi() {
               <p className="text-sm text-gray-500">ISO 45001 Madde 5.1 - İSG politikası ve taahhüt belgeleri</p>
             </div>
           </div>
-          <button onClick={() => { setShowForm(true); setEditing(null); setError(null); setForm({ baslik: "", politika_metni: "", versiyon: "1.0", onay_tarihi: "", gecerlilik_tarihi: "", durum: "aktif", onaylayan: "" }); }} className="btn btn-primary">
+          <button onClick={() => { setShowForm(true); setEditing(null); setEditStatus(null); setForm({ baslik: "", politika_metni: "", versiyon: "1.0", onay_tarihi: "", gecerlilik_tarihi: "", durum: "aktif", onaylayan: "" }); }} className="btn btn-primary">
             <Plus className="w-4 h-4" /> Yeni Politika
           </button>
         </div>
 
-        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="card p-4"><p className="text-xs text-gray-500">Toplam</p><p className="text-2xl font-bold text-gray-800">{stats.toplam}</p></div>
@@ -199,7 +208,7 @@ export default function PolitikaYonetimi() {
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <button onClick={() => setShowForm(false)} className="btn" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button>
+                <button onClick={() => setShowForm(false)} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
                 <button onClick={handleSubmit} className="btn btn-primary">{editing ? "Güncelle" : "Kaydet"}</button>
               </div>
             </div>

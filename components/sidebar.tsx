@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import {
   Briefcase, Users, GraduationCap, Shield, FolderOpen, FileText,
   Building2, HardHat, UserCog, Wrench, AlertTriangle, LayoutDashboard,
@@ -43,10 +46,6 @@ const ekModulItems = [
   { icon: ScrollText, label: "Politika Yönetimi", href: "/politika", key: "politika" },
 ];
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -79,7 +78,7 @@ export default function Sidebar() {
   const loadVersion = async () => {
     try {
       const { data } = await supabase.from("versiyonlar").select("versiyon").order("tarih", { ascending: false }).limit(1).maybeSingle();
-      if (data?.versiyon) setVersion("v" + data.versiyon);
+      if (data?.versiyon && data.versiyon.trim()) setVersion("v" + data.versiyon.trim());
     } catch {}
   };
 
