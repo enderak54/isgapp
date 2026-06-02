@@ -53,6 +53,7 @@ export default function Sidebar() {
   const [ekModulOpen, setEkModulOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [version, setVersion] = useState("");
   const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(localStorage.getItem("isg_modules") || "{}"); } catch { return {}; }
   });
@@ -66,6 +67,7 @@ export default function Sidebar() {
   useEffect(() => {
     loadModuleSettings();
     loadMenuOrder();
+    loadVersion();
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
     window.addEventListener("resize", check);
@@ -73,6 +75,13 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  const loadVersion = async () => {
+    try {
+      const { data } = await supabase.from("versiyonlar").select("versiyon").order("tarih", { ascending: false }).limit(1).maybeSingle();
+      if (data?.versiyon) setVersion("v" + data.versiyon);
+    } catch {}
+  };
 
   const loadMenuOrder = async () => {
     const { data } = await supabase.from("ayarlar").select("key, value").in("key", ["menu_order_main", "menu_order_ek"]);
@@ -136,10 +145,9 @@ export default function Sidebar() {
             <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-white" />
             </div>
-            {(!collapsed || mobile) && <span className="text-sm font-semibold text-gray-800">İSG Takip</span>}
+            {(!collapsed || mobile) && <span className="text-sm font-semibold text-gray-800">İSG Takip {version && <span className="text-[10px] text-gray-400 font-normal">{version}</span>}</span>}
           </div>
         </Link>
-        {(!collapsed || mobile) && <div className="text-[10px] text-gray-300 mt-1 select-none text-center">v1.1.0</div>}
       </div>
       
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
