@@ -9,7 +9,7 @@ import {
   Building2, HardHat, UserCog, Wrench, AlertTriangle, LayoutDashboard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Scale,
   ClipboardCheck, Siren, RotateCcw, Eye, FileCheck, Award, TrendingUp,
-  AlertOctagon, ScrollText, Menu, X, Target, MessageCircle,
+  AlertOctagon, ScrollText, Menu, X, Target, MessageCircle, Lock, Brain, Monitor, Activity,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -44,6 +44,10 @@ const ekModulItems = [
   { icon: Target, label: "OHS Hedefleri", href: "/hedefler", key: "hedefler" },
   { icon: MessageCircle, label: "İletişim Kaydı", href: "/iletisim", key: "iletisim" },
   { icon: ScrollText, label: "Politika Yönetimi", href: "/politika", key: "politika" },
+  { icon: Lock, label: "KVKK Onayları", href: "/kvkk-consents", key: "kvkk-consents" },
+  { icon: Brain, label: "Psikososyal Risk", href: "/psikososyal-risk", key: "psikososyal-risk" },
+  { icon: Monitor, label: "Hibrit Calisma Ergonomi", href: "/hibrit-calisma-ergonomi", key: "hibrit-calisma-ergonomi" },
+  { icon: Activity, label: "AI Dashboard", href: "/ai-dashboard", key: "ai-dashboard" },
 ];
 
 export default function Sidebar() {
@@ -221,7 +225,7 @@ export default function Sidebar() {
     <>
       {/* Mobile hamburger */}
       {isMobile && (
-        <button
+        <button aria-label="Menuyu ac"
           onClick={() => setMobileOpen(true)}
           className="fixed top-3 left-3 z-50 w-9 h-9 bg-white border border-gray-200 rounded-lg shadow-md flex items-center justify-center text-gray-600 hover:bg-gray-50"
         >
@@ -231,16 +235,16 @@ export default function Sidebar() {
 
       {/* Mobile drawer backdrop */}
       {isMobile && mobileOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileOpen(false)} />
+        <div aria-hidden="true" className="fixed inset-0 bg-black/40 z-40" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Mobile drawer */}
       {isMobile && (
-        <aside
+        <aside role="dialog" aria-modal="true" aria-label="Navigasyon menusu"
           className={`fixed top-0 left-0 z-50 h-full bg-white border-r border-gray-100 flex flex-col transition-transform duration-300 w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="absolute top-3 right-3">
-            <button onClick={() => setMobileOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+            <button aria-label="Menuyu kapat" onClick={() => setMobileOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -250,7 +254,7 @@ export default function Sidebar() {
 
       {/* Desktop sidebar */}
       {!isMobile && (
-        <aside className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+        <aside role="navigation" aria-label="Ana navigasyon" className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
           {menuContent(false)}
         </aside>
       )}

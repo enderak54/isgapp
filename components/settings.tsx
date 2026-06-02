@@ -139,6 +139,8 @@ export default function SettingsPage() {
   const [uyariAyarlari, setUyariAyarlari] = useState<Record<string, string>>({});
   const [uyariSaving, setUyariSaving] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
+  const [showEncryption, setShowEncryption] = useState(false);
+  const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupMode, setBackupMode] = useState<"full" | "partial">("full");
   const [backupTables, setBackupTables] = useState<Record<string, boolean>>({});
@@ -745,10 +747,42 @@ export default function SettingsPage() {
         </div>
 
         <div className="card p-6 mt-6">
+          <button onClick={() => setShowEncryption(!showEncryption)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Alan Bazinda Sifreleme</h3>
+              <p className="text-sm text-gray-500">Hassas veri alanlari icin AES-256-GCM sifreleme</p>
+            </div>
+            {showEncryption ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showEncryption && (
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Alan Bazinda Sifreleme</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Aktif edildiginde TC Kimlik No, telefon gibi hassas alanlar sifrelenir</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={encryptionEnabled} onChange={(e) => setEncryptionEnabled(e.target.checked)} className="sr-only peer" />
+                  <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 peer-focus:ring-2 peer-focus:ring-indigo-300 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                </label>
+              </div>
+              {encryptionEnabled && (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-xs text-amber-700">
+                    <strong>Uyari:</strong> Sifreleme aktif edildiginde, sifrelenmis alanlarda arama ve siralama fonksiyonlari calismaz.
+                    Anahtar kaybi durumunda veriler kurtarilamaz. Uretim ortamina gecmeden once yedekleme yapin.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 mt-6">
           <button onClick={() => setShowBackup(!showBackup)} className="w-full flex items-center justify-between">
             <div className="text-left">
               <h3 className="text-lg font-semibold text-gray-800">Yedekleme</h3>
-              <p className="text-sm text-gray-500">Veritabanı ve dosya yedekleme</p>
+              <p className="text-sm text-gray-500">Veritabani ve dosya yedekleme</p>
             </div>
             {showBackup ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
           </button>

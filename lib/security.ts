@@ -69,31 +69,62 @@ export const validateTC = (tc: string): boolean => {
   return true;
 };
 
-// Simple XOR encryption for sensitive fields (client-side only, not for production)
-// For production, use server-side encryption with proper key management
-const XOR_KEY = 0x5A;
-
-export const encryptField = (value: string): string => {
-  if (!value) return "";
-  return value
-    .split("")
-    .map((c) => String.fromCharCode(c.charCodeAt(0) ^ XOR_KEY))
-    .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
-    .join("");
-};
-
-export const decryptField = (encrypted: string): string => {
-  if (!encrypted) return "";
-  const bytes: number[] = [];
-  for (let i = 0; i < encrypted.length; i += 2) {
-    bytes.push(parseInt(encrypted.slice(i, i + 2), 16));
-  }
-  return bytes.map((b) => String.fromCharCode(b ^ XOR_KEY)).join("");
-};
-
 // Content Security Policy nonce generator
 export const generateNonce = (): string => {
   const array = new Uint8Array(16);
   crypto.getRandomValues(array);
   return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
 };
+
+// ===== Field-Level Encryption (Web Crypto API) =====
+
+let cachedKey: CryptoKey | null = null;
+
+async function getEncryptionKey(secret: string): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret.padEnd(32, "X").slice(0, 32)),
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: enc.encode("isg-field-encryption"), iterations: 600000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export async function encryptField(value: string, secret: string): Promise<string> {
+  if (!value) return "";
+  const key = await getEncryptionKey(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(value);
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return btoa(String.fromCharCode(...combined));
+}
+
+export async function decryptField(encrypted: string, secret: string): Promise<string> {
+  if (!encrypted) return "";
+  try {
+    const key = await getEncryptionKey(secret);
+    const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const data = combined.slice(12);
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+    return new TextDecoder().decode(decrypted);
+  } catch {
+    return "";
+  }
+}
+
+export async function generateEncryptionKey(): Promise<string> {
+  const key = crypto.getRandomValues(new Uint8Array(32));
+  return btoa(String.fromCharCode(...key));
+}
