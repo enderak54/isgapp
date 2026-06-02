@@ -37,7 +37,7 @@ const sizeOptions = [
 
 function applyTheme(theme: { mode?: string; color?: string; font?: string; size?: string }) {
   const root = document.documentElement;
-  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class), ...fontOptions.map(f => f.class), ...sizeOptions.map(s => "size-" + s.key));
+  root.classList.remove("theme-dark", ...colorOptions.map(c => c.class).filter(Boolean), ...fontOptions.map(f => f.class).filter(Boolean), ...sizeOptions.map(s => "size-" + s.key));
   if (theme.mode === "dark") root.classList.add("theme-dark");
   if (theme.color) root.classList.add("theme-" + theme.color);
   if (theme.font) root.classList.add("font-" + theme.font);
