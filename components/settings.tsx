@@ -5,21 +5,21 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
-import { safeSetTheme } from "@/lib/dom";
+import { useTheme } from "@/components/theme-provider";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
   { key: "blue", label: "Mavi", class: "theme-blue", bg: "#3b82f6" },
-  { key: "green", label: "Yeşil", class: "theme-green", bg: "#10b981" },
+  { key: "green", label: "Yesil", class: "theme-green", bg: "#10b981" },
   { key: "purple", label: "Mor", class: "theme-purple", bg: "#8b5cf6" },
   { key: "orange", label: "Turuncu", class: "theme-orange", bg: "#f59e0b" },
   { key: "teal", label: "Teal", class: "theme-teal", bg: "#14b8a6" },
   { key: "pink", label: "Pembe", class: "theme-pink", bg: "#ec4899" },
-  { key: "red", label: "Kırmızı", class: "theme-red", bg: "#ef4444" },
+  { key: "red", label: "Kirmizi", class: "theme-red", bg: "#ef4444" },
 ];
 
 const fontOptions = [
-  { key: "", label: "Varsayılan", class: "" },
+  { key: "", label: "Varsayilan", class: "" },
   { key: "serif", label: "Serif", class: "font-serif" },
   { key: "mono", label: "Monospace", class: "font-mono" },
   { key: "arial", label: "Arial", class: "font-arial" },
@@ -30,15 +30,11 @@ const fontOptions = [
 ];
 
 const sizeOptions = [
-  { key: "small", label: "Küçük" },
+  { key: "small", label: "Kucuk" },
   { key: "normal", label: "Normal" },
-  { key: "large", label: "Büyük" },
-  { key: "xlarge", label: "Çok Büyük" },
+  { key: "large", label: "Buyuk" },
+  { key: "xlarge", label: "Cok Buyuk" },
 ];
-
-function applyTheme(theme: { mode?: string; color?: string; font?: string; size?: string }) {
-  safeSetTheme(document.documentElement, theme);
-}
 
 interface ModuleSettings {
   id: string;
@@ -112,13 +108,10 @@ async function setupDatabase() {
 }
 
 export default function SettingsPage() {
+  const { theme, setTheme, saveTheme: saveThemeCtx } = useTheme();
   const [modules, setModules] = useState<ModuleSettings[]>([]);
   const [showModules, setShowModules] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
-  const [themeMode, setThemeMode] = useState("light");
-  const [themeColor, setThemeColor] = useState("");
-  const [themeFont, setThemeFont] = useState("");
-  const [themeSize, setThemeSize] = useState("normal");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
@@ -202,17 +195,7 @@ export default function SettingsPage() {
     fetchUyariAyarlari();
       fetchMykZorunlu();
       fetchZorunluAlanlar();
-    const saved = JSON.parse(localStorage.getItem("isg_theme") || "{}");
-    if (saved.mode) setThemeMode(saved.mode);
-    if (saved.color) setThemeColor(saved.color);
-    if (saved.font) setThemeFont(saved.font);
-    if (saved.size) setThemeSize(saved.size);
   }, []);
-
-  // Canlı tema önizleme — her değişiklikte UI hemen güncellenir
-  useEffect(() => {
-    applyTheme({ mode: themeMode, color: themeColor, font: themeFont, size: themeSize });
-  }, [themeMode, themeColor, themeFont, themeSize]);
 
   const fetchUyariAyarlari = async () => {
     const { data } = await supabase.from("ayarlar").select("*").eq("type", "egitim_uyari");
@@ -429,18 +412,9 @@ export default function SettingsPage() {
   const saveTheme = async () => {
     setThemeSaving(true);
     setStatus(null);
-    const theme = { mode: themeMode, color: themeColor, font: themeFont, size: themeSize };
-    localStorage.setItem("isg_theme", JSON.stringify(theme));
-    applyTheme(theme);
-    try {
-      const { error } = await supabase.from("ayarlar").upsert(sanitizeForm({ key: "theme", value: JSON.stringify(theme), type: "theme" }), { onConflict: "key" });
-      if (error) throw error;
-      setStatus({ type: "success", message: "Tema kaydedildi!" });
-    } catch (err: any) {
-      setStatus({ type: "error", message: "Tema kaydedilemedi: " + (err.message || "Bilinmeyen hata") });
-    } finally {
-      setThemeSaving(false);
-    }
+    await saveThemeCtx(theme);
+    setStatus({ type: "success", message: "Tema kaydedildi!" });
+    setThemeSaving(false);
   };
 
   const saveUyari = async () => {
@@ -563,17 +537,17 @@ export default function SettingsPage() {
             <div className="space-y-4 mt-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  {themeMode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
+                  {theme.mode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
                   <div>
                     <p className="font-medium text-gray-800">Tema Modu</p>
-                    <p className="text-sm text-gray-500">{themeMode === "dark" ? "Koyu tema" : "Açık tema"}</p>
+                    <p className="text-sm text-gray-500">{theme.mode === "dark" ? "Koyu tema" : "Acik tema"}</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${themeMode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
+                  onClick={() => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" })}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${theme.mode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
                 >
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${themeMode === "dark" ? "left-7" : "left-1"}`} />
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${theme.mode === "dark" ? "left-7" : "left-1"}`} />
                 </button>
               </div>
 
@@ -589,8 +563,8 @@ export default function SettingsPage() {
                   {colorOptions.map((c) => (
                     <button
                       key={c.key || "default"}
-                      onClick={() => setThemeColor(c.key)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${themeColor === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
+                      onClick={() => setTheme({ ...theme, color: c.key })}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${theme.color === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
                       style={{ backgroundColor: c.bg }}
                       title={c.label}
                     />
@@ -599,10 +573,10 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800 mb-2">Yazı Tipi</p>
+                <p className="font-medium text-gray-800 mb-2">Yazi Tipi</p>
                 <select
-                  value={themeFont}
-                  onChange={(e) => setThemeFont(e.target.value)}
+                  value={theme.font}
+                  onChange={(e) => setTheme({ ...theme, font: e.target.value })}
                   className="input"
                 >
                   {fontOptions.map((f) => (
@@ -612,14 +586,14 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800 mb-2">Yazı Boyutu</p>
+                <p className="font-medium text-gray-800 mb-2">Yazi Boyutu</p>
                 <div className="flex gap-2">
                   {sizeOptions.map((s) => (
                     <button
                       key={s.key}
-                      onClick={() => setThemeSize(s.key)}
+                      onClick={() => setTheme({ ...theme, size: s.key })}
                       className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                        themeSize === s.key
+                        theme.size === s.key
                           ? "bg-gray-800 text-white"
                           : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
                       }`}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import ThemeProvider from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,24 +24,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
-  const nonce = headersList.get("x-nonce") || "";
-
   return (
     <html
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("isg_theme")||"{}");var r=document.documentElement;if(t.mode==="dark"&&!r.classList.contains("theme-dark"))r.classList.add("theme-dark");if(t.color&&t.color.trim())r.classList.add("theme-"+t.color.trim());if(t.font&&t.font.trim())r.classList.add("font-"+t.font.trim());if(t.size&&t.size!=="normal"&&t.size.trim())r.classList.add("size-"+t.size.trim());}catch(e){}})();`,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head />
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
