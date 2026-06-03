@@ -119,20 +119,25 @@ export default function Talimatlar() {
 
   const autoFormatDate = (raw: string) => {
     let digits = raw.replace(/\D/g, "").slice(0, 8);
+    let dd: string, mm: string, yyyy: string;
     if (digits.length === 8) {
-      const dd = digits.slice(0, 2);
-      const mm = digits.slice(2, 4);
-      let yyyy = digits.slice(4, 8);
-      if (yyyy.length === 2) yyyy = "20" + yyyy;
-      return `${dd}.${mm}.${yyyy}`;
-    }
-    if (digits.length > 4) {
-      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
-    }
-    if (digits.length > 2) {
+      dd = digits.slice(0, 2);
+      mm = digits.slice(2, 4);
+      yyyy = digits.slice(4, 8);
+    } else if (digits.length === 6) {
+      dd = digits.slice(0, 2);
+      mm = digits.slice(2, 4);
+      yyyy = "20" + digits.slice(4, 6);
+    } else if (digits.length > 4) {
+      dd = digits.slice(0, 2);
+      mm = digits.slice(2, 4);
+      yyyy = digits.slice(4);
+    } else if (digits.length > 2) {
       return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    } else {
+      return digits;
     }
-    return digits;
+    return `${dd}.${mm}.${yyyy}`;
   };
 
   const parseDisplayToDb = (display: string) => {
