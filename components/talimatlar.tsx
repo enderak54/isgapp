@@ -232,9 +232,9 @@ export default function Talimatlar() {
                                   picker.focus();
                                   picker.showPicker();
                                 }}
-                                className="text-gray-400 hover:text-gray-600 p-0.5"
+                                className="text-gray-400 hover:text-gray-600 p-1.5 min-w-[30px] min-h-[30px] flex items-center justify-center"
                               >
-                                <Calendar className="w-3.5 h-3.5" />
+                                <Calendar className="w-4 h-4" />
                               </button>
                               <input
                                 id={`dp-${p.id}-${ad.replace(/\s/g, "")}`}
