@@ -27,14 +27,14 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+const applyAndPersist = (t: Theme) => {
+  if (typeof window === "undefined") return;
+  safeSetTheme(document.documentElement, t);
+  localStorage.setItem("isg_theme", JSON.stringify(t));
+};
+
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
-  const [ready, setReady] = useState(false);
-
-  const applyAndPersist = useCallback((t: Theme) => {
-    safeSetTheme(document.documentElement, t);
-    localStorage.setItem("isg_theme", JSON.stringify(t));
-  }, []);
 
   useEffect(() => {
     try {
@@ -48,13 +48,12 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       setThemeState(t);
       applyAndPersist(t);
     } catch {}
-    setReady(true);
-  }, [applyAndPersist]);
+  }, []);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
     applyAndPersist(t);
-  }, [applyAndPersist]);
+  }, []);
 
   const saveTheme = useCallback(async (t: Theme) => {
     applyAndPersist(t);
@@ -65,11 +64,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
         { onConflict: "key" }
       );
     } catch {}
-  }, [applyAndPersist]);
-
-  if (!ready) {
-    return <>{children}</>;
-  }
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, saveTheme }}>

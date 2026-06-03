@@ -1,5 +1,4 @@
 import Sidebar from "@/components/sidebar";
-import SkipLink from "@/components/skip-link";
 import PsikososyalRisk from "@/components/psikososyal-risk";
 import { Metadata } from "next";
 
@@ -11,7 +10,6 @@ export const metadata: Metadata = {
 export default function PsikososyalRiskPage() {
   return (
     <div className="flex min-h-screen">
-      <SkipLink />
       <Sidebar />
       <main id="main-content" className="main-content">
         <PsikososyalRisk />
@@ -19,3 +17,4 @@ export default function PsikososyalRiskPage() {
     </div>
   );
 }
+
