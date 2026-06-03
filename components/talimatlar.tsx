@@ -223,33 +223,22 @@ export default function Talimatlar() {
                                 className="w-20 text-xs text-center border border-green-400 rounded px-1 py-1 outline-none focus:ring-1 focus:ring-green-500"
                                 autoFocus
                               />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const picker = document.getElementById(`dp-${p.id}-${ad.replace(/\s/g, "")}`) as HTMLInputElement;
-                                  if (!picker) return;
-                                  picker.style.display = "block";
-                                  picker.focus();
-                                  picker.showPicker();
-                                }}
-                                className="text-gray-400 hover:text-gray-600 p-1.5 min-w-[30px] min-h-[30px] flex items-center justify-center"
-                              >
-                                <Calendar className="w-4 h-4" />
-                              </button>
-                              <input
-                                id={`dp-${p.id}-${ad.replace(/\s/g, "")}`}
-                                type="date"
-                                className="hidden"
-                                value={val ? val.split(".").reverse().join("-") : ""}
-                                onChange={(e) => {
-                                  const iso = e.target.value;
-                                  if (iso) {
-                                    const parts = iso.split("-");
-                                    tarihGuncelle(p.id, ad, `${parts[2]}.${parts[1]}.${parts[0]}`);
-                                  }
-                                }}
-                                onBlur={(e) => { e.currentTarget.style.display = "none"; setTimeout(() => tarihKaydet(p.id, ad), 100); }}
-                              />
+                              <div className="relative min-w-[34px] min-h-[34px]">
+                                <Calendar className="w-4 h-4 text-gray-400 pointer-events-none absolute inset-0 m-auto" />
+                                <input
+                                  type="date"
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                  value={val ? val.split(".").reverse().join("-") : ""}
+                                  onChange={(e) => {
+                                    const iso = e.target.value;
+                                    if (iso) {
+                                      const parts = iso.split("-");
+                                      tarihGuncelle(p.id, ad, `${parts[2]}.${parts[1]}.${parts[0]}`);
+                                      setTimeout(() => tarihKaydet(p.id, ad), 100);
+                                    }
+                                  }}
+                                />
+                              </div>
                             </div>
                           ) : (
                             <button
