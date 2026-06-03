@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Sidebar from "@/components/sidebar";
 import ThemeProvider from "@/components/theme-provider";
 import "./globals.css";
 
@@ -16,7 +17,14 @@ export default function RootLayout({
     <html lang="tr" suppressHydrationWarning>
       <head />
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main id="main-content" className="flex-1 min-w-0 p-4 md:p-6">
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
