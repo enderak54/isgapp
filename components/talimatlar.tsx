@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
-import { displayDate } from "@/lib/tarih";
+
 import { Search, Plus, Calendar, Pin, X, ChevronDown, Lock, Unlock } from "lucide-react";
 
 const DEFAULT_SUTUNLAR = [
@@ -43,7 +43,9 @@ export default function Talimatlar() {
     if (personelRes.data) setPersonel(personelRes.data);
     if (matrisRes.data) {
       const map: Record<string, string> = {};
-      matrisRes.data.forEach((r: any) => { map[`${r.personel_id}_${r.talimat_adi}`] = r.tarih || ""; });
+      matrisRes.data.forEach((r: any) => {
+        map[`${r.personel_id}_${r.talimat_adi}`] = r.tarih ? r.tarih.split("-").reverse().join(".") : "";
+      });
       setCellData(map);
     }
     if (ayarRes.data?.value) {
@@ -87,20 +89,21 @@ export default function Talimatlar() {
     setSeciliHucre(null);
   };
 
-  const tarihGuncelle = async (personel_id: string, talimat_adi: string, tarih: string) => {
-    const key = `${personel_id}_${talimat_adi}`;
-    setCellData(prev => ({ ...prev, [key]: tarih }));
+  const tarihGuncelle = (personel_id: string, talimat_adi: string, displayVal: string) => {
+    const key = cellKey(personel_id, talimat_adi);
+    setCellData(prev => ({ ...prev, [key]: displayVal }));
   };
 
   const tarihKaydet = async (personel_id: string, talimat_adi: string) => {
-    const key = `${personel_id}_${talimat_adi}`;
-    const tarih = cellData[key];
-    if (tarih && /^\d{4}-\d{2}-\d{2}$/.test(tarih)) {
+    const key = cellKey(personel_id, talimat_adi);
+    const displayVal = cellData[key];
+    const db = parseDisplayToDb(displayVal || "");
+    if (db) {
       await supabase.from("personel_talimat_matrisi").upsert(
-        { personel_id, talimat_adi, tarih },
+        { personel_id, talimat_adi, tarih: db },
         { onConflict: "personel_id, talimat_adi" }
       );
-    } else if (!tarih) {
+    } else {
       await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });
     }
     setSeciliHucre(null);
@@ -113,9 +116,33 @@ export default function Talimatlar() {
   );
 
   const cellKey = (pid: string, tad: string) => `${pid}_${tad}`;
-  const formatCellDate = (val: string) => val ? displayDate(val) : "";
-const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
-const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
+
+  const autoFormatDate = (raw: string) => {
+    let digits = raw.replace(/\D/g, "").slice(0, 8);
+    if (digits.length === 8) {
+      const dd = digits.slice(0, 2);
+      const mm = digits.slice(2, 4);
+      let yyyy = digits.slice(4, 8);
+      if (yyyy.length === 2) yyyy = "20" + yyyy;
+      return `${dd}.${mm}.${yyyy}`;
+    }
+    if (digits.length > 4) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+    }
+    if (digits.length > 2) {
+      return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    }
+    return digits;
+  };
+
+  const parseDisplayToDb = (display: string) => {
+    const parts = display.split(".");
+    if (parts.length !== 3) return "";
+    let [dd, mm, yyyy] = parts;
+    if (yyyy.length === 2) yyyy = "20" + yyyy;
+    if (!dd || !mm || !yyyy || dd.length !== 2 || mm.length !== 2 || yyyy.length !== 4) return "";
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   return (
     <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
@@ -181,10 +208,10 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
                                 inputMode="numeric"
                                 placeholder="gg.aa.yyyy"
                                 maxLength={10}
-                                value={toDisplay(val)}
+                                value={val}
                                 onChange={(e) => {
-                                  const v = e.target.value.replace(/[^0-9.]/g, "");
-                                  tarihGuncelle(p.id, ad, toDb(v));
+                                  const formatted = autoFormatDate(e.target.value);
+                                  tarihGuncelle(p.id, ad, formatted);
                                 }}
                                 onBlur={() => tarihKaydet(p.id, ad)}
                                 onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLElement).blur(); } }}
@@ -208,8 +235,14 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
                                 id={`dp-${p.id}-${ad.replace(/\s/g, "")}`}
                                 type="date"
                                 className="hidden"
-                                value={val}
-                                onChange={(e) => { tarihGuncelle(p.id, ad, e.target.value); }}
+                                value={val ? val.split(".").reverse().join("-") : ""}
+                                onChange={(e) => {
+                                  const iso = e.target.value;
+                                  if (iso) {
+                                    const parts = iso.split("-");
+                                    tarihGuncelle(p.id, ad, `${parts[2]}.${parts[1]}.${parts[0]}`);
+                                  }
+                                }}
                                 onBlur={(e) => { e.currentTarget.style.display = "none"; setTimeout(() => tarihKaydet(p.id, ad), 100); }}
                               />
                             </div>
@@ -220,7 +253,7 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
                                 val ? "bg-green-50 border-green-200 text-green-700" : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
                               }`}
                             >
-                              {val ? <span>{formatCellDate(val)}</span> : <span className="text-gray-300">—</span>}
+                              {val ? <span>{val}</span> : <span className="text-gray-300">—</span>}
                               <Calendar className={`w-3 h-3 ${val ? "text-green-500" : "text-gray-300"}`} />
                             </button>
                           )}
