@@ -147,7 +147,7 @@ export default function Sidebar() {
         </Link>
       </div>
       
-      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
         {filteredMain.map((item, index) => (
           <Link
             key={index}
@@ -248,7 +248,7 @@ export default function Sidebar() {
 
       {/* Desktop sidebar */}
       {!isMobile && (
-        <aside role="navigation" aria-label="Ana navigasyon" className={`bg-white min-h-screen border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+        <aside role="navigation" aria-label="Ana navigasyon" className={`bg-white h-screen sticky top-0 border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
           {menuContent(false)}
         </aside>
       )}
