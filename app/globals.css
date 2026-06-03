@@ -342,11 +342,57 @@ tr:hover td {
 /* Responsive table container */
 .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* Mobile padding for content areas */
-@media (max-width: 1023px) {
-  .page-content { padding-left: 1rem !important; padding-right: 1rem !important; }
-  .page-content .card { border-radius: 0.75rem; }
+/* Mobile-first content padding */
+.main-content {
+  padding: 1.5rem;
+  min-width: 0;
+  flex: 1;
 }
+
+@media (max-width: 767px) {
+  .main-content { padding: 0.75rem; }
+  .main-content .card { border-radius: 0.625rem; }
+}
+
+/* Responsive grid helpers */
+.grid-cols-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+}
+
+/* Touch-friendly minimum sizes */
+@media (hover: none) and (pointer: coarse) {
+  .btn, button, select, input, textarea, a {
+    min-height: 44px;
+  }
+  .btn { padding: 0.75rem 1rem; }
+  input, select, textarea { padding: 0.75rem 0.875rem; }
+  .table-container button { min-height: 36px; min-width: 36px; }
+}
+
+/* Mobile search pattern */
+.search-wrapper { position: relative; }
+.search-wrapper input { padding-right: 2.75rem; }
+.search-wrapper .search-icon {
+  position: absolute; top: 50%; right: 0.75rem;
+  transform: translateY(-50%); pointer-events: none;
+}
+
+/* Responsive stat cards */
+.stat-grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* Responsive two-column */
+.grid-2-responsive {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 768px) { .grid-2-responsive { grid-template-columns: repeat(2, 1fr); } }
 
 /* App background (uses --bg var for theme support) */
 .app-bg { background: var(--bg); }

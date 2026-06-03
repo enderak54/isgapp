@@ -205,7 +205,7 @@ export default function Dashboard() {
       </div>
 
       {/* Üst İstatistikler */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="stat-grid mb-4">
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
@@ -247,9 +247,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid-2-responsive gap-3">
         {/* Ana İstatistik */}
-        <div className="col-span-2 card p-4">
+        <div className="lg:col-span-2 card p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-800">Kaza İstatistikleri</h3>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -257,7 +257,7 @@ export default function Dashboard() {
               Son 365 gün
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <p className="text-[10px] text-gray-500 uppercase tracking-wide">365 Gün</p>
               <p className="text-2xl font-bold text-gray-700">{stats.kaza365}</p>
@@ -276,7 +276,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100">
             <div className="text-center">
               <p className="text-[10px] text-gray-500">KSO</p>
               <p className={`text-sm font-semibold ${ksoDurum.renk === "green" ? "text-green-600" : ksoDurum.renk === "amber" ? "text-amber-600" : "text-red-600"}`}>
@@ -321,18 +321,18 @@ export default function Dashboard() {
       {/* Risk Değerlendirme Matrisi */}
       <div className="mt-3 card p-4">
         <h3 className="text-sm font-semibold text-gray-800 mb-3">Risk Değerlendirme Özeti</h3>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-            <p className="text-xs text-green-700 font-medium">Düşük Risk</p>
-            <p className="text-lg font-bold text-green-600">{stats.riskSkoru < 30 ? "Güvenli" : "-"}</p>
+            <p className="text-xs text-green-700 font-medium">Dusuk Risk</p>
+            <p className="text-lg font-bold text-green-600">{stats.riskSkoru < 30 ? "Guvenli" : "-"}</p>
           </div>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
             <p className="text-xs text-yellow-700 font-medium">Orta Risk</p>
-            <p className="text-lg font-bold text-yellow-600">{stats.riskSkoru >= 30 && stats.riskSkoru < 60 ? "İzle" : "-"}</p>
+            <p className="text-lg font-bold text-yellow-600">{stats.riskSkoru >= 30 && stats.riskSkoru < 60 ? "Izle" : "-"}</p>
           </div>
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-            <p className="text-xs text-orange-700 font-medium">Yüksek Risk</p>
-            <p className="text-lg font-bold text-orange-600">{stats.riskSkoru >= 60 && stats.riskSkoru < 80 ? "Önlem" : "-"}</p>
+            <p className="text-xs text-orange-700 font-medium">Yuksek Risk</p>
+            <p className="text-lg font-bold text-orange-600">{stats.riskSkoru >= 60 && stats.riskSkoru < 80 ? "Onlem" : "-"}</p>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
             <p className="text-xs text-red-700 font-medium">Kritik Risk</p>

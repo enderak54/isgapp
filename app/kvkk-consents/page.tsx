@@ -13,7 +13,7 @@ export default function KVKKConsentsPage() {
     <div className="flex min-h-screen">
       <SkipLink />
       <Sidebar />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="main-content">
         <KVKKConsents />
       </main>
     </div>
