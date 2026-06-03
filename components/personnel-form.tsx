@@ -21,6 +21,7 @@ const BELGE_TIPLERI: Record<string, string> = {
   operatorBelgesi: "operator_belgesi",
   kkd: "kkd",
   oryantasyon: "oryantasyon",
+  sgkTarihi: "ssk",
   saglikRaporuTarihi: "saglik_raporu",
   sertifika: "sertifika",
   yuksekteCalisamaz: "yuksekte_calisamaz",
@@ -381,7 +382,13 @@ export default function PersonnelForm() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">SGK Tarihi</label>
-                  <input type="date" value={form.sgkTarihi} onChange={(e) => handleChange("sgkTarihi", e.target.value)} className="input" />
+                  <div className="flex items-center gap-1">
+                    <input type="date" value={form.sgkTarihi} onChange={(e) => handleChange("sgkTarihi", e.target.value)} className="input flex-1" />
+                    <button type="button" onClick={() => setUploadModalField("sgkTarihi")} className={`p-1.5 rounded transition relative flex-shrink-0 ${fieldFileCount("sgkTarihi") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {fieldFileCount("sgkTarihi") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sgkTarihi")}</span>}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
