@@ -199,7 +199,7 @@ export default function IhtarTutanagi() {
   const stats = { toplam: items.length, duzenlendi: items.filter(i => i.durum === "duzenlendi").length, teblig: items.filter(i => i.durum === "teblig edildi").length, kapatildi: items.filter(i => i.durum === "kapatildi").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -427,6 +427,6 @@ export default function IhtarTutanagi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

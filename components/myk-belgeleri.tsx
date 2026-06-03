@@ -128,7 +128,7 @@ export default function MykBelgeleri() {
     });
 
   return (
-    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+    <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-800">MYK Belgeleri</h2>
@@ -264,6 +264,6 @@ export default function MykBelgeleri() {
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

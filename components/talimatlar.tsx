@@ -116,7 +116,7 @@ export default function Talimatlar() {
   const formatCellDate = (val: string) => val ? displayDate(val) : "";
 
   return (
-    <main className="flex-1 min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -270,6 +270,6 @@ export default function Talimatlar() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

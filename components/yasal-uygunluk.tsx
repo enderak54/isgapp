@@ -61,7 +61,7 @@ export default function YasalUygunluk() {
   const stats = { toplam: items.length, uyumlu: items.filter(i => i.uyumluluk_durumu === "uyumlu").length, uyumsuz: items.filter(i => i.uyumluluk_durumu === "uyumsuz").length, bekleyen: items.filter(i => i.uyumluluk_durumu === "degerlendirilecek").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -124,6 +124,6 @@ export default function YasalUygunluk() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

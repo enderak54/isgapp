@@ -74,7 +74,7 @@ export default function YetkinlikMatrisi() {
   const stats = { toplam: items.length, gecerli: items.filter(i => i.durum === "gecerli").length, sureDoluyor: items.filter(i => i.durum === "suresi_doluyor").length, sureDolmus: items.filter(i => i.durum === "suresi_dolmus").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -135,6 +135,6 @@ export default function YetkinlikMatrisi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

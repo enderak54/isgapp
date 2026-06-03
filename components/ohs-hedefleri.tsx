@@ -102,7 +102,7 @@ export default function OhsHedefleri() {
   };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -252,6 +252,6 @@ export default function OhsHedefleri() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

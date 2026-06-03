@@ -69,7 +69,7 @@ export default function RiskDegerlendirme() {
   const stats = { toplam: risks.length, kritik: risks.filter(r => r.risk_seviyesi === "Kritik").length, yuksek: risks.filter(r => r.risk_seviyesi === "Yuksek").length, acik: risks.filter(r => r.durum === "acik").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -221,6 +221,6 @@ export default function RiskDegerlendirme() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

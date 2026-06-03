@@ -38,7 +38,7 @@ export default function Taseronlar() {
   const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("taseronlar").delete().eq("id", id); fetchTaseronlar(); } };
 
   return (
-    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+    <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Taşeronlar</h2>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
@@ -104,6 +104,6 @@ export default function Taseronlar() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

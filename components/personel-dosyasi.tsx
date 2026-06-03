@@ -120,7 +120,7 @@ export default function PersonelDosyasi() {
   const allFilesCount = FOLDER_CATEGORIES.reduce((sum, f) => sum + folderFileCount(f.key), 0);
 
   return (
-    <main className="flex-1 min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-xl font-bold text-gray-800 tracking-tight">Personel Dosyası</h1>
@@ -300,6 +300,6 @@ export default function PersonelDosyasi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

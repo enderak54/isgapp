@@ -76,7 +76,7 @@ export default function AcilDurum() {
   const stats = { toplam: items.length, aktif: items.filter(i => i.durum === "aktif").length, kritik: items.filter(i => i.risk_seviyesi === "kritik").length, yuksek: items.filter(i => i.risk_seviyesi === "yuksek").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -142,6 +142,6 @@ export default function AcilDurum() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

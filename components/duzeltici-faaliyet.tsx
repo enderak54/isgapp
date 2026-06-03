@@ -84,7 +84,7 @@ export default function DuzelticiFaaliyet() {
   const stats = { toplam: items.length, acik: items.filter(i => i.durum === "acik").length, devam: items.filter(i => i.durum === "devam").length, tamamlandi: items.filter(i => i.durum === "tamamlandi" || i.durum === "kapatildi").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -147,6 +147,6 @@ export default function DuzelticiFaaliyet() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

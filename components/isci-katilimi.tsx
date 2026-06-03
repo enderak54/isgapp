@@ -96,7 +96,7 @@ export default function IsciKatilimi() {
   const stats = { toplam: items.length, gerceklesen: items.filter(i => i.durum === "gerceklesti").length, planlanan: items.filter(i => i.durum === "planlandi").length, iptal: items.filter(i => i.durum === "iptal").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -223,6 +223,6 @@ export default function IsciKatilimi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

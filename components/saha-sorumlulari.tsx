@@ -38,7 +38,7 @@ export default function SahaSorumlulari() {
   const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("saha_sorumlulari").delete().eq("id", id); fetchSorumlular(); } };
 
   return (
-    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+    <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Saha Sorumluları</h2>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm({ ad_soyad: "", telefon: "", email: "", pozisyon: "", santiye_id: "", durum: "aktif", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
@@ -110,6 +110,6 @@ export default function SahaSorumlulari() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

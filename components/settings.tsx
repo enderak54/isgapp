@@ -446,7 +446,7 @@ export default function SettingsPage() {
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -961,6 +961,6 @@ export default function SettingsPage() {
 
 
       </div>
-    </main>
+    </div>
   );
 }

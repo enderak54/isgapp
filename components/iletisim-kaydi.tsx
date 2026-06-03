@@ -97,7 +97,7 @@ export default function IletisimKaydi() {
   const stats = { toplam: items.length, ic: items.filter(i => i.tur === "ic_iletisim").length, dis: items.filter(i => i.tur === "dis_iletisim").length, danisma: items.filter(i => i.tur === "danisma").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -227,6 +227,6 @@ export default function IletisimKaydi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

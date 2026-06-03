@@ -59,7 +59,7 @@ export default function PerformansIzleme() {
   const stats = { toplam: items.length, hedefUlasildi: items.filter(i => i.hedef_ulasildi_mu === true).length, aksiyonGerekli: items.filter(i => i.aksiyon_gerekli_mu).length, leading: items.filter(i => i.gosterge_tipi === "leading").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -124,6 +124,6 @@ export default function PerformansIzleme() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

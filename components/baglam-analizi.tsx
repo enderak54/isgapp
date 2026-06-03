@@ -93,7 +93,7 @@ export default function BaglamAnalizi() {
   const stats = { toplam: items.length, ic: items.filter(i => i.tur === "ic_baglam").length, dis: items.filter(i => i.tur === "dis_baglam").length, taraf: items.filter(i => i.tur === "ilgili_taraf").length };
 
   return (
-    <main className="flex-1 p-8 app-bg min-h-screen">
+    <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="max-w-6xl mx-auto">
         <div className="page-header">
           <div className="flex items-center gap-3">
@@ -210,6 +210,6 @@ export default function BaglamAnalizi() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

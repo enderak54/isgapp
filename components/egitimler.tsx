@@ -33,7 +33,7 @@ export default function Egitimler() {
   const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("egitimler").delete().eq("id", id); fetchEgitimler(); } };
 
   return (
-    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+    <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Eğitimler</h2>
         <button onClick={() => { setShowForm(true); setEditing(null); setForm({ ad: "", tarih: "", sure: "", egitmen: "", yer: "", katilimcilar: "", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
@@ -94,6 +94,6 @@ export default function Egitimler() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }
