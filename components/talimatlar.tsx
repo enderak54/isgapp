@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
@@ -28,16 +28,11 @@ export default function Talimatlar() {
   const [notlar, setNotlar] = useState<string[]>(["", "", ""]);
   const [lockedNotes, setLockedNotes] = useState<Set<number>>(new Set());
   const [seciliHucre, setSeciliHucre] = useState<{ personel_id: string; talimat_adi: string } | null>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
     loadNotlar();
   }, []);
-
-  useEffect(() => {
-    if (seciliHucre && dateInputRef.current) dateInputRef.current.showPicker?.();
-  }, [seciliHucre]);
 
   const fetchData = async () => {
     const [personelRes, matrisRes, ayarRes] = await Promise.all([
@@ -114,6 +109,8 @@ export default function Talimatlar() {
 
   const cellKey = (pid: string, tad: string) => `${pid}_${tad}`;
   const formatCellDate = (val: string) => val ? displayDate(val) : "";
+const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
+const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
 
   return (
     <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
@@ -173,15 +170,43 @@ export default function Talimatlar() {
                       return (
                         <td key={ad} className="px-2 py-1.5 border-r border-gray-100 text-center relative">
                           {isSecili ? (
-                            <input
-                              ref={dateInputRef}
-                              type="date"
-                              value={val}
-                              onChange={(e) => tarihGuncelle(p.id, ad, e.target.value)}
-                              onBlur={() => setSeciliHucre(null)}
-                              className="w-full text-xs text-center border border-green-400 rounded px-1 py-1 outline-none focus:ring-1 focus:ring-green-500"
-                              autoFocus
-                            />
+                            <div className="flex items-center gap-0.5 justify-center">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="gg.aa.yyyy"
+                                maxLength={10}
+                                value={toDisplay(val)}
+                                onChange={(e) => {
+                                  const v = e.target.value.replace(/[^0-9.]/g, "");
+                                  tarihGuncelle(p.id, ad, toDb(v));
+                                }}
+                                onBlur={() => { if (!val) setSeciliHucre(null); }}
+                                className="w-20 text-xs text-center border border-green-400 rounded px-1 py-1 outline-none focus:ring-1 focus:ring-green-500"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const picker = document.getElementById(`dp-${p.id}-${ad.replace(/\s/g, "")}`) as HTMLInputElement;
+                                  if (!picker) return;
+                                  picker.style.display = "block";
+                                  picker.focus();
+                                  picker.showPicker();
+                                }}
+                                className="text-gray-400 hover:text-gray-600 p-0.5"
+                              >
+                                <Calendar className="w-3.5 h-3.5" />
+                              </button>
+                              <input
+                                id={`dp-${p.id}-${ad.replace(/\s/g, "")}`}
+                                type="date"
+                                className="hidden"
+                                value={val}
+                                onChange={(e) => { tarihGuncelle(p.id, ad, e.target.value); }}
+                                onBlur={(e) => { e.currentTarget.style.display = "none"; setSeciliHucre(null); }}
+                              />
+                            </div>
                           ) : (
                             <button
                               onClick={() => setSeciliHucre({ personel_id: p.id, talimat_adi: ad })}
