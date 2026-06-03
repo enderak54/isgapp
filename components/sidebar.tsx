@@ -57,15 +57,9 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [version, setVersion] = useState("");
-  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem("isg_modules") || "{}"); } catch { return {}; }
-  });
-  const [menuOrderMain, setMenuOrderMain] = useState<string[]>(() => {
-    try { const v = localStorage.getItem("isg_menu_main"); return v ? JSON.parse(v) : mainMenuItems.map(i => i.key).filter(Boolean) as string[]; } catch { return mainMenuItems.map(i => i.key).filter(Boolean) as string[]; }
-  });
-  const [menuOrderEk, setMenuOrderEk] = useState<string[]>(() => {
-    try { const v = localStorage.getItem("isg_menu_ek"); return v ? JSON.parse(v) : ekModulItems.map(i => i.key).filter(Boolean) as string[]; } catch { return ekModulItems.map(i => i.key).filter(Boolean) as string[]; }
-  });
+  const [visibleModules, setVisibleModules] = useState<Record<string, boolean>>({});
+  const [menuOrderMain, setMenuOrderMain] = useState<string[]>(() => mainMenuItems.map(i => i.key).filter(Boolean) as string[]);
+  const [menuOrderEk, setMenuOrderEk] = useState<string[]>(() => ekModulItems.map(i => i.key).filter(Boolean) as string[]);
 
   useEffect(() => {
     loadModuleSettings();
