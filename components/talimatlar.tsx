@@ -90,12 +90,17 @@ export default function Talimatlar() {
   const tarihGuncelle = async (personel_id: string, talimat_adi: string, tarih: string) => {
     const key = `${personel_id}_${talimat_adi}`;
     setCellData(prev => ({ ...prev, [key]: tarih }));
-    if (tarih) {
+  };
+
+  const tarihKaydet = async (personel_id: string, talimat_adi: string) => {
+    const key = `${personel_id}_${talimat_adi}`;
+    const tarih = cellData[key];
+    if (tarih && /^\d{4}-\d{2}-\d{2}$/.test(tarih)) {
       await supabase.from("personel_talimat_matrisi").upsert(
         { personel_id, talimat_adi, tarih },
         { onConflict: "personel_id, talimat_adi" }
       );
-    } else {
+    } else if (!tarih) {
       await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });
     }
     setSeciliHucre(null);
@@ -181,7 +186,8 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
                                   const v = e.target.value.replace(/[^0-9.]/g, "");
                                   tarihGuncelle(p.id, ad, toDb(v));
                                 }}
-                                onBlur={() => { if (!val) setSeciliHucre(null); }}
+                                onBlur={() => tarihKaydet(p.id, ad)}
+                                onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLElement).blur(); } }}
                                 className="w-20 text-xs text-center border border-green-400 rounded px-1 py-1 outline-none focus:ring-1 focus:ring-green-500"
                                 autoFocus
                               />
@@ -204,7 +210,7 @@ const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
                                 className="hidden"
                                 value={val}
                                 onChange={(e) => { tarihGuncelle(p.id, ad, e.target.value); }}
-                                onBlur={(e) => { e.currentTarget.style.display = "none"; setSeciliHucre(null); }}
+                                onBlur={(e) => { e.currentTarget.style.display = "none"; setTimeout(() => tarihKaydet(p.id, ad), 100); }}
                               />
                             </div>
                           ) : (
