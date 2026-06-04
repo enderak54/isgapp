@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Building2, Plus, Edit, Trash2, Search, X, Save, Phone, MapPin, User } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { Building2, Plus, Edit, Trash2, Search, X, Save, Phone, MapPin, User, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function Santiyeler() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
@@ -11,23 +12,48 @@ export default function Santiyeler() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "" });
 
   useEffect(() => { fetchSantiyeler(); }, []);
 
   const fetchSantiyeler = async () => {
-    const { data } = await supabase.from("santiyeler").select("*").order("created_at", { ascending: false });
-    if (data) setSantiyeler(data);
-    setLoading(false);
+    try {
+      const { data } = await supabase.from("santiyeler").select("*").order("created_at", { ascending: false });
+      if (data) setSantiyeler(data);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: "Veriler yüklenirken hata oluştu" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("santiyeler").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("santiyeler").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null);
-    setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "" });
-    fetchSantiyeler();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm(form);
+      if (editing) {
+        const { error } = await supabase.from("santiyeler").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("santiyeler", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Şantiye güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("santiyeler").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("santiyeler", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Şantiye kaydedildi" });
+      }
+      setShowForm(false); setEditing(null);
+      setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "" });
+      fetchSantiyeler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (s: any) => {
@@ -37,9 +63,16 @@ export default function Santiyeler() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Silmek istediğinize emin misiniz?")) {
-      await supabase.from("santiyeler").delete().eq("id", id);
+    if (!confirm("Silmek istediğinize emin misiniz?")) return;
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("santiyeler").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("santiyeler", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Şantiye silindi" });
       fetchSantiyeler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
     }
   };
 
@@ -64,6 +97,13 @@ export default function Santiyeler() {
         </div>
       </div>
 
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
+
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full">
@@ -85,7 +125,10 @@ export default function Santiyeler() {
                 <option value="pasif">Pasif</option>
                 <option value="tamamlandi">Tamamlandı</option>
               </select>
-              <button type="submit" className="w-full btn btn-primary"><Save className="w-4 h-4" /> Kaydet</button>
+              <button type="submit" disabled={saving} className="w-full btn btn-primary disabled:opacity-50">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
             </form>
           </div>
         </div>
