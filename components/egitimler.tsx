@@ -9,13 +9,15 @@ import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen,
 
 const emptyForm = {
   tanim_id: "", egitim_adi_manuel: "", egitmen_id: "", egitmen_manuel: "",
-  tarih: "", sure: "", yer: "", notlar: "", katilimcilar: [] as string[], katilimci_manuel: "",
+  yer_id: "", yer: "",
+  tarih: "", sure: "", notlar: "", katilimcilar: [] as string[], katilimci_manuel: "",
 };
 
 export default function Egitimler() {
   const [kayitlar, setKayitlar] = useState<any[]>([]);
   const [tanimlar, setTanimlar] = useState<any[]>([]);
   const [egitmenler, setEgitmenler] = useState<any[]>([]);
+  const [yerTanimlari, setYerTanimlari] = useState<any[]>([]);
   const [personel, setPersonel] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [personelFiltre, setPersonelFiltre] = useState("");
@@ -54,15 +56,17 @@ export default function Egitimler() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [kayitRes, tanimRes, egitmenRes, personelRes] = await Promise.all([
+      const [kayitRes, tanimRes, egitmenRes, yerRes, personelRes] = await Promise.all([
         supabase.from("egitim_kayitlari").select("*").order("tarih", { ascending: false }),
         supabase.from("egitim_tanimlari").select("*").order("ad"),
         supabase.from("egitmen_tanimlari").select("*").order("ad"),
+        supabase.from("egitim_yer_tanimlari").select("*").order("ad"),
         supabase.from("personel").select("id, ad, soyad, kimlik_no").eq("arsivde", false).order("ad"),
       ]);
       if (kayitRes.data) setKayitlar(kayitRes.data);
       if (tanimRes.data) setTanimlar(tanimRes.data);
       if (egitmenRes.data) setEgitmenler(egitmenRes.data);
+      if (yerRes.data) setYerTanimlari(yerRes.data);
       if (personelRes.data) setPersonel(personelRes.data);
     } catch (e: any) {
       setEditStatus({ type: "error", message: "Veriler yüklenirken hata" });
@@ -126,9 +130,10 @@ export default function Egitimler() {
         egitim_adi_manuel: form.tanim_id ? null : (form.egitim_adi_manuel || null),
         egitmen_id: form.egitmen_id || null,
         egitmen_manuel: form.egitmen_id ? null : (form.egitmen_manuel || null),
+        yer_id: form.yer_id || null,
+        yer: form.yer_id ? null : (form.yer || null),
         tarih: form.tarih || null,
         sure: form.sure || null,
-        yer: form.yer || null,
         notlar: form.notlar || null,
       });
 
@@ -180,7 +185,8 @@ export default function Egitimler() {
     setForm({
       tanim_id: k.tanim_id || "", egitim_adi_manuel: k.egitim_adi_manuel || "",
       egitmen_id: k.egitmen_id || "", egitmen_manuel: k.egitmen_manuel || "",
-      tarih: k.tarih || "", sure: k.sure || "", yer: k.yer || "", notlar: k.notlar || "",
+      yer_id: k.yer_id || "", yer: k.yer || "",
+      tarih: k.tarih || "", sure: k.sure || "", notlar: k.notlar || "",
       katilimcilar: kat.filter((c: any) => c.personel_id).map((c: any) => c.personel_id),
       katilimci_manuel: kat.filter((c: any) => c.katilimci_manuel).map((c: any) => c.katilimci_manuel).join(", "),
     });
@@ -387,7 +393,11 @@ export default function Egitimler() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Yer</label>
-                  <input type="text" placeholder="Eğitim yeri" value={form.yer} onChange={e => setForm({ ...form, yer: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  <select value={form.yer_id} onChange={e => setForm({ ...form, yer_id: e.target.value, yer: e.target.value ? "" : form.yer })} className="w-full p-2 border rounded-lg mb-2">
+                    <option value="">-- Tanımlı yer seç --</option>
+                    {yerTanimlari.map(t => <option key={t.id} value={t.id}>{t.ad}</option>)}
+                  </select>
+                  <input type="text" placeholder="veya manuel yazın" value={form.yer} onChange={e => setForm({ ...form, yer: e.target.value, yer_id: e.target.value ? "" : form.yer_id })} disabled={!!form.yer_id} className="w-full p-2 border rounded-lg" />
                 </div>
               </div>
               <div>
@@ -452,6 +462,18 @@ export default function Egitimler() {
                 onSil={async (id) => {
                   await supabase.from("egitmen_tanimlari").delete().eq("id", id);
                   setEgitmenler(prev => prev.filter(e => e.id !== id));
+                }}
+              />
+              <EgitanimBolumu
+                baslik="Yer Tanımları"
+                items={yerTanimlari}
+                onEkle={async (ad) => {
+                  const { data } = await supabase.from("egitim_yer_tanimlari").insert({ ad }).select();
+                  if (data) { setYerTanimlari(prev => [...prev, data[0]]); }
+                }}
+                onSil={async (id) => {
+                  await supabase.from("egitim_yer_tanimlari").delete().eq("id", id);
+                  setYerTanimlari(prev => prev.filter(t => t.id !== id));
                 }}
               />
             </div>
