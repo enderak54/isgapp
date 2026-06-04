@@ -10,7 +10,27 @@ import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen,
 const emptyForm = {
   tanim_id: "", egitim_adi_manuel: "", egitmen_id: "", egitmen_manuel: "",
   yer_id: "", yer: "",
-  tarih: "", sure: "", notlar: "", katilimcilar: [] as string[], katilimci_manuel: "",
+  tarih: "", sure_saat: "", sure_dakika: "", sure: "", notlar: "", katilimcilar: [] as string[], katilimci_manuel: "",
+};
+
+const sureBirlestir = (saat: string, dakika: string) => {
+  const s = parseInt(saat) || 0;
+  const d = parseInt(dakika) || 0;
+  if (!s && !d) return "";
+  const parts: string[] = [];
+  if (s) parts.push(`${s} saat`);
+  if (d) parts.push(`${d} dakika`);
+  return parts.join(" ");
+};
+
+const sureAyristir = (sure: string) => {
+  let sure_saat = "", sure_dakika = "";
+  if (!sure) return { sure_saat, sure_dakika };
+  const s = sure.match(/(\d+)\s*saat/);
+  const d = sure.match(/(\d+)\s*dakika/);
+  if (s) sure_saat = s[1];
+  if (d) sure_dakika = d[1];
+  return { sure_saat, sure_dakika };
 };
 
 export default function Egitimler() {
@@ -133,7 +153,7 @@ export default function Egitimler() {
         yer_id: form.yer_id || null,
         yer: form.yer_id ? null : (form.yer || null),
         tarih: form.tarih || null,
-        sure: form.sure || null,
+        sure: sureBirlestir(form.sure_saat, form.sure_dakika) || null,
         notlar: form.notlar || null,
       });
 
@@ -182,11 +202,12 @@ export default function Egitimler() {
       .eq("egitim_kaydi_id", k.id);
     if (katData) setKatilimcilarDetay(prev => ({ ...prev, [k.id]: katData }));
     const kat = katData || [];
+    const { sure_saat, sure_dakika } = sureAyristir(k.sure || "");
     setForm({
       tanim_id: k.tanim_id || "", egitim_adi_manuel: k.egitim_adi_manuel || "",
       egitmen_id: k.egitmen_id || "", egitmen_manuel: k.egitmen_manuel || "",
       yer_id: k.yer_id || "", yer: k.yer || "",
-      tarih: k.tarih || "", sure: k.sure || "", notlar: k.notlar || "",
+      tarih: k.tarih || "", sure_saat, sure_dakika, sure: "", notlar: k.notlar || "",
       katilimcilar: kat.filter((c: any) => c.personel_id).map((c: any) => c.personel_id),
       katilimci_manuel: kat.filter((c: any) => c.katilimci_manuel).map((c: any) => c.katilimci_manuel).join(", "),
     });
@@ -389,7 +410,10 @@ export default function Egitimler() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Süre</label>
-                  <input type="text" placeholder="örn: 2 saat" value={form.sure} onChange={e => setForm({ ...form, sure: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  <div className="flex gap-2">
+                    <input type="number" min="0" placeholder="Saat" value={form.sure_saat} onChange={e => setForm({ ...form, sure_saat: e.target.value })} className="w-full p-2 border rounded-lg" />
+                    <input type="number" min="0" max="59" placeholder="Dakika" value={form.sure_dakika} onChange={e => setForm({ ...form, sure_dakika: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Yer</label>
