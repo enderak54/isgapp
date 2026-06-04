@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb } from "lucide-react";
-import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded, getWarningMessage } from "@/lib/egitim-uyari";
+import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 const motivasyonSozleri = [
   "Güvenlik bir alışkanlıktır, tesadüf değil. — Her gün bir adım daha güvenliye.",
@@ -63,7 +63,9 @@ interface ISGStats {
 
 interface EgitimUyari {
   label: string;
-  count: number;
+  personel_id: string;
+  personel_ad: string;
+  kalanGun: number;
 }
 
 export default function Dashboard() {
@@ -100,7 +102,7 @@ export default function Dashboard() {
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date30),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date7),
       supabase.from("is_kazalari").select("yaralanma_durumu").gte("tarih", date365),
-      supabase.from("personel").select("ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz").eq("arsivde", false),
+      supabase.from("personel").select("id, ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz").eq("arsivde", false),
       supabase.from("ayarlar").select("key, value").eq("type", "egitim_uyari"),
     ]);
 
@@ -117,28 +119,29 @@ export default function Dashboard() {
     const thresholdMap: Record<string, number> = {};
     uyariAyarlari?.forEach((a: any) => { thresholdMap[a.key] = parseInt(a.value) || 7; });
 
-    // Calculate training expiry warnings
-    const uyariCounts: Record<string, number> = {};
-    EGITIM_FIELDS.forEach(f => { uyariCounts[f.label] = 0; });
-
+    // Calculate training expiry warnings — detailed per person
+    const uyariDetay: EgitimUyari[] = [];
     if (personel) {
       for (const p of personel) {
         for (const f of EGITIM_FIELDS) {
           const tarih = (p as any)[f.tarihField];
           const sure = (p as any)[f.sureField];
           const threshold = thresholdMap[f.ayarKey] || (f.ayarKey === "uyari_myk" ? 30 : 7);
-          if (isWarningNeeded(tarih, sure, threshold) || isExpired(tarih, sure)) {
-            uyariCounts[f.label] = (uyariCounts[f.label] || 0) + 1;
+          const expiry = calculateExpiryDate(tarih, sure);
+          if (expiry && (isWarningNeeded(tarih, sure, threshold) || isExpired(tarih, sure))) {
+            uyariDetay.push({
+              label: f.label,
+              personel_id: p.id,
+              personel_ad: `${p.ad} ${p.soyad}`,
+              kalanGun: daysUntil(expiry),
+            });
           }
         }
       }
     }
-
-    const egitimUyariList = EGITIM_FIELDS
-      .map(f => ({ label: f.label, count: uyariCounts[f.label] || 0 }))
-      .filter(u => u.count > 0);
-
-    const totalUyarilar = egitimUyariList.reduce((sum, u) => sum + u.count, 0);
+    uyariDetay.sort((a, b) => a.kalanGun - b.kalanGun);
+    const egitimUyariList = uyariDetay.slice(0, 25);
+    const totalUyarilar = uyariDetay.length;
 
     const riskSkoru = Math.min(100, Math.round(
       (kaza365 || 0) * 10 +
@@ -299,23 +302,42 @@ export default function Dashboard() {
         {/* Uyarılar */}
         <div className="card p-4">
           <h3 className="text-sm font-semibold text-gray-800 mb-3">ISG Uyarıları</h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
             {egitimUyarilari.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">Aktif uyarı bulunmuyor</p>
             ) : (
               egitimUyarilari.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                  <span className="text-xs text-gray-600">{item.label}</span>
-                  <span className="w-5 h-5 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[10px] font-medium">{item.count}</span>
-                </div>
+                <button
+                  key={i}
+                  onClick={() => router.push("/personel")}
+                  className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
+                      {item.personel_ad}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{item.label}</p>
+                  </div>
+                  <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${
+                    item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                  }`}>
+                    {item.kalanGun <= 0 ? "!" : item.kalanGun}
+                  </span>
+                </button>
               ))
             )}
           </div>
           {egitimUyarilari.length > 0 && (
-            <button onClick={() => router.push("/personel")} className="w-full mt-3 btn btn-primary text-xs py-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              {stats.uyarilar} Aktif Uyarı
-            </button>
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                {stats.uyarilar} uyarıdan {egitimUyarilari.length} gösteriliyor
+              </span>
+              <button onClick={() => router.push("/personel")} className="btn btn-primary text-xs py-1.5 px-3">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Tümünü Gör
+              </button>
+            </div>
           )}
         </div>
       </div>
