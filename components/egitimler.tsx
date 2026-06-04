@@ -395,33 +395,35 @@ export default function Egitimler() {
                 </select>
                 <input type="text" placeholder="veya manuel yazın" value={form.egitim_adi_manuel} onChange={e => setForm({ ...form, egitim_adi_manuel: e.target.value, tanim_id: e.target.value ? "" : form.tanim_id })} disabled={!!form.tanim_id} className="w-full p-2 border rounded-lg" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Eğitmen</label>
-                <select value={form.egitmen_id} onChange={e => setForm({ ...form, egitmen_id: e.target.value, egitmen_manuel: e.target.value ? "" : form.egitmen_manuel })} className="w-full p-2 border rounded-lg mb-2">
-                  <option value="">-- Tanımlı eğitmen seç --</option>
-                  {egitmenler.map(e => <option key={e.id} value={e.id}>{e.ad}</option>)}
-                </select>
-                <input type="text" placeholder="veya manuel yazın" value={form.egitmen_manuel} onChange={e => setForm({ ...form, egitmen_manuel: e.target.value, egitmen_id: e.target.value ? "" : form.egitmen_id })} disabled={!!form.egitmen_id} className="w-full p-2 border rounded-lg" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Eğitmen</label>
+                  <select value={form.egitmen_id} onChange={e => setForm({ ...form, egitmen_id: e.target.value, egitmen_manuel: e.target.value ? "" : form.egitmen_manuel })} className="w-full p-2 border rounded-lg mb-2">
+                    <option value="">-- Seç --</option>
+                    {egitmenler.map(e => <option key={e.id} value={e.id}>{e.ad}</option>)}
+                  </select>
+                  <input type="text" placeholder="veya manuel yazın" value={form.egitmen_manuel} onChange={e => setForm({ ...form, egitmen_manuel: e.target.value, egitmen_id: e.target.value ? "" : form.egitmen_id })} disabled={!!form.egitmen_id} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yer</label>
+                  <select value={form.yer_id} onChange={e => setForm({ ...form, yer_id: e.target.value, yer: e.target.value ? "" : form.yer })} className="w-full p-2 border rounded-lg mb-2">
+                    <option value="">-- Seç --</option>
+                    {yerTanimlari.map(t => <option key={t.id} value={t.id}>{t.ad}</option>)}
+                  </select>
+                  <input type="text" placeholder="veya manuel yazın" value={form.yer} onChange={e => setForm({ ...form, yer: e.target.value, yer_id: e.target.value ? "" : form.yer_id })} disabled={!!form.yer_id} className="w-full p-2 border rounded-lg" />
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
                   <input type="date" value={form.tarih} onChange={e => setForm({ ...form, tarih: e.target.value })} className="w-full p-2 border rounded-lg" />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Süre</label>
                   <div className="flex gap-2">
                     <input type="number" min="0" placeholder="Saat" value={form.sure_saat} onChange={e => setForm({ ...form, sure_saat: e.target.value })} className="w-full p-2 border rounded-lg" />
                     <input type="number" min="0" max="59" placeholder="Dakika" value={form.sure_dakika} onChange={e => setForm({ ...form, sure_dakika: e.target.value })} className="w-full p-2 border rounded-lg" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Yer</label>
-                  <select value={form.yer_id} onChange={e => setForm({ ...form, yer_id: e.target.value, yer: e.target.value ? "" : form.yer })} className="w-full p-2 border rounded-lg mb-2">
-                    <option value="">-- Tanımlı yer seç --</option>
-                    {yerTanimlari.map(t => <option key={t.id} value={t.id}>{t.ad}</option>)}
-                  </select>
-                  <input type="text" placeholder="veya manuel yazın" value={form.yer} onChange={e => setForm({ ...form, yer: e.target.value, yer_id: e.target.value ? "" : form.yer_id })} disabled={!!form.yer_id} className="w-full p-2 border rounded-lg" />
                 </div>
               </div>
               <div>
