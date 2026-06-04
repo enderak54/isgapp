@@ -132,7 +132,7 @@ export default function PersonnelList() {
   const fetchPersonnel = async () => {
     try {
       const { data, error } = await supabase
-        .from("personel").select("*, ekipler!ekip_id(ad), personel_santiyeler(santiye_id, santiyeler(id, ad))")
+        .from("personel").select("*")
         .eq("arsivde", arsivGoster)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -440,8 +440,7 @@ export default function PersonnelList() {
         fullName.includes(t) ||
         p.kimlik_no?.toLowerCase().includes(t) ||
         p.santiye_adi?.toLowerCase().includes(t) ||
-        p.personel_santiyeler?.some((ps: any) => ps.santiyeler?.ad?.toLowerCase().includes(t)) ||
-        (p.ekipler?.ad || p.ekip_adi || "")?.toLowerCase().includes(t)
+        (p.ekip_adi || "")?.toLowerCase().includes(t)
     );
   }).sort((a, b) => {
     let va = "", vb = "";
@@ -527,8 +526,8 @@ export default function PersonnelList() {
                     <td className="font-medium text-gray-800 align-middle">{p.ad || "-"}</td>
                     <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>
                     <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
-                    <td className="text-gray-600 align-middle">{(p.personel_santiyeler?.map((ps: any) => ps.santiyeler?.ad).filter(Boolean).join(", ")) || p.santiye_adi || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.ekipler?.ad || p.ekip_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.ekip_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.email || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
