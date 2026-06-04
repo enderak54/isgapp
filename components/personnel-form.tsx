@@ -48,7 +48,7 @@ interface PendingFile {
 export default function PersonnelForm() {
   const [form, setForm] = useState({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
-    santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
+    santiyeAdi: "", ekipId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
@@ -74,8 +74,15 @@ export default function PersonnelForm() {
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
+  const [ekipler, setEkipler] = useState<any[]>([]);
+
+  const fetchEkipler = async () => {
+    const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
+    if (data) setEkipler(data);
+  };
 
   useEffect(() => {
+    fetchEkipler();
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
@@ -250,7 +257,7 @@ export default function PersonnelForm() {
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
-        santiye_adi: sanitize(form.santiyeAdi), ekip_adi: sanitize(form.ekipAdi),
+        santiye_adi: sanitize(form.santiyeAdi), ekip_id: form.ekipId || null, ekip_adi: ekipler.find(e => e.id === form.ekipId)?.ad || null,
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, sertifika_tarihi: form.sertifika || null,
@@ -279,7 +286,7 @@ export default function PersonnelForm() {
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
         kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
-        santiyeAdi: "", ekipAdi: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
+        santiyeAdi: "", ekipId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
@@ -414,7 +421,10 @@ export default function PersonnelForm() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Ekip</label>
-                <input type="text" value={form.ekipAdi} onChange={(e) => handleChange("ekipAdi", e.target.value)} className="input" placeholder="Ekip Adı" />
+                <select value={form.ekipId || ""} onChange={(e) => handleChange("ekipId", e.target.value)} className="input">
+                  <option value="">Ekip Seçin</option>
+                  {ekipler.map(ek => <option key={ek.id} value={ek.id}>{ek.ad}</option>)}
+                </select>
               </div>
             </div>
           </div>

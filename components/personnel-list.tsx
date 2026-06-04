@@ -90,9 +90,16 @@ export default function PersonnelList() {
   const [mykSecimTarih, setMykSecimTarih] = useState("");
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
+  const [ekipler, setEkipler] = useState<any[]>([]);
+
+  const fetchEkipler = async () => {
+    const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
+    if (data) setEkipler(data);
+  };
 
   useEffect(() => {
     fetchPersonnel();
+    fetchEkipler();
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
@@ -117,7 +124,7 @@ export default function PersonnelList() {
   const fetchPersonnel = async () => {
     try {
       const { data, error } = await supabase
-        .from("personel").select("*")
+        .from("personel").select("*, ekipler!ekip_id(ad)")
         .eq("arsivde", arsivGoster)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -165,6 +172,7 @@ export default function PersonnelList() {
       ogrenim_durumu: p.ogrenim_durumu || "",
       santiye_adi: p.santiye_adi || "",
       ekip_adi: p.ekip_adi || "",
+      ekip_id: p.ekip_id || "",
       meslek_kodu: p.meslek_kodu || "",
       sgk_tarihi: p.sgk_tarihi || "",
       ise_giris_tarihi: p.ise_giris_tarihi || "",
@@ -319,7 +327,8 @@ export default function PersonnelList() {
         email: editForm.email,
         ogrenim_durumu: editForm.ogrenim_durumu,
         santiye_adi: editForm.santiye_adi,
-        ekip_adi: editForm.ekip_adi,
+        ekip_id: editForm.ekip_id || null,
+        ekip_adi: ekipler.find(e => e.id === editForm.ekip_id)?.ad || null,
         meslek_kodu: editForm.meslek_kodu,
         sgk_tarihi: editForm.sgk_tarihi || null,
         ise_giris_tarihi: editForm.ise_giris_tarihi || null,
@@ -410,7 +419,8 @@ export default function PersonnelList() {
       (t) =>
         fullName.includes(t) ||
         p.kimlik_no?.toLowerCase().includes(t) ||
-        p.santiye_adi?.toLowerCase().includes(t)
+        p.santiye_adi?.toLowerCase().includes(t) ||
+        (p.ekipler?.ad || p.ekip_adi || "")?.toLowerCase().includes(t)
     );
   }).sort((a, b) => {
     let va = "", vb = "";
@@ -482,6 +492,7 @@ export default function PersonnelList() {
                   <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("soyad")}>Soyad{sortArrow("soyad")}</th>
                   <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("kimlik_no")}>TC Kimlik No{sortArrow("kimlik_no")}</th>
                   <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("santiye_adi")}>Şantiye{sortArrow("santiye_adi")}</th>
+                  <th>Ekip</th>
                   <th>Telefon</th>
                   <th>E-posta</th>
                   <th>Öğrenim</th>
@@ -496,6 +507,7 @@ export default function PersonnelList() {
                     <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>
                     <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
                     <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.ekipler?.ad || p.ekip_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.email || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
@@ -694,7 +706,10 @@ export default function PersonnelList() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Ekip</label>
-                  <input type="text" value={editForm.ekip_adi} onChange={e => setEditForm({...editForm, ekip_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                  <select value={editForm.ekip_id || ""} onChange={e => setEditForm({...editForm, ekip_id: e.target.value})} className="input text-xs flex-1 min-w-0">
+                    <option value="">Ekip Seçin</option>
+                    {ekipler.map(ek => <option key={ek.id} value={ek.id}>{ek.ad}</option>)}
+                  </select>
                 </div>
               </div>
 
