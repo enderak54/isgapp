@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus } from "lucide-react";
+import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus, Lock, Unlock } from "lucide-react";
 
 const emptyForm = {
   tanim_id: "", egitim_adi_manuel: "", egitmen_id: "", egitmen_manuel: "",
@@ -465,6 +465,7 @@ export default function Egitimler() {
 function EgitanimBolumu({ baslik, items, onEkle, onSil }: {
   baslik: string; items: any[]; onEkle: (ad: string) => Promise<void>; onSil: (id: string) => Promise<void>;
 }) {
+  const [kilitli, setKilitli] = useState(true);
   const [yeni, setYeni] = useState("");
   const [ekleme, setEkleme] = useState(false);
   const handleEkle = async () => {
@@ -475,12 +476,19 @@ function EgitanimBolumu({ baslik, items, onEkle, onSil }: {
   };
   return (
     <div>
-      <h4 className="font-medium text-gray-800 mb-2">{baslik} ({items.length})</h4>
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-medium text-gray-800">{baslik} ({items.length})</h4>
+        <button onClick={() => setKilitli(!kilitli)} className={`p-1 rounded transition ${kilitli ? "text-gray-300 hover:text-gray-500" : "text-red-400 hover:text-red-600"}`}>
+          {kilitli ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+        </button>
+      </div>
       <div className="space-y-1.5 max-h-48 overflow-y-auto mb-3">
         {items.map(item => (
           <div key={item.id} className="flex items-center justify-between py-1.5 px-3 bg-gray-50 rounded-lg text-sm">
             <span>{item.ad}</span>
-            <button onClick={() => onSil(item.id)} className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
+            {!kilitli && (
+              <button onClick={() => onSil(item.id)} className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
+            )}
           </div>
         ))}
         {items.length === 0 && <p className="text-xs text-gray-400">Henüz tanım eklenmemiş</p>}
