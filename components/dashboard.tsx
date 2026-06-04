@@ -309,7 +309,7 @@ export default function Dashboard() {
               egitimUyarilari.map((item, i) => (
                 <button
                   key={i}
-                  onClick={() => router.push("/personel")}
+                  onClick={() => router.push("/personel?search=" + encodeURIComponent(item.personel_ad))}
                   className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
                 >
                   <div className="min-w-0 flex-1">

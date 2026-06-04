@@ -58,6 +58,13 @@ export default function PersonnelList() {
   const [personnel, setPersonnel] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Read ?search= from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("search");
+    if (q) setSearch(q);
+  }, []);
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const [belgeler, setBelgeler] = useState<any[]>([]);
   const [editingPerson, setEditingPerson] = useState<any>(null);
