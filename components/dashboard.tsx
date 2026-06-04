@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb } from "lucide-react";
 import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded, getWarningMessage } from "@/lib/egitim-uyari";
@@ -66,6 +67,7 @@ interface EgitimUyari {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<ISGStats>({
     totalPersonel: 0, kaza365: 0, kaza30: 0, kaza7: 0, uyarilar: 0,
     kso: 0, toplamCalismaGunu: 0, agirYaralanma: 0, olum: 0,
@@ -310,7 +312,7 @@ export default function Dashboard() {
             )}
           </div>
           {egitimUyarilari.length > 0 && (
-            <button className="w-full mt-3 btn btn-primary text-xs py-1.5">
+            <button onClick={() => router.push("/personel")} className="w-full mt-3 btn btn-primary text-xs py-1.5">
               <AlertTriangle className="w-3.5 h-3.5" />
               {stats.uyarilar} Aktif Uyarı
             </button>
