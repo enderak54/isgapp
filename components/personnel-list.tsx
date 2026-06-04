@@ -726,7 +726,12 @@ export default function PersonnelList() {
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">MYK Eğitim Kayıtları</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">MYK Eğitim Kayıtları
+                  <button type="button" onClick={() => setUploadModalField("myk")} className={`ml-1.5 p-1 rounded transition relative inline-flex align-middle ${pendingFiles.filter(f => f.field === "myk").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    {pendingFiles.filter(f => f.field === "myk").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "myk").length}</span>}
+                  </button>
+                </h4>
                 <div className="flex items-start gap-1 mb-2">
                   <div className="flex-1 min-w-0">
                     <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
@@ -764,6 +769,23 @@ export default function PersonnelList() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+                {pendingFiles.filter(f => f.field === "myk").length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                    <p className="text-[10px] font-medium text-blue-700 mb-1">MYK - Yeni Dosyalar</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pendingFiles.filter(f => f.field === "myk").map((pf, i) => {
+                        const globalIdx = pendingFiles.indexOf(pf);
+                        return (
+                          <div key={i} className="flex items-center gap-1 px-1.5 py-1 bg-white rounded text-[10px]">
+                            {pf.preview ? <ImageIcon className="w-2.5 h-2.5 text-blue-500" /> : <FileDoc className="w-2.5 h-2.5 text-amber-500" />}
+                            <span className="truncate max-w-20">{pf.file.name}</span>
+                            <button onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-2.5 h-2.5" /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
