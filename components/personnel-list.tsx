@@ -401,13 +401,18 @@ export default function PersonnelList() {
     return sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" /> : <ArrowDown className="w-3 h-3 inline ml-1" />;
   };
 
-  const filtered = personnel.filter(
-    (p) =>
-      p.ad?.toLowerCase().includes(search.toLowerCase()) ||
-      p.soyad?.toLowerCase().includes(search.toLowerCase()) ||
-      p.kimlik_no?.includes(search) ||
-      p.santiye_adi?.toLowerCase().includes(search.toLowerCase())
-  ).sort((a, b) => {
+  const filtered = personnel.filter((p) => {
+    const q = search.toLowerCase();
+    const terms = q.split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return true;
+    const fullName = `${p.ad || ""} ${p.soyad || ""}`.toLowerCase();
+    return terms.every(
+      (t) =>
+        fullName.includes(t) ||
+        p.kimlik_no?.toLowerCase().includes(t) ||
+        p.santiye_adi?.toLowerCase().includes(t)
+    );
+  }).sort((a, b) => {
     let va = "", vb = "";
     if (sortCol === "ad") { va = (a.ad || "").toLowerCase(); vb = (b.ad || "").toLowerCase(); }
     else if (sortCol === "soyad") { va = (a.soyad || "").toLowerCase(); vb = (b.soyad || "").toLowerCase(); }
