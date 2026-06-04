@@ -454,6 +454,10 @@ export default function PersonnelForm() {
                         {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
                       <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
+                      <button type="button" onClick={() => setUploadModalField("myk")} className={`p-1 rounded transition relative ${fieldFileCount("myk") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {fieldFileCount("myk") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("myk")}</span>}
+                      </button>
                     </div>
                     {mykKayitlar.length > 0 && (
                       <div className="flex flex-wrap gap-1">
