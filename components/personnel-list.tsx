@@ -91,15 +91,23 @@ export default function PersonnelList() {
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
   const [ekipler, setEkipler] = useState<any[]>([]);
+  const [santiyeler, setSantiyeler] = useState<any[]>([]);
+  const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
     if (data) setEkipler(data);
   };
 
+  const fetchSantiyeler = async () => {
+    const { data } = await supabase.from("santiyeler").select("id, ad").order("ad");
+    if (data) setSantiyeler(data);
+  };
+
   useEffect(() => {
     fetchPersonnel();
     fetchEkipler();
+    fetchSantiyeler();
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
@@ -124,7 +132,7 @@ export default function PersonnelList() {
   const fetchPersonnel = async () => {
     try {
       const { data, error } = await supabase
-        .from("personel").select("*, ekipler!ekip_id(ad)")
+        .from("personel").select("*, ekipler!ekip_id(ad), personel_santiyeler(santiye_id, santiyeler(id, ad))")
         .eq("arsivde", arsivGoster)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -152,6 +160,11 @@ export default function PersonnelList() {
   const fetchBelgeler = async (personelId: string) => {
     const { data } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", personelId).is("silinme_tarihi", null).order("eklenme_tarihi", { ascending: false });
     if (data) setBelgeler(data);
+  };
+
+  const fetchEditBelgeler = async (personelId: string) => {
+    const { data } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", personelId).is("silinme_tarihi", null).order("eklenme_tarihi", { ascending: false });
+    if (data) setEditBelgeler(data);
   };
 
   const openDetail = (p: any) => {
@@ -210,22 +223,28 @@ export default function PersonnelList() {
     setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
     fetchEditBelgeler(p.id);
     fetchPersonelMykEgitimler(p.id);
+    fetchPersonelSantiyeler(p.id);
+  };
+
+  const fetchPersonelSantiyeler = async (personelId: string) => {
+    const { data } = await supabase.from("personel_santiyeler").select("santiye_id").eq("personel_id", personelId);
+    if (data) setSelectedSantiyeler(data.map(r => r.santiye_id));
+    else setSelectedSantiyeler([]);
   };
 
   const fetchPersonelMykEgitimler = async (personelId: string) => {
     const { data } = await supabase.from("personel_myk_egitimleri").select("myk_egitim_id, alis_tarihi, gecerlilik_suresi").eq("personel_id", personelId);
-    if (data) {
-      setMykKayitlar(data.map((r: any) => ({
-        myk_egitim_id: r.myk_egitim_id,
-        alis_tarihi: r.alis_tarihi || "",
-        gecerlilik_suresi: r.gecerlilik_suresi ? r.gecerlilik_suresi.toString() : "",
-      })));
-    }
+    if (data) setMykKayitlar(data.map((r: any) => ({ myk_egitim_id: r.myk_egitim_id, alis_tarihi: r.alis_tarihi || "", gecerlilik_suresi: String(r.gecerlilik_suresi || "") })));
+    else setMykKayitlar([]);
   };
 
-  const fetchEditBelgeler = async (personelId: string) => {
-    const { data } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", personelId).is("silinme_tarihi", null).order("eklenme_tarihi", { ascending: false });
-    if (data) setEditBelgeler(data);
+  const savePersonelSantiyeler = async () => {
+    if (!editingPerson) return;
+    await supabase.from("personel_santiyeler").delete().eq("personel_id", editingPerson.id);
+    if (selectedSantiyeler.length > 0) {
+      const inserts = selectedSantiyeler.map(santiye_id => ({ personel_id: editingPerson.id, santiye_id }));
+      await supabase.from("personel_santiyeler").insert(inserts);
+    }
   };
 
   const belgeTipiLabel = (tip: string) => {
@@ -326,7 +345,7 @@ export default function PersonnelList() {
         telefon: editForm.telefon,
         email: editForm.email,
         ogrenim_durumu: editForm.ogrenim_durumu,
-        santiye_adi: editForm.santiye_adi,
+        santiye_adi: santiyeler.filter(s => selectedSantiyeler.includes(s.id)).map(s => s.ad).join(", ") || null,
         ekip_id: editForm.ekip_id || null,
         ekip_adi: ekipler.find(e => e.id === editForm.ekip_id)?.ad || null,
         meslek_kodu: editForm.meslek_kodu,
@@ -363,6 +382,7 @@ export default function PersonnelList() {
       if (error) throw error;
       await uploadFiles();
       await saveEditMykEgitimler();
+      await savePersonelSantiyeler();
       await logAudit("personel", "UPDATE", editingPerson.id, oldValues, payload);
       setEditStatus({ type: "success", message: "Personel güncellendi!" });
     fetchPersonnel();
@@ -420,6 +440,7 @@ export default function PersonnelList() {
         fullName.includes(t) ||
         p.kimlik_no?.toLowerCase().includes(t) ||
         p.santiye_adi?.toLowerCase().includes(t) ||
+        p.personel_santiyeler?.some((ps: any) => ps.santiyeler?.ad?.toLowerCase().includes(t)) ||
         (p.ekipler?.ad || p.ekip_adi || "")?.toLowerCase().includes(t)
     );
   }).sort((a, b) => {
@@ -506,7 +527,7 @@ export default function PersonnelList() {
                     <td className="font-medium text-gray-800 align-middle">{p.ad || "-"}</td>
                     <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>
                     <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
-                    <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{(p.personel_santiyeler?.map((ps: any) => ps.santiyeler?.ad).filter(Boolean).join(", ")) || p.santiye_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ekipler?.ad || p.ekip_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.email || "-"}</td>
@@ -688,9 +709,21 @@ export default function PersonnelList() {
                   <label className="text-xs text-gray-500 w-12 shrink-0">Öğrenim</label>
                   <select value={editForm.ogrenim_durumu} onChange={e => setEditForm({...editForm, ogrenim_durumu: e.target.value})} className="input text-xs flex-1 min-w-0"><option value="">Seç</option>{["İlkokul","Ortaokul","Lise","Önlisans","Lisans","Yüksek Lisans","Doktora"].map(o=><option key={o} value={o}>{o}</option>)}</select>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-12 shrink-0">Şantiye</label>
-                  <input type="text" value={editForm.santiye_adi} onChange={e => setEditForm({...editForm, santiye_adi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                <div className="flex items-start gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0 pt-1">Şantiye</label>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1.5">
+                      {santiyeler.map(s => {
+                        const checked = selectedSantiyeler.includes(s.id);
+                        return (
+                          <label key={s.id} className={`flex items-center gap-1 px-2 py-1 rounded border text-xs cursor-pointer transition ${checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                            <input type="checkbox" checked={checked} onChange={() => setSelectedSantiyeler(prev => checked ? prev.filter(id => id !== s.id) : [...prev, s.id])} className="sr-only" />
+                            {checked ? "✓ " : ""}{s.ad}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">

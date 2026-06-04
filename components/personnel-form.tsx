@@ -75,13 +75,22 @@ export default function PersonnelForm() {
   const [mykShowAll, setMykShowAll] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [ekipler, setEkipler] = useState<any[]>([]);
+  const [santiyeler, setSantiyeler] = useState<any[]>([]);
+  const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
     if (data) setEkipler(data);
   };
 
+  const fetchSantiyeler = async () => {
+    const { data } = await supabase.from("santiyeler").select("id, ad").order("ad");
+    if (data) setSantiyeler(data);
+  };
+
   useEffect(() => {
+    fetchEkipler();
+    fetchSantiyeler();
     fetchEkipler();
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
@@ -235,6 +244,12 @@ export default function PersonnelForm() {
     await supabase.from("personel_myk_egitimleri").insert(inserts);
   };
 
+  const savePersonelSantiyeler = async (personelId: string) => {
+    if (selectedSantiyeler.length === 0) return;
+    const inserts = selectedSantiyeler.map(santiye_id => ({ personel_id: personelId, santiye_id }));
+    await supabase.from("personel_santiyeler").insert(inserts);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -257,7 +272,7 @@ export default function PersonnelForm() {
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
         meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
-        santiye_adi: sanitize(form.santiyeAdi), ekip_id: form.ekipId || null, ekip_adi: ekipler.find(e => e.id === form.ekipId)?.ad || null,
+        santiye_adi: santiyeler.filter(s => selectedSantiyeler.includes(s.id)).map(s => s.ad).join(", ") || null, ekip_id: form.ekipId || null, ekip_adi: ekipler.find(e => e.id === form.ekipId)?.ad || null,
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
         oryantasyon_tarihi: form.oryantasyon || null, sertifika_tarihi: form.sertifika || null,
@@ -281,6 +296,7 @@ export default function PersonnelForm() {
       if (data && data[0]) {
         await uploadFilesForPersonel(data[0].id);
         await saveMykEgitimler(data[0].id);
+        await savePersonelSantiyeler(data[0].id);
         await logAudit("personel", "INSERT", data[0].id, null, payload);
       }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
@@ -292,6 +308,7 @@ export default function PersonnelForm() {
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
       });
       setMykKayitlar([]);
+      setSelectedSantiyeler([]);
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
       setPendingFiles([]);
     } catch (err: any) {
@@ -416,8 +433,18 @@ export default function PersonnelForm() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1.5 block">Şantiye</label>
-                <input type="text" value={form.santiyeAdi} onChange={(e) => handleChange("santiyeAdi", e.target.value)} className="input" placeholder="Şantiye Adı" />
+                <label className="text-sm text-gray-600 mb-1.5 block">Şantiyeler</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {santiyeler.map(s => {
+                    const checked = selectedSantiyeler.includes(s.id);
+                    return (
+                      <label key={s.id} className={`flex items-center gap-1 px-2.5 py-1.5 rounded border text-sm cursor-pointer transition ${checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                        <input type="checkbox" checked={checked} onChange={() => setSelectedSantiyeler(prev => checked ? prev.filter(id => id !== s.id) : [...prev, s.id])} className="sr-only" />
+                        {checked ? "✓ " : ""}{s.ad}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Ekip</label>
