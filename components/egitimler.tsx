@@ -50,6 +50,7 @@ export default function Egitimler() {
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [katilimcilarDetay, setKatilimcilarDetay] = useState<Record<string, any[]>>({});
+  const [silmeKilitli, setSilmeKilitli] = useState(true);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -255,6 +256,9 @@ export default function Egitimler() {
             </div>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setSilmeKilitli(!silmeKilitli)} className={`btn flex items-center gap-2 ${silmeKilitli ? "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" : "bg-red-50 border border-red-200 text-red-700 hover:bg-red-100"}`}>
+              {silmeKilitli ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />} Silme {silmeKilitli ? "Kilitli" : "Açık"}
+            </button>
             <button onClick={() => { setShowTanitim(true); }} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
               <Settings className="w-4 h-4" /> Tanımlar
             </button>
@@ -343,7 +347,7 @@ export default function Egitimler() {
                 </div>
                 <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                   <button onClick={() => handleEdit(k)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(k.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>
+                  {!silmeKilitli && <button onClick={() => handleDelete(k.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>}
                   {expandedId === k.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </div>
               </div>
