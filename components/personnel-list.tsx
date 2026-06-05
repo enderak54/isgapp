@@ -97,6 +97,12 @@ export default function PersonnelList() {
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     ad: true, soyad: true, kimlik_no: true, santiye: true, ekip: true, taseron: true,
     telefon: true, email: true, ogrenim: true, ise_giris: true,
+    meslek_kodu: false, sgk_tarihi: false, kan_grubu: false, kronik_rahatlik: false,
+    yuksekte_calisamaz: false, gece_calisamaz: false, vardiyali_calisamaz: false,
+    isg_egitim_tarihi: false, yuksekte_calisma_tarihi: false, myk_tarihi: false,
+    sertifika_tarihi: false, operator_belgesi_tarihi: false, kkd_tarihi: false,
+    oryantasyon_tarihi: false, saglik_raporu_tarihi: false, notlar: false,
+    ayrilis_tarihi: false, ayrilis_nedeni: false,
   });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
@@ -529,6 +535,24 @@ export default function PersonnelList() {
                   { key: "email", label: "E-posta" },
                   { key: "ogrenim", label: "Öğrenim" },
                   { key: "ise_giris", label: "İşe Giriş" },
+                  { key: "meslek_kodu", label: "Meslek Kodu" },
+                  { key: "sgk_tarihi", label: "SGK Tarihi" },
+                  { key: "kan_grubu", label: "Kan Grubu" },
+                  { key: "kronik_rahatlik", label: "Kronik Rahatsızlık" },
+                  { key: "yuksekte_calisamaz", label: "Yüksekte Çalışamaz" },
+                  { key: "gece_calisamaz", label: "Gece Çalışamaz" },
+                  { key: "vardiyali_calisamaz", label: "Vardiyalı Çalışamaz" },
+                  { key: "isg_egitim_tarihi", label: "İSG Eğitim Tarihi" },
+                  { key: "yuksekte_calisma_tarihi", label: "Yüksekte Çalışma Tarihi" },
+                  { key: "myk_tarihi", label: "MYK Tarihi" },
+                  { key: "sertifika_tarihi", label: "Sertifika Tarihi" },
+                  { key: "operator_belgesi_tarihi", label: "Operatör Belgesi Tarihi" },
+                  { key: "kkd_tarihi", label: "KKD Tarihi" },
+                  { key: "oryantasyon_tarihi", label: "Oryantasyon Tarihi" },
+                  { key: "saglik_raporu_tarihi", label: "Sağlık Raporu Tarihi" },
+                  { key: "notlar", label: "Notlar" },
+                  { key: "ayrilis_tarihi", label: "Ayrılış Tarihi" },
+                  { key: "ayrilis_nedeni", label: "Ayrılış Nedeni" },
                 ].map((col) => (
                   <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
                     <input type="checkbox" checked={columnVisibility[col.key]} onChange={() => setColumnVisibility(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
@@ -561,7 +585,25 @@ export default function PersonnelList() {
                   {columnVisibility.telefon && <th>Telefon</th>}
                   {columnVisibility.email && <th>E-posta</th>}
                   {columnVisibility.ogrenim && <th>Öğrenim</th>}
+                  {columnVisibility.meslek_kodu && <th>Meslek Kodu</th>}
                   {columnVisibility.ise_giris && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ise_giris_tarihi")}>İşe Giriş{sortArrow("ise_giris_tarihi")}</th>}
+                  {columnVisibility.sgk_tarihi && <th>SGK Tarihi</th>}
+                  {columnVisibility.kan_grubu && <th>Kan Grubu</th>}
+                  {columnVisibility.kronik_rahatlik && <th>Kronik Rah.</th>}
+                  {columnVisibility.yuksekte_calisamaz && <th>Yüksekte Çal.</th>}
+                  {columnVisibility.gece_calisamaz && <th>Gece Çal.</th>}
+                  {columnVisibility.vardiyali_calisamaz && <th>Vardiyalı Çal.</th>}
+                  {columnVisibility.isg_egitim_tarihi && <th>İSG Eğt.</th>}
+                  {columnVisibility.yuksekte_calisma_tarihi && <th>Yük.Çalışma</th>}
+                  {columnVisibility.myk_tarihi && <th>MYK</th>}
+                  {columnVisibility.sertifika_tarihi && <th>Sertifika</th>}
+                  {columnVisibility.operator_belgesi_tarihi && <th>Op.Belgesi</th>}
+                  {columnVisibility.kkd_tarihi && <th>KKD</th>}
+                  {columnVisibility.oryantasyon_tarihi && <th>Oryantasyon</th>}
+                  {columnVisibility.saglik_raporu_tarihi && <th>Sağ.Raporu</th>}
+                  {columnVisibility.notlar && <th>Notlar</th>}
+                  {columnVisibility.ayrilis_tarihi && <th>Ayr.Tarihi</th>}
+                  {columnVisibility.ayrilis_nedeni && <th>Ayr.Nedeni</th>}
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
@@ -577,7 +619,25 @@ export default function PersonnelList() {
                     {columnVisibility.telefon && <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>}
                     {columnVisibility.email && <td className="text-gray-600 align-middle">{p.email || "-"}</td>}
                     {columnVisibility.ogrenim && <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>}
+                    {columnVisibility.meslek_kodu && <td className="text-gray-600 align-middle">{p.meslek_kodu || "-"}</td>}
                     {columnVisibility.ise_giris && <td className="text-gray-500 align-middle">{displayDate(p.ise_giris_tarihi)}</td>}
+                    {columnVisibility.sgk_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.sgk_tarihi)}</td>}
+                    {columnVisibility.kan_grubu && <td className="text-gray-600 align-middle">{p.kan_grubu || "-"}</td>}
+                    {columnVisibility.kronik_rahatlik && <td className="text-gray-600 align-middle max-w-[120px] truncate" title={p.kronik_rahatlik}>{p.kronik_rahatlik || "-"}</td>}
+                    {columnVisibility.yuksekte_calisamaz && <td className="text-gray-600 align-middle">{p.yuksekte_calisamaz ? "❌" : "✅"}</td>}
+                    {columnVisibility.gece_calisamaz && <td className="text-gray-600 align-middle">{p.gece_calisamaz ? "❌" : "✅"}</td>}
+                    {columnVisibility.vardiyali_calisamaz && <td className="text-gray-600 align-middle">{p.vardiyali_calisamaz ? "❌" : "✅"}</td>}
+                    {columnVisibility.isg_egitim_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.isg_egitim_tarihi)}</td>}
+                    {columnVisibility.yuksekte_calisma_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.yuksekte_calisma_tarihi)}</td>}
+                    {columnVisibility.myk_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.myk_tarihi)}</td>}
+                    {columnVisibility.sertifika_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.sertifika_tarihi)}</td>}
+                    {columnVisibility.operator_belgesi_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.operator_belgesi_tarihi)}</td>}
+                    {columnVisibility.kkd_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.kkd_tarihi)}</td>}
+                    {columnVisibility.oryantasyon_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.oryantasyon_tarihi)}</td>}
+                    {columnVisibility.saglik_raporu_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.saglik_raporu_tarihi)}</td>}
+                    {columnVisibility.notlar && <td className="text-gray-600 align-middle max-w-[150px] truncate" title={p.notlar}>{p.notlar || "-"}</td>}
+                    {columnVisibility.ayrilis_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.ayrilis_tarihi)}</td>}
+                    {columnVisibility.ayrilis_nedeni && <td className="text-gray-600 align-middle max-w-[120px] truncate" title={p.ayrilis_nedeni}>{p.ayrilis_nedeni || "-"}</td>}
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
