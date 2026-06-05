@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive, Settings as SettingsIcon } from "lucide-react";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
@@ -94,6 +94,11 @@ export default function PersonnelList() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    ad: true, soyad: true, kimlik_no: true, santiye: true, ekip: true, taseron: true,
+    telefon: true, email: true, ogrenim: true, ise_giris: true,
+  });
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
@@ -505,6 +510,35 @@ export default function PersonnelList() {
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input type="text" placeholder="Personel ara (ad, TC, şantiye)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
         </div>
+        <div className="relative mt-2 flex justify-end">
+          <button onClick={() => setShowColumnSettings(!showColumnSettings)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100">
+            <SettingsIcon className="w-3.5 h-3.5" /> Sütunlar
+          </button>
+          {showColumnSettings && (
+            <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-48">
+              <p className="text-xs font-medium text-gray-500 mb-2">Gösterilen Sütunlar</p>
+              <div className="space-y-1.5">
+                {[
+                  { key: "ad", label: "Ad" },
+                  { key: "soyad", label: "Soyad" },
+                  { key: "kimlik_no", label: "TC Kimlik No" },
+                  { key: "santiye", label: "Şantiye" },
+                  { key: "ekip", label: "Ekip" },
+                  { key: "taseron", label: "Taşeron" },
+                  { key: "telefon", label: "Telefon" },
+                  { key: "email", label: "E-posta" },
+                  { key: "ogrenim", label: "Öğrenim" },
+                  { key: "ise_giris", label: "İşe Giriş" },
+                ].map((col) => (
+                  <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
+                    <input type="checkbox" checked={columnVisibility[col.key]} onChange={() => setColumnVisibility(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -518,32 +552,32 @@ export default function PersonnelList() {
             <table>
               <thead>
                 <tr>
-                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ad")}>Ad{sortArrow("ad")}</th>
-                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("soyad")}>Soyad{sortArrow("soyad")}</th>
-                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("kimlik_no")}>TC Kimlik No{sortArrow("kimlik_no")}</th>
-                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("santiye_adi")}>Şantiye{sortArrow("santiye_adi")}</th>
-                  <th>Ekip</th>
-                  <th>Taşeron</th>
-                  <th>Telefon</th>
-                  <th>E-posta</th>
-                  <th>Öğrenim</th>
-                  <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ise_giris_tarihi")}>İşe Giriş{sortArrow("ise_giris_tarihi")}</th>
+                  {columnVisibility.ad && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ad")}>Ad{sortArrow("ad")}</th>}
+                  {columnVisibility.soyad && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("soyad")}>Soyad{sortArrow("soyad")}</th>}
+                  {columnVisibility.kimlik_no && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("kimlik_no")}>TC Kimlik No{sortArrow("kimlik_no")}</th>}
+                  {columnVisibility.santiye && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("santiye_adi")}>Şantiye{sortArrow("santiye_adi")}</th>}
+                  {columnVisibility.ekip && <th>Ekip</th>}
+                  {columnVisibility.taseron && <th>Taşeron</th>}
+                  {columnVisibility.telefon && <th>Telefon</th>}
+                  {columnVisibility.email && <th>E-posta</th>}
+                  {columnVisibility.ogrenim && <th>Öğrenim</th>}
+                  {columnVisibility.ise_giris && <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("ise_giris_tarihi")}>İşe Giriş{sortArrow("ise_giris_tarihi")}</th>}
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} onClick={() => openEdit(p)} className="cursor-pointer hover:bg-gray-50 transition align-middle">
-                    <td className="font-medium text-gray-800 align-middle">{p.ad || "-"}</td>
-                    <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>
-                    <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
-                    <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.ekip_adi || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.taseronlar?.firma_adi || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.email || "-"}</td>
-                    <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
-                    <td className="text-gray-500 align-middle">{displayDate(p.ise_giris_tarihi)}</td>
+                    {columnVisibility.ad && <td className="font-medium text-gray-800 align-middle">{p.ad || "-"}</td>}
+                    {columnVisibility.soyad && <td className="font-medium text-gray-600 align-middle">{p.soyad || "-"}</td>}
+                    {columnVisibility.kimlik_no && <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>}
+                    {columnVisibility.santiye && <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>}
+                    {columnVisibility.ekip && <td className="text-gray-600 align-middle">{p.ekip_adi || "-"}</td>}
+                    {columnVisibility.taseron && <td className="text-gray-600 align-middle">{p.taseronlar?.firma_adi || "-"}</td>}
+                    {columnVisibility.telefon && <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>}
+                    {columnVisibility.email && <td className="text-gray-600 align-middle">{p.email || "-"}</td>}
+                    {columnVisibility.ogrenim && <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>}
+                    {columnVisibility.ise_giris && <td className="text-gray-500 align-middle">{displayDate(p.ise_giris_tarihi)}</td>}
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
