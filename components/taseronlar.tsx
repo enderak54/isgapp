@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { HardHat, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
+import { HardHat, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock } from "lucide-react";
 
 export default function Taseronlar() {
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
@@ -11,10 +11,19 @@ export default function Taseronlar() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [locked, setLocked] = useState<Set<string>>(new Set());
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [form, setForm] = useState({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
+
+  const toggleLock = (id: string) => {
+    setLocked(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
 
   const fetchTaseronlar = async () => {
     const { data } = await supabase.from("taseronlar").select("*, santiyeler(ad)").order("created_at", { ascending: false });
@@ -98,7 +107,10 @@ export default function Taseronlar() {
               {t.santiyeler?.ad && <p className="text-sm text-gray-600">Şantiye: {t.santiyeler.ad}</p>}
               <div className="flex gap-2 mt-3 pt-3 border-t">
                 <button onClick={() => { setEditing(t); setForm({ firma_adi: t.firma_adi, yetkili: t.yetkili || "", telefon: t.telefon || "", email: t.email || "", adres: t.adres || "", vergi_no: t.vergi_no || "", santiye_id: t.santiye_id || "", durum: t.durum, notlar: t.notlar || "" }); setShowForm(true); }} className="flex-1 text-green-600 hover:bg-green-50 py-1 rounded text-sm">Düzenle</button>
-                <button onClick={() => handleDelete(t.id)} className="flex-1 text-red-600 hover:bg-red-50 py-1 rounded text-sm">Sil</button>
+                <button onClick={() => toggleLock(t.id)} className={`px-2 py-1 rounded text-sm ${locked.has(t.id) ? "text-amber-500 bg-amber-50" : "text-gray-400 hover:text-gray-600"}`} title={locked.has(t.id) ? "Kilidi aç" : "Kilitli"}>
+                  {locked.has(t.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                </button>
+                <button onClick={() => handleDelete(t.id)} disabled={!locked.has(t.id)} className={`flex-1 py-1 rounded text-sm ${locked.has(t.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}>Sil</button>
               </div>
             </div>
           ))}

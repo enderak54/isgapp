@@ -93,6 +93,7 @@ export default function PersonnelList() {
   const [ekipler, setEkipler] = useState<any[]>([]);
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
+  const [taseronlar, setTaseronlar] = useState<any[]>([]);
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
@@ -104,10 +105,16 @@ export default function PersonnelList() {
     if (data) setSantiyeler(data);
   };
 
+  const fetchTaseronlar = async () => {
+    const { data } = await supabase.from("taseronlar").select("id, firma_adi").order("firma_adi");
+    if (data) setTaseronlar(data);
+  };
+
   useEffect(() => {
     fetchPersonnel();
     fetchEkipler();
     fetchSantiyeler();
+    fetchTaseronlar();
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
@@ -132,7 +139,7 @@ export default function PersonnelList() {
   const fetchPersonnel = async () => {
     try {
       const { data, error } = await supabase
-        .from("personel").select("*")
+        .from("personel").select("*, taseronlar(firma_adi)")
         .eq("arsivde", arsivGoster)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -186,6 +193,7 @@ export default function PersonnelList() {
       santiye_adi: p.santiye_adi || "",
       ekip_adi: p.ekip_adi || "",
       ekip_id: p.ekip_id || "",
+      taseron_id: p.taseron_id || "",
       meslek_kodu: p.meslek_kodu || "",
       sgk_tarihi: p.sgk_tarihi || "",
       ise_giris_tarihi: p.ise_giris_tarihi || "",
@@ -348,6 +356,7 @@ export default function PersonnelList() {
         santiye_adi: santiyeler.filter(s => selectedSantiyeler.includes(s.id)).map(s => s.ad).join(", ") || null,
         ekip_id: editForm.ekip_id || null,
         ekip_adi: ekipler.find(e => e.id === editForm.ekip_id)?.ad || null,
+        taseron_id: editForm.taseron_id || null,
         meslek_kodu: editForm.meslek_kodu,
         sgk_tarihi: editForm.sgk_tarihi || null,
         ise_giris_tarihi: editForm.ise_giris_tarihi || null,
@@ -440,7 +449,8 @@ export default function PersonnelList() {
         fullName.includes(t) ||
         p.kimlik_no?.toLowerCase().includes(t) ||
         p.santiye_adi?.toLowerCase().includes(t) ||
-        (p.ekip_adi || "")?.toLowerCase().includes(t)
+        (p.ekip_adi || "")?.toLowerCase().includes(t) ||
+        (p.taseronlar?.firma_adi || "")?.toLowerCase().includes(t)
     );
   }).sort((a, b) => {
     let va = "", vb = "";
@@ -459,7 +469,7 @@ export default function PersonnelList() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("personel").select("*")
+        .from("personel").select("*, taseronlar(firma_adi)")
         .eq("arsivde", v)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -513,6 +523,7 @@ export default function PersonnelList() {
                   <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("kimlik_no")}>TC Kimlik No{sortArrow("kimlik_no")}</th>
                   <th className="cursor-pointer hover:text-gray-900 select-none" onClick={() => toggleSort("santiye_adi")}>Şantiye{sortArrow("santiye_adi")}</th>
                   <th>Ekip</th>
+                  <th>Taşeron</th>
                   <th>Telefon</th>
                   <th>E-posta</th>
                   <th>Öğrenim</th>
@@ -528,6 +539,7 @@ export default function PersonnelList() {
                     <td className="font-mono text-sm align-middle">{maskTC(p.kimlik_no)}</td>
                     <td className="text-gray-600 align-middle">{p.santiye_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ekip_adi || "-"}</td>
+                    <td className="text-gray-600 align-middle">{p.taseronlar?.firma_adi || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.telefon || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.email || "-"}</td>
                     <td className="text-gray-600 align-middle">{p.ogrenim_durumu || "-"}</td>
@@ -741,6 +753,13 @@ export default function PersonnelList() {
                   <select value={editForm.ekip_id || ""} onChange={e => setEditForm({...editForm, ekip_id: e.target.value})} className="input text-xs flex-1 min-w-0">
                     <option value="">Ekip Seçin</option>
                     {ekipler.map(ek => <option key={ek.id} value={ek.id}>{ek.ad}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Taşeron</label>
+                  <select value={editForm.taseron_id || ""} onChange={e => setEditForm({...editForm, taseron_id: e.target.value})} className="input text-xs flex-1 min-w-0">
+                    <option value="">Taşeron Seçin</option>
+                    {taseronlar.map(t => <option key={t.id} value={t.id}>{t.firma_adi}</option>)}
                   </select>
                 </div>
               </div>

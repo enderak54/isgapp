@@ -21,16 +21,20 @@ export default function SahaSorumlulari() {
   const [ekipEditing, setEkipEditing] = useState<any>(null);
   const [showEkipForm, setShowEkipForm] = useState(false);
   const [lockedEkipler, setLockedEkipler] = useState<Set<string>>(new Set());
+  const [lockedSorumlular, setLockedSorumlular] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchSorumlular(); fetchSantiyeler(); fetchEkipler(); fetchPersonel(); }, []);
 
-  const toggleEkipLock = (id: string) => {
-    setLockedEkipler(prev => {
+  const toggleLock = (setter: typeof setLockedSorumlular) => (id: string) => {
+    setter(prev => {
       const n = new Set(prev);
       if (n.has(id)) n.delete(id); else n.add(id);
       return n;
     });
   };
+
+  const toggleSorumluLock = toggleLock(setLockedSorumlular);
+  const toggleEkipLock = toggleLock(setLockedEkipler);
 
   const fetchSorumlular = async () => {
     const { data } = await supabase.from("saha_sorumlulari").select("*, santiyeler(ad)").order("ad_soyad", { ascending: true });
@@ -148,7 +152,10 @@ export default function SahaSorumlulari() {
                     <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${s.durum === "aktif" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>{s.durum}</span></td>
                     <td className="px-4 py-3 flex justify-center gap-2">
                       <button onClick={() => { setEditing(s); setForm({ ad_soyad: s.ad_soyad, telefon: s.telefon || "", email: s.email || "", pozisyon: s.pozisyon || "", santiye_id: s.santiye_id || "", durum: s.durum, notlar: s.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(s.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => toggleSorumluLock(s.id)} className={`p-1 rounded ${lockedSorumlular.has(s.id) ? "text-amber-500" : "text-gray-300 hover:text-gray-500"}`} title={lockedSorumlular.has(s.id) ? "Kilidi aç" : "Kilitli"}>
+                        {lockedSorumlular.has(s.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleDelete(s.id)} disabled={!lockedSorumlular.has(s.id)} className={`p-1 rounded ${lockedSorumlular.has(s.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))}
