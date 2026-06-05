@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { UserCog, Plus, Edit, Trash2, Search, X, Save, Users } from "lucide-react";
+import { UserCog, Plus, Edit, Trash2, Search, X, Save, Users, Lock, Unlock } from "lucide-react";
 
 export default function SahaSorumlulari() {
   const [sorumlular, setSorumlular] = useState<any[]>([]);
@@ -20,8 +20,17 @@ export default function SahaSorumlulari() {
   const [ekipForm, setEkipForm] = useState({ ad: "", sorumlu_personel_id: "" });
   const [ekipEditing, setEkipEditing] = useState<any>(null);
   const [showEkipForm, setShowEkipForm] = useState(false);
+  const [lockedEkipler, setLockedEkipler] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchSorumlular(); fetchSantiyeler(); fetchEkipler(); fetchPersonel(); }, []);
+
+  const toggleEkipLock = (id: string) => {
+    setLockedEkipler(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
 
   const fetchSorumlular = async () => {
     const { data } = await supabase.from("saha_sorumlulari").select("*, santiyeler(ad)").order("ad_soyad", { ascending: true });
@@ -197,7 +206,10 @@ export default function SahaSorumlulari() {
                     <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${e.aktif ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>{e.aktif ? "Aktif" : "Pasif"}</span></td>
                     <td className="px-4 py-3 flex justify-center gap-2">
                       <button onClick={() => { setEkipEditing(e); setEkipForm({ ad: e.ad, sorumlu_personel_id: e.sorumlu_personel_id || "" }); setShowEkipForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleEkipDelete(e.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => toggleEkipLock(e.id)} className={`p-1 rounded ${lockedEkipler.has(e.id) ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:text-gray-500"}`} title={lockedEkipler.has(e.id) ? "Kilidi aç" : "Kilitli"}>
+                        {lockedEkipler.has(e.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleEkipDelete(e.id)} disabled={!lockedEkipler.has(e.id)} className={`p-1 rounded ${lockedEkipler.has(e.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 );
