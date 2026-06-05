@@ -22,6 +22,8 @@ export default function SahaSorumlulari() {
   const [showEkipForm, setShowEkipForm] = useState(false);
   const [lockedEkipler, setLockedEkipler] = useState<Set<string>>(new Set());
   const [lockedSorumlular, setLockedSorumlular] = useState<Set<string>>(new Set());
+  const [ekipUyeleri, setEkipUyeleri] = useState<any[]>([]);
+  const [ekipUyeleriModal, setEkipUyeleriModal] = useState<{ open: boolean; ekipAd: string }>({ open: false, ekipAd: "" });
 
   useEffect(() => { fetchSorumlular(); fetchSantiyeler(); fetchEkipler(); fetchPersonel(); }, []);
 
@@ -83,6 +85,12 @@ export default function SahaSorumlulari() {
       await supabase.from("ekipler").delete().eq("id", id);
       fetchEkipler();
     }
+  };
+
+  const showEkipUyeleri = async (ekipId: string, ekipAd: string) => {
+    const { data } = await supabase.from("personel").select("ad, soyad, telefon, kimlik_no").eq("ekip_id", ekipId).eq("arsivde", false).order("ad");
+    if (data) setEkipUyeleri(data);
+    setEkipUyeleriModal({ open: true, ekipAd });
   };
 
   return (
@@ -208,7 +216,11 @@ export default function SahaSorumlulari() {
                 const sorumlu = e.personel;
                 return (
                   <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium">{e.ad}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      <button onClick={() => showEkipUyeleri(e.id, e.ad)} className="text-blue-600 hover:text-blue-800 hover:underline text-left">
+                        <Users className="w-4 h-4 inline mr-1" />{e.ad}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-sm">{sorumlu ? `${sorumlu.ad} ${sorumlu.soyad}` : "-"}</td>
                     <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${e.aktif ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>{e.aktif ? "Aktif" : "Pasif"}</span></td>
                     <td className="px-4 py-3 flex justify-center gap-2">
@@ -228,6 +240,33 @@ export default function SahaSorumlulari() {
           </table>
         </div>
       </div>
+
+      {ekipUyeleriModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2"><Users className="w-5 h-5" />{ekipUyeleriModal.ekipAd}</h3>
+              <button onClick={() => setEkipUyeleriModal({ open: false, ekipAd: "" })} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            {ekipUyeleri.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">Bu ekipte personel bulunmuyor</p>
+            ) : (
+              <div className="space-y-2">
+                {ekipUyeleri.map((u, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">{u.ad} {u.soyad}</p>
+                      {u.kimlik_no && <p className="text-xs text-gray-400">{u.kimlik_no}</p>}
+                    </div>
+                    {u.telefon && <p className="text-sm text-gray-500">{u.telefon}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-gray-400 mt-4">Toplam {ekipUyeleri.length} kişi</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
