@@ -45,6 +45,7 @@ export default function Taseronlar() {
 
   // Cell modal (click on a cell to view/manage documents for that type)
   const [cellModal, setCellModal] = useState<{ emp: any; tip: string; docs: any[] } | null>(null);
+  const [docLocked, setDocLocked] = useState<Set<string>>(new Set());
 
   // Upload inside cell modal
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -428,7 +429,8 @@ export default function Taseronlar() {
                                 <button onClick={() => setRejectDoc(doc)} className="text-red-600 hover:bg-red-50 p-0.5 rounded" title="Reddet"><X className="w-3.5 h-3.5" /></button>
                               </>
                             )}
-                            <button onClick={() => { handleDeleteDoc(doc); setCellModal(null); }} className="text-gray-400 hover:text-red-600 p-0.5 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setDocLocked(prev => { const n = new Set(prev); if (n.has(doc.id)) n.delete(doc.id); else n.add(doc.id); return n; })} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-amber-500 bg-amber-50" : "text-gray-400 hover:text-gray-600"}`}>{docLocked.has(doc.id) ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}</button>
+                            <button onClick={() => { handleDeleteDoc(doc); setCellModal(null); }} disabled={!docLocked.has(doc.id)} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </td>
                       </tr>
