@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { validateFile, sanitizeFileName } from "@/lib/file-validation";
@@ -39,20 +39,31 @@ export default function Taseronlar() {
   // Detail view
   const [selectedTaseron, setSelectedTaseron] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [employeeDocs, setEmployeeDocs] = useState<Record<string, any[]>>({});
+  const [docsByEmp, setDocsByEmp] = useState<Record<string, Record<string, any>>>({});
+  const [allDocs, setAllDocs] = useState<Record<string, any[]>>({});
   const [empLoading, setEmpLoading] = useState(false);
-  const [expandedEmp, setExpandedEmp] = useState<string | null>(null);
 
-  // Upload
-  const [uploadEmp, setUploadEmp] = useState<string | null>(null);
+  // Cell modal (click on a cell to view/manage documents for that type)
+  const [cellModal, setCellModal] = useState<{ emp: any; tip: string; docs: any[] } | null>(null);
+
+  // Upload inside cell modal
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadTip, setUploadTip] = useState("isg_egitim");
   const [uploadExpiry, setUploadExpiry] = useState("");
   const [uploading, setUploading] = useState(false);
 
   // Reject
   const [rejectDoc, setRejectDoc] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  const SUTUNLAR = [
+    { key: "myk", label: "MYK" },
+    { key: "saglik_raporu", label: "Sağlık Raporu" },
+    { key: "isg_egitim", label: "İSG Eğitimi" },
+    { key: "yuksekte_calisma", label: "Yüksekte Çalışma" },
+    { key: "kkd", label: "KKD Zimmet" },
+    { key: "adli_sicil", label: "Adli Sicil" },
+    { key: "gorevlendirme", label: "Görevlendirme" },
+  ] as const;
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
 
@@ -74,20 +85,34 @@ export default function Taseronlar() {
   const openCompany = async (t: any) => {
     setSelectedTaseron(t);
     setEmpLoading(true);
-    const { data: emp } = await supabase.from("personel").select("id, ad, soyad, kimlik_no, telefon").eq("taseron_id", t.id).eq("arsivde", false).order("ad");
+    const { data: emp } = await supabase.from("personel")
+      .select("id, ad, soyad, kimlik_no, telefon, sgk_tarihi, ise_giris_tarihi")
+      .eq("taseron_id", t.id).eq("arsivde", false).order("ad");
     if (emp) {
       setEmployees(emp);
-      const docMap: Record<string, any[]> = {};
-      for (const e of emp) {
-        const { data: docs } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", e.id).order("eklenme_tarihi", { ascending: false });
-        if (docs) docMap[e.id] = docs;
+      if (emp.length > 0) {
+        const ids = emp.map(e => e.id);
+        const { data: allDocs } = await supabase.from("personel_belgeleri")
+          .select("*").in("personel_id", ids).order("eklenme_tarihi", { ascending: false });
+        const grouped: Record<string, Record<string, any>> = {};
+        const allGrouped: Record<string, any[]> = {};
+        for (const e of emp) {
+          const latestMap: Record<string, any> = {};
+          const empDocs = (allDocs || []).filter(d => d.personel_id === e.id);
+          allGrouped[e.id] = empDocs;
+          for (const d of empDocs) {
+            if (!latestMap[d.belge_tipi]) latestMap[d.belge_tipi] = d;
+          }
+          grouped[e.id] = latestMap;
+        }
+        setDocsByEmp(grouped);
+        setAllDocs(allGrouped);
       }
-      setEmployeeDocs(docMap);
     }
     setEmpLoading(false);
   };
 
-  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmployeeDocs({}); setExpandedEmp(null); };
+  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setDocsByEmp({}); setAllDocs({}); setCellModal(null); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,8 +128,8 @@ export default function Taseronlar() {
     fetchTaseronlar();
   };
 
-  const handleUpload = async () => {
-    if (!uploadEmp || !uploadFile) return;
+  const handleUpload = async (empId: string, tip: string) => {
+    if (!uploadFile) return;
     const v = validateFile(uploadFile);
     if (!v.valid) { alert(v.error); return; }
     setUploading(true);
@@ -114,13 +139,13 @@ export default function Taseronlar() {
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
       const { error: dbErr } = await supabase.from("personel_belgeleri").insert({
-        personel_id: uploadEmp, belge_tipi: uploadTip, dosya_url: urlData.publicUrl,
+        personel_id: empId, belge_tipi: tip, dosya_url: urlData.publicUrl,
         dosya_adi: uploadFile.name, dosya_uzantisi: uploadFile.name.split(".").pop(),
         dosya_boyut: uploadFile.size, onay_durumu: "beklemede", son_gecerlilik_tarihi: uploadExpiry || null,
       });
       if (dbErr) throw dbErr;
-      await logAudit("personel_belgeleri", "INSERT", uploadEmp, null, { belge_tipi: uploadTip, dosya_adi: uploadFile.name });
-      setUploadEmp(null); setUploadFile(null); setUploadTip("isg_egitim"); setUploadExpiry("");
+      await logAudit("personel_belgeleri", "INSERT", empId, null, { belge_tipi: tip, dosya_adi: uploadFile.name });
+      setUploadFile(null); setUploadExpiry("");
       if (selectedTaseron) openCompany(selectedTaseron);
     } catch (e: any) { alert(e.message); }
     finally { setUploading(false); }
@@ -225,6 +250,28 @@ export default function Taseronlar() {
     );
   }
 
+  /** Render a cell value for a document type */
+  function cellContent(empId: string, tip: string) {
+    const doc = docsByEmp[empId]?.[tip];
+    if (!doc) return <span className="text-gray-300">-</span>;
+    const kg = doc.son_gecerlilik_tarihi ? kalanGun(doc.son_gecerlilik_tarihi) : null;
+    if (doc.onay_durumu === "onaylandi") {
+      return (
+        <div className="flex flex-col items-center gap-0.5">
+          {doc.son_gecerlilik_tarihi && <span className={`text-xs font-medium ${kg?.cls || "text-gray-600"}`}>{displayDate(doc.son_gecerlilik_tarihi)}</span>}
+          {kg && <span className={`text-[10px] ${kg.cls}`}>{kg.text}</span>}
+        </div>
+      );
+    }
+    if (doc.onay_durumu === "beklemede") {
+      return <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">Bekliyor</span>;
+    }
+    if (doc.onay_durumu === "reddedildi") {
+      return <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded" title={doc.red_aciklama || ""}>Red</span>;
+    }
+    return <span className="text-gray-300">-</span>;
+  }
+
   // Company Detail View
   return (
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -242,8 +289,8 @@ export default function Taseronlar() {
         </div>
       </div>
 
-      {/* Employees Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Matrix Table */}
+      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
         <div className="px-4 py-3 border-b flex justify-between items-center">
           <h3 className="font-semibold text-gray-700 flex items-center gap-2"><Users className="w-5 h-5" /> Çalışanlar ({employees.length})</h3>
           <Link href="/personel" className="text-xs text-blue-600 hover:underline">Personel Yönetimi</Link>
@@ -258,140 +305,133 @@ export default function Taseronlar() {
             <p className="text-xs mt-1">Personel eklemek için Personel sayfasından Taşeron seçin</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="w-full min-w-[1200px]">
+            <thead>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Personel</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">TC</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Telefon</th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">Dökümanlar</th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">İşlem</th>
+                <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap sticky left-0 z-10">Adı Soyadı</th>
+                <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">SGK Girişi</th>
+                {SUTUNLAR.map(s => (
+                  <th key={s.key} colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{s.label}</th>
+                ))}
+                <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 whitespace-nowrap">Giriş Durumu</th>
+              </tr>
+              <tr>
+                {SUTUNLAR.map(s => (
+                  <React.Fragment key={s.key}>
+                    <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Tarih / Durum</th>
+                    <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Dosya</th>
+                  </React.Fragment>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-gray-100">
               {employees.map((emp) => {
-                const docs = employeeDocs[emp.id] || [];
-                const onayli = docs.filter(d => d.onay_durumu === "onaylandi").length;
-                const bekle = docs.filter(d => d.onay_durumu === "beklemede").length;
-                const red = docs.filter(d => d.onay_durumu === "reddedildi").length;
-                const expanded = expandedEmp === emp.id;
+                const empDocs = docsByEmp[emp.id] || {};
                 return (
-                  <>
-                    <tr key={emp.id} className="hover:bg-gray-50 transition">
-                      <td className="px-3 py-2.5 text-sm font-medium">{emp.ad} {emp.soyad}</td>
-                      <td className="px-3 py-2.5 text-sm text-gray-500">{emp.kimlik_no}</td>
-                      <td className="px-3 py-2.5 text-sm text-gray-500">{emp.telefon || "-"}</td>
-                      <td className="px-3 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-2 text-xs">
-                          {onayli > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{onayli} Onaylı</span>}
-                          {bekle > 0 && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">{bekle} Bekl.</span>}
-                          {red > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded">{red} Red</span>}
-                          {docs.length === 0 && <span className="text-gray-400">-</span>}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <button onClick={() => setExpandedEmp(expanded ? null : emp.id)} className="text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1 mx-auto">
-                          <Eye className="w-3.5 h-3.5" /> {expanded ? "Gizle" : "Dökümanlar"}
-                        </button>
-                      </td>
-                    </tr>
-                    {expanded && (
-                      <tr key={`${emp.id}-docs`}>
-                        <td colSpan={5} className="px-4 py-3 bg-gray-50">
-                          {/* Upload Button */}
-                          <button onClick={() => setUploadEmp(emp.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 flex items-center gap-1 mb-3">
-                            <Upload className="w-3.5 h-3.5" /> Döküman Yükle
-                          </button>
-
-                          {/* Upload Modal */}
-                          {uploadEmp === emp.id && (
-                            <div className="mb-3 p-3 bg-white border rounded-lg">
-                              <div className="flex items-center gap-3 mb-2">
-                                <input type="file" onChange={e => setUploadFile(e.target.files?.[0] || null)} className="text-xs flex-1" />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <select value={uploadTip} onChange={e => setUploadTip(e.target.value)} className="text-xs p-1 border rounded flex-1">
-                                  <option value="isg_egitim">İSG Eğitim</option>
-                                  <option value="yuksekte_calisma">Yüksekte Çalışma</option>
-                                  <option value="myk">MYK</option>
-                                  <option value="operator_belgesi">Operatör Belgesi</option>
-                                  <option value="kkd">KKD</option>
-                                  <option value="oryantasyon">Oryantasyon</option>
-                                  <option value="saglik_raporu">Sağlık Raporu</option>
-                                  <option value="sertifika">Sertifika</option>
-                                  <option value="diger">Diğer</option>
-                                </select>
-                                <input type="date" value={uploadExpiry} onChange={e => setUploadExpiry(e.target.value)} className="text-xs p-1 border rounded" title="Son Geçerlilik Tarihi" />
-                                <button onClick={handleUpload} disabled={!uploadFile || uploading} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 disabled:opacity-50">{uploading ? "Yükleniyor..." : "Yükle"}</button>
-                                <button onClick={() => { setUploadEmp(null); setUploadFile(null); }} className="text-xs text-gray-500 hover:text-gray-700 p-1"><X className="w-3.5 h-3.5" /></button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Documents Table */}
-                          {docs.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-3">Henüz döküman yüklenmemiş</p>
-                          ) : (
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="text-gray-500">
-                                  <th className="text-left py-1 pr-2">Dosya</th>
-                                  <th className="text-left py-1 pr-2">Tür</th>
-                                  <th className="text-left py-1 pr-2">Yüklenme</th>
-                                  <th className="text-center py-1 pr-2">Durum</th>
-                                  <th className="text-center py-1 pr-2">Geçerlilik</th>
-                                  <th className="text-center py-1">İşlem</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {docs.map((doc) => {
-                                  const kg = kalanGun(doc.son_gecerlilik_tarihi);
-                                  return (
-                                    <tr key={doc.id}>
-                                      <td className="py-1.5 pr-2">
-                                        <div className="flex items-center gap-1">
-                                          <FileText className="w-3 h-3 text-gray-400" />
-                                          <span className="truncate max-w-[140px] block" title={doc.dosya_adi}>{doc.dosya_adi}</span>
-                                          <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700"><ExternalLink className="w-3 h-3" /></a>
-                                        </div>
-                                      </td>
-                                      <td className="py-1.5 pr-2 text-gray-500">{doc.belge_tipi}</td>
-                                      <td className="py-1.5 pr-2 text-gray-500">{displayDate(doc.eklenme_tarihi?.split("T")[0])}</td>
-                                      <td className="py-1.5 pr-2 text-center">
-                                        <span className={`px-1.5 py-0.5 rounded ${DURUM_RENK[doc.onay_durumu] || "bg-gray-100 text-gray-600"}`}>
-                                          {doc.onay_durumu === "reddedildi" && doc.red_aciklama ? (
-                                            <span title={doc.red_aciklama} className="cursor-help">{doc.onay_durumu}</span>
-                                          ) : doc.onay_durumu}
-                                        </span>
-                                      </td>
-                                      <td className={`py-1.5 pr-2 text-center ${kg.cls}`}>{kg.text}</td>
-                                      <td className="py-1.5 text-center">
-                                        <div className="flex items-center justify-center gap-1">
-                                          {doc.onay_durumu === "beklemede" && (
-                                            <>
-                                              <button onClick={() => handleApprove(doc)} className="text-green-600 hover:bg-green-50 p-0.5 rounded" title="Onayla"><CheckCircle className="w-3.5 h-3.5" /></button>
-                                              <button onClick={() => setRejectDoc(doc)} className="text-red-600 hover:bg-red-50 p-0.5 rounded" title="Reddet"><X className="w-3.5 h-3.5" /></button>
-                                            </>
-                                          )}
-                                          <button onClick={() => handleDeleteDoc(doc)} className="text-gray-400 hover:text-red-600 p-0.5 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                  <tr key={emp.id} className="hover:bg-blue-50/40 transition">
+                    <td className="px-3 py-2 text-sm font-medium text-gray-800 border-r sticky left-0 bg-white whitespace-nowrap">{emp.ad} {emp.soyad}</td>
+                    <td className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>
+                    {SUTUNLAR.map(s => {
+                      const doc = empDocs[s.key];
+                      return (
+                        <React.Fragment key={s.key}>
+                          <td className="px-2 py-2 text-center border-r cursor-pointer hover:bg-blue-100/50" onClick={() => setCellModal({ emp, tip: s.key, docs: (allDocs[emp.id] || []).filter(d => d.belge_tipi === s.key) })}>
+                            {cellContent(emp.id, s.key)}
+                          </td>
+                          <td className="px-2 py-2 text-center border-r">
+                            {doc ? (
+                              <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 inline-flex" title={doc.dosya_adi}>
+                                <FileText className="w-3.5 h-3.5" />
+                              </a>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        </React.Fragment>
+                      );
+                    })}
+                    <td className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>
+                  </tr>
                 );
               })}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Cell Modal - document detail/upload for a specific employee+type */}
+      {cellModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{cellModal.emp.ad} {cellModal.emp.soyad} - {SUTUNLAR.find(s => s.key === cellModal.tip)?.label || cellModal.tip}</h3>
+              <button onClick={() => setCellModal(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+
+            {/* Upload */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="file" onChange={e => setUploadFile(e.target.files?.[0] || null)} className="text-xs flex-1 min-w-[200px]" />
+                <input type="date" value={uploadExpiry} onChange={e => setUploadExpiry(e.target.value)} className="text-xs p-1 border rounded" title="Son Geçerlilik Tarihi" />
+                <button onClick={() => handleUpload(cellModal.emp.id, cellModal.tip)} disabled={!uploadFile || uploading} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"><Upload className="w-3.5 h-3.5" />{uploading ? "Yükleniyor..." : "Yükle"}</button>
+              </div>
+            </div>
+
+            {/* Document list */}
+            {cellModal.docs.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm py-6">Henüz döküman yüklenmemiş</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-500 border-b">
+                    <th className="text-left py-1.5">Dosya</th>
+                    <th className="text-left py-1.5">Yüklenme</th>
+                    <th className="text-center py-1.5">Durum</th>
+                    <th className="text-center py-1.5">Geçerlilik</th>
+                    <th className="text-center py-1.5">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {cellModal.docs.map((doc: any) => {
+                    const kg = kalanGun(doc.son_gecerlilik_tarihi);
+                    return (
+                      <tr key={doc.id}>
+                        <td className="py-1.5 pr-2">
+                          <div className="flex items-center gap-1">
+                            <FileText className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span className="truncate max-w-[180px] block" title={doc.dosya_adi}>{doc.dosya_adi}</span>
+                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0"><ExternalLink className="w-3 h-3" /></a>
+                          </div>
+                        </td>
+                        <td className="py-1.5 text-gray-500">{displayDate(doc.eklenme_tarihi?.split("T")[0])}</td>
+                        <td className="py-1.5 text-center">
+                          <span className={`px-1.5 py-0.5 rounded ${DURUM_RENK[doc.onay_durumu] || "bg-gray-100 text-gray-600"}`}>
+                            {doc.onay_durumu === "reddedildi" && doc.red_aciklama ? (
+                              <span title={doc.red_aciklama} className="cursor-help">{doc.onay_durumu}</span>
+                            ) : doc.onay_durumu}
+                          </span>
+                        </td>
+                        <td className={`py-1.5 text-center ${kg.cls}`}>{kg.text}</td>
+                        <td className="py-1.5 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {doc.onay_durumu === "beklemede" && (
+                              <>
+                                <button onClick={() => { handleApprove(doc); setCellModal(null); }} className="text-green-600 hover:bg-green-50 p-0.5 rounded" title="Onayla"><CheckCircle className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => setRejectDoc(doc)} className="text-red-600 hover:bg-red-50 p-0.5 rounded" title="Reddet"><X className="w-3.5 h-3.5" /></button>
+                              </>
+                            )}
+                            <button onClick={() => { handleDeleteDoc(doc); setCellModal(null); }} className="text-gray-400 hover:text-red-600 p-0.5 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {rejectDoc && (
