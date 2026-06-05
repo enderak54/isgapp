@@ -116,10 +116,18 @@ export default function Taseronlar() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("taseronlar").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("taseronlar").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
-    fetchTaseronlar();
+    const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
+    try {
+      if (editing) {
+        const { error } = await supabase.from("taseronlar").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("taseronlar").insert(payload);
+        if (error) throw error;
+      }
+      setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
+      fetchTaseronlar();
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleDelete = async (id: string) => {
