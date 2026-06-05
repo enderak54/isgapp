@@ -34,7 +34,11 @@ export default function Santiyeler() {
     setSaving(true);
     setEditStatus(null);
     try {
-      const payload = sanitizeForm(form);
+      const payload = sanitizeForm({
+        ...form,
+        baslangic_tarihi: form.baslangic_tarihi || null,
+        bitis_tarihi: form.bitis_tarihi || null,
+      });
       if (editing) {
         const { error } = await supabase.from("santiyeler").update(payload).eq("id", editing.id);
         if (error) throw error;
