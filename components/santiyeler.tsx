@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { Building2, Plus, Edit, Trash2, Search, X, Save, Phone, MapPin, User, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Search, X, Save, Phone, MapPin, User, CheckCircle, AlertCircle, Loader2, Lock, Unlock } from "lucide-react";
 
 export default function Santiyeler() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
@@ -14,9 +14,18 @@ export default function Santiyeler() {
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [lockedSantiyeler, setLockedSantiyeler] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "" });
 
   useEffect(() => { fetchSantiyeler(); }, []);
+
+  const toggleLock = (id: string) => {
+    setLockedSantiyeler(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
 
   const fetchSantiyeler = async () => {
     try {
@@ -165,7 +174,10 @@ export default function Santiyeler() {
               </div>
               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                 <button onClick={() => handleEdit(s)} className="flex-1 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition">Düzenle</button>
-                <button onClick={() => handleDelete(s.id)} className="flex-1 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">Sil</button>
+                <button type="button" onClick={() => toggleLock(s.id)} className={`p-2 rounded border transition ${lockedSantiyeler.has(s.id) ? "border-amber-400 bg-amber-50 text-amber-600" : "border-gray-200 bg-gray-50 text-gray-400"}`} title={lockedSantiyeler.has(s.id) ? "Kilidi aç" : "Kilitli"}>
+                  {lockedSantiyeler.has(s.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                </button>
+                <button onClick={() => handleDelete(s.id)} disabled={!lockedSantiyeler.has(s.id)} className={`py-2 text-sm rounded-lg transition flex items-center justify-center gap-1 ${lockedSantiyeler.has(s.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"} flex-1`}><Trash2 className="w-4 h-4" /> Sil</button>
               </div>
             </div>
           ))}
