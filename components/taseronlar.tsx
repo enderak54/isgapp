@@ -7,7 +7,7 @@ import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import Link from "next/link";
-import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, Upload, FileText, CheckCircle, ExternalLink, Eye } from "lucide-react";
+import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, Upload, FileText, CheckCircle, ExternalLink, Eye, ChevronUp, ChevronDown } from "lucide-react";
 
 const DURUM_RENK: Record<string, string> = {
   beklemede: "bg-yellow-100 text-yellow-700",
@@ -51,6 +51,7 @@ export default function Taseronlar() {
     sgk: true, myk: true, saglik_raporu: true, isg_egitim: true,
     yuksekte_calisma: true, kkd: true, adli_sicil: true, gorevlendirme: true, giris_durumu: true,
   });
+  const [colOrder, setColOrder] = useState<string[]>(["sgk", "myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme", "giris_durumu"]);
   const [showColMenu, setShowColMenu] = useState(false);
 
   // Upload inside cell modal
@@ -62,15 +63,13 @@ export default function Taseronlar() {
   const [rejectDoc, setRejectDoc] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const SUTUNLAR = [
-    { key: "myk", label: "MYK" },
-    { key: "saglik_raporu", label: "Sağlık Raporu" },
-    { key: "isg_egitim", label: "İSG Eğitimi" },
-    { key: "yuksekte_calisma", label: "Yüksekte Çalışma" },
-    { key: "kkd", label: "KKD Zimmet" },
-    { key: "adli_sicil", label: "Adli Sicil" },
-    { key: "gorevlendirme", label: "Görevlendirme" },
-  ] as const;
+  const COL_LABELS: Record<string, string> = {
+    sgk: "SGK Girişi", myk: "MYK", saglik_raporu: "Sağlık Raporu",
+    isg_egitim: "İSG Eğitimi", yuksekte_calisma: "Yüksekte Çalışma",
+    kkd: "KKD Zimmet", adli_sicil: "Adli Sicil",
+    gorevlendirme: "Görevlendirme", giris_durumu: "Giriş Durumu",
+  };
+  const BELGE_SUTUNLARI = ["myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme"];
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
 
@@ -315,17 +314,15 @@ export default function Taseronlar() {
             <Link href="/personel" className="text-xs text-blue-600 hover:underline">Personel Yönetimi</Link>
           </div>
           {showColMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg p-3 z-20 min-w-[160px]" onMouseLeave={() => setShowColMenu(false)}>
-              <p className="text-xs font-medium text-gray-500 mb-2">Gösterilen Sütunlar</p>
-              {[
-                { key: "sgk", label: "SGK Girişi" },
-                ...SUTUNLAR.map(s => ({ key: s.key, label: s.label })),
-                { key: "giris_durumu", label: "Giriş Durumu" },
-              ].map(col => (
-                <label key={col.key} className="flex items-center gap-2 py-1 cursor-pointer text-xs">
-                  <input type="checkbox" checked={colVis[col.key]} onChange={() => setColVis(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
-                  {col.label}
-                </label>
+            <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg p-3 z-20 min-w-[200px]" onMouseLeave={() => setShowColMenu(false)}>
+              <p className="text-xs font-medium text-gray-500 mb-2">Sütunlar</p>
+              {colOrder.map((key, i) => (
+                <div key={key} className="flex items-center gap-1 py-0.5">
+                  <input type="checkbox" checked={colVis[key]} onChange={() => setColVis(prev => ({ ...prev, [key]: !prev[key] }))} className="rounded" />
+                  <span className="text-xs flex-1">{COL_LABELS[key]}</span>
+                  <button onClick={() => { if (i > 0) { const a = [...colOrder]; [a[i-1], a[i]] = [a[i], a[i-1]]; setColOrder(a); } }} className="text-gray-400 hover:text-gray-600 p-0.5 disabled:opacity-20" disabled={i === 0}><ChevronUp className="w-3 h-3" /></button>
+                  <button onClick={() => { if (i < colOrder.length-1) { const a = [...colOrder]; [a[i], a[i+1]] = [a[i+1], a[i]]; setColOrder(a); } }} className="text-gray-400 hover:text-gray-600 p-0.5 disabled:opacity-20" disabled={i === colOrder.length-1}><ChevronDown className="w-3 h-3" /></button>
+                </div>
               ))}
             </div>
           )}
@@ -344,15 +341,15 @@ export default function Taseronlar() {
             <thead>
               <tr>
                 <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap sticky left-0 z-10">Adı Soyadı</th>
-                {colVis.sgk && <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">SGK Girişi</th>}
-                {SUTUNLAR.filter(s => colVis[s.key]).map(s => (
-                  <th key={s.key} colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{s.label}</th>
+                {colOrder.filter(k => colVis[k]).map(k => k === "sgk" || k === "giris_durumu" ? (
+                  <th key={k} rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{COL_LABELS[k]}</th>
+                ) : (
+                  <th key={k} colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{COL_LABELS[k]}</th>
                 ))}
-                {colVis.giris_durumu && <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 whitespace-nowrap">Giriş Durumu</th>}
               </tr>
               <tr>
-                {SUTUNLAR.filter(s => colVis[s.key]).map(s => (
-                  <React.Fragment key={s.key}>
+                {colOrder.filter(k => colVis[k] && BELGE_SUTUNLARI.includes(k)).map(k => (
+                  <React.Fragment key={k}>
                     <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Tarih / Durum</th>
                     <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Dosya</th>
                   </React.Fragment>
@@ -365,13 +362,14 @@ export default function Taseronlar() {
                 return (
                   <tr key={emp.id} className="hover:bg-blue-50/40 transition">
                     <td className="px-3 py-2 text-sm font-medium text-gray-800 border-r sticky left-0 bg-white whitespace-nowrap">{emp.ad} {emp.soyad}</td>
-                    {colVis.sgk && <td className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>}
-                    {SUTUNLAR.filter(s => colVis[s.key]).map(s => {
-                      const doc = empDocs[s.key];
+                    {colOrder.filter(k => colVis[k]).map(k => {
+                      if (k === "sgk") return <td key={k} className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>;
+                      if (k === "giris_durumu") return <td key={k} className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>;
+                      const doc = empDocs[k];
                       return (
-                        <React.Fragment key={s.key}>
-                          <td className="px-2 py-2 text-center border-r cursor-pointer hover:bg-blue-100/50" onClick={() => setCellModal({ emp, tip: s.key, docs: (allDocs[emp.id] || []).filter(d => d.belge_tipi === s.key) })}>
-                            {cellContent(emp.id, s.key)}
+                        <React.Fragment key={k}>
+                          <td className="px-2 py-2 text-center border-r cursor-pointer hover:bg-blue-100/50" onClick={() => setCellModal({ emp, tip: k, docs: (allDocs[emp.id] || []).filter(d => d.belge_tipi === k) })}>
+                            {cellContent(emp.id, k)}
                           </td>
                           <td className="px-2 py-2 text-center border-r">
                             {doc ? (
@@ -385,7 +383,6 @@ export default function Taseronlar() {
                         </React.Fragment>
                       );
                     })}
-                    {colVis.giris_durumu && <td className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>}
                   </tr>
                 );
               })}
