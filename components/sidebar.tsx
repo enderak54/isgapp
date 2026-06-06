@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   Briefcase, Users, GraduationCap, Shield, FolderOpen, FileText,
-  Building2, HardHat, UserCog, Wrench, AlertTriangle, LayoutDashboard,
+  Building2, Building, UserCog, Wrench, AlertTriangle, LayoutDashboard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Scale,
   ClipboardCheck, Siren, RotateCcw, Eye, FileCheck, Award, TrendingUp,
   AlertOctagon, ScrollText, Menu, X, Target, MessageCircle, Lock, Brain, Monitor, Activity,
@@ -20,7 +20,7 @@ const mainMenuItems = [
   { icon: FolderOpen, label: "Dosya", href: "/dosya", key: "dosya" },
   { icon: FileText, label: "Talimat Takibi", href: "/talimatlar", key: "talimatlar" },
   { icon: Building2, label: "Şantiyeler", href: "/santiyeler", key: "santiyeler" },
-  { icon: HardHat, label: "Taşeronlar", href: "/taseronlar", key: "taseronlar" },
+  { icon: Building, label: "Taşeronlar", href: "/taseronlar", key: "taseronlar" },
   { icon: UserCog, label: "Sorumlular", href: "/sorumlular", key: "sorumlular" },
   { icon: Wrench, label: "Ekipmanlar", href: "/ekipmanlar", key: "ekipmanlar" },
   { icon: AlertTriangle, label: "İş Kazaları", href: "/kazalar", key: "kazalar" },
