@@ -7,7 +7,7 @@ import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import Link from "next/link";
-import { HardHat, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, Upload, FileText, CheckCircle, ExternalLink, Eye } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, Upload, FileText, CheckCircle, ExternalLink, Eye } from "lucide-react";
 
 const DURUM_RENK: Record<string, string> = {
   beklemede: "bg-yellow-100 text-yellow-700",
@@ -242,7 +242,7 @@ export default function Taseronlar() {
               <div key={t.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition cursor-pointer" onClick={() => openCompany(t)}>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
-                    <HardHat className="w-5 h-5 text-orange-600" />
+                    <Building2 className="w-5 h-5 text-orange-600" />
                     <h3 className="font-semibold">{t.firma_adi}</h3>
                   </div>
                   <span className={`px-2 py-1 rounded text-xs ${t.durum === "aktif" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>{t.durum}</span>
@@ -296,7 +296,7 @@ export default function Taseronlar() {
 
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="flex items-center gap-3">
-          <HardHat className="w-8 h-8 text-orange-600" />
+          <Building2 className="w-8 h-8 text-orange-600" />
           <div>
             <h2 className="text-xl font-bold">{selectedTaseron.firma_adi}</h2>
             <p className="text-sm text-gray-500">{selectedTaseron.yetkili} • {selectedTaseron.telefon} • {selectedTaseron.email}</p>
