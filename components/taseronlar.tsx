@@ -47,6 +47,12 @@ export default function Taseronlar() {
   const [cellModal, setCellModal] = useState<{ emp: any; tip: string; docs: any[] } | null>(null);
   const [docLocked, setDocLocked] = useState<Set<string>>(new Set());
 
+  const [colVis, setColVis] = useState<Record<string, boolean>>({
+    sgk: true, myk: true, saglik_raporu: true, isg_egitim: true,
+    yuksekte_calisma: true, kkd: true, adli_sicil: true, gorevlendirme: true, giris_durumu: true,
+  });
+  const [showColMenu, setShowColMenu] = useState(false);
+
   // Upload inside cell modal
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadExpiry, setUploadExpiry] = useState("");
@@ -300,9 +306,29 @@ export default function Taseronlar() {
 
       {/* Matrix Table */}
       <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-        <div className="px-4 py-3 border-b flex justify-between items-center">
+        <div className="px-4 py-3 border-b flex justify-between items-center relative">
           <h3 className="font-semibold text-gray-700 flex items-center gap-2"><Users className="w-5 h-5" /> Çalışanlar ({employees.length})</h3>
-          <Link href="/personel" className="text-xs text-blue-600 hover:underline">Personel Yönetimi</Link>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowColMenu(!showColMenu)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded flex items-center gap-1">
+              <Eye className="w-3.5 h-3.5" /> Sütunlar
+            </button>
+            <Link href="/personel" className="text-xs text-blue-600 hover:underline">Personel Yönetimi</Link>
+          </div>
+          {showColMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg p-3 z-20 min-w-[160px]" onMouseLeave={() => setShowColMenu(false)}>
+              <p className="text-xs font-medium text-gray-500 mb-2">Gösterilen Sütunlar</p>
+              {[
+                { key: "sgk", label: "SGK Girişi" },
+                ...SUTUNLAR.map(s => ({ key: s.key, label: s.label })),
+                { key: "giris_durumu", label: "Giriş Durumu" },
+              ].map(col => (
+                <label key={col.key} className="flex items-center gap-2 py-1 cursor-pointer text-xs">
+                  <input type="checkbox" checked={colVis[col.key]} onChange={() => setColVis(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {empLoading ? (
@@ -314,18 +340,18 @@ export default function Taseronlar() {
             <p className="text-xs mt-1">Personel eklemek için Personel sayfasından Taşeron seçin</p>
           </div>
         ) : (
-          <table className="w-full min-w-[1200px]">
+          <table className="w-full min-w-[1000px]">
             <thead>
               <tr>
                 <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap sticky left-0 z-10">Adı Soyadı</th>
-                <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">SGK Girişi</th>
-                {SUTUNLAR.map(s => (
+                {colVis.sgk && <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">SGK Girişi</th>}
+                {SUTUNLAR.filter(s => colVis[s.key]).map(s => (
                   <th key={s.key} colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{s.label}</th>
                 ))}
-                <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 whitespace-nowrap">Giriş Durumu</th>
+                {colVis.giris_durumu && <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 whitespace-nowrap">Giriş Durumu</th>}
               </tr>
               <tr>
-                {SUTUNLAR.map(s => (
+                {SUTUNLAR.filter(s => colVis[s.key]).map(s => (
                   <React.Fragment key={s.key}>
                     <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Tarih / Durum</th>
                     <th className="px-1 py-1 text-[10px] text-gray-400 bg-gray-50 border-r font-normal">Dosya</th>
@@ -339,8 +365,8 @@ export default function Taseronlar() {
                 return (
                   <tr key={emp.id} className="hover:bg-blue-50/40 transition">
                     <td className="px-3 py-2 text-sm font-medium text-gray-800 border-r sticky left-0 bg-white whitespace-nowrap">{emp.ad} {emp.soyad}</td>
-                    <td className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>
-                    {SUTUNLAR.map(s => {
+                    {colVis.sgk && <td className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>}
+                    {SUTUNLAR.filter(s => colVis[s.key]).map(s => {
                       const doc = empDocs[s.key];
                       return (
                         <React.Fragment key={s.key}>
@@ -359,7 +385,7 @@ export default function Taseronlar() {
                         </React.Fragment>
                       );
                     })}
-                    <td className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>
+                    {colVis.giris_durumu && <td className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>}
                   </tr>
                 );
               })}
