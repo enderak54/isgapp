@@ -138,8 +138,12 @@ export default function Taseronlar() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu taşeronu silmek istediğinize emin misiniz?")) return;
-    await supabase.from("taseronlar").delete().eq("id", id);
-    fetchTaseronlar();
+    try {
+      const { error } = await supabase.from("taseronlar").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("taseronlar", "DELETE", id, null, null);
+      fetchTaseronlar();
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleUpload = async (empId: string, tip: string) => {
@@ -166,24 +170,33 @@ export default function Taseronlar() {
   };
 
   const handleApprove = async (doc: any) => {
-    await supabase.from("personel_belgeleri").update({ onay_durumu: "onaylandi", onay_tarihi: new Date().toISOString() }).eq("id", doc.id);
-    await logAudit("personel_belgeleri", "UPDATE", doc.id, doc, { onay_durumu: "onaylandi" });
-    if (selectedTaseron) openCompany(selectedTaseron);
+    try {
+      const { error } = await supabase.from("personel_belgeleri").update({ onay_durumu: "onaylandi", onay_tarihi: new Date().toISOString() }).eq("id", doc.id);
+      if (error) throw error;
+      await logAudit("personel_belgeleri", "UPDATE", doc.id, doc, { onay_durumu: "onaylandi" });
+      if (selectedTaseron) openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleReject = async () => {
     if (!rejectDoc) return;
-    await supabase.from("personel_belgeleri").update({ onay_durumu: "reddedildi", red_aciklama: rejectReason }).eq("id", rejectDoc.id);
-    await logAudit("personel_belgeleri", "UPDATE", rejectDoc.id, rejectDoc, { onay_durumu: "reddedildi", red_aciklama: rejectReason });
-    setRejectDoc(null); setRejectReason("");
-    if (selectedTaseron) openCompany(selectedTaseron);
+    try {
+      const { error } = await supabase.from("personel_belgeleri").update({ onay_durumu: "reddedildi", red_aciklama: rejectReason }).eq("id", rejectDoc.id);
+      if (error) throw error;
+      await logAudit("personel_belgeleri", "UPDATE", rejectDoc.id, rejectDoc, { onay_durumu: "reddedildi", red_aciklama: rejectReason });
+      setRejectDoc(null); setRejectReason("");
+      if (selectedTaseron) openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleDeleteDoc = async (doc: any) => {
     if (!confirm("Bu dökümanı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("personel_belgeleri").delete().eq("id", doc.id);
-    await logAudit("personel_belgeleri", "DELETE", doc.id, doc, null);
-    if (selectedTaseron) openCompany(selectedTaseron);
+    try {
+      const { error } = await supabase.from("personel_belgeleri").delete().eq("id", doc.id);
+      if (error) throw error;
+      await logAudit("personel_belgeleri", "DELETE", doc.id, doc, null);
+      if (selectedTaseron) openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
   };
 
   // Company List View
