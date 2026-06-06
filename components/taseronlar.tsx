@@ -396,7 +396,7 @@ export default function Taseronlar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{cellModal.emp.ad} {cellModal.emp.soyad} - {SUTUNLAR.find(s => s.key === cellModal.tip)?.label || cellModal.tip}</h3>
+              <h3 className="text-lg font-bold">{cellModal.emp.ad} {cellModal.emp.soyad} - {COL_LABELS[cellModal.tip] || cellModal.tip}</h3>
               <button onClick={() => setCellModal(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
 
