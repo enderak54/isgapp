@@ -981,30 +981,45 @@ export default function SettingsPage() {
 
         {/* Taşeron Personeli Zorunlu Alanlar */}
         <div className="card p-6 mt-6">
-          <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setShowTaseronZorunlu(!showTaseronZorunlu)}
+            className="w-full flex items-center justify-between"
+          >
             <div className="flex items-center gap-2">
               <Building className="w-5 h-5 text-gray-400" />
-              <div>
+              <div className="text-left">
                 <h3 className="text-lg font-semibold text-gray-800">Taşeron Personeli Zorunlu Alanlar</h3>
                 <p className="text-sm text-gray-500">Taşerona bağlı personel için geçerli zorunlu alanlar</p>
               </div>
             </div>
-            <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
-              {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mb-3">Taşeron seçili personelde bu alanlar zorunlu olur. Boş bırakılırsa genel ayarlar kullanılır.</p>
-          <div className="flex flex-wrap gap-1.5">
-            {PERSONEL_ZORUNLU_ALANLAR.map((alan) => {
-              const checked = taseronPersonelZorunlu.includes(alan.key);
-              return (
-                <label key={alan.key} className={`flex items-center gap-1 px-2.5 py-1.5 rounded border text-xs cursor-pointer transition ${checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
-                  <input type="checkbox" checked={checked} onChange={() => toggleTaseronPersonelZorunlu(alan.key)} className="sr-only" />
-                  {checked ? "✓ " : ""}{alan.label}
-                </label>
-              );
-            })}
-          </div>
+            <div className="flex items-center gap-3">
+              {showTaseronZorunlu && (
+                <button onClick={(e) => { e.stopPropagation(); saveTaseronPersonelZorunlu(); }} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
+                  {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showTaseronZorunlu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showTaseronZorunlu && (
+            <div className="mt-4">
+              <p className="text-xs text-gray-500 mb-3">Taşeron seçili personelde bu alanlar zorunlu olur. Boş bırakılırsa genel ayarlar kullanılır.</p>
+              <div className="space-y-1">
+                {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
+                  <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={taseronPersonelZorunlu.includes(alan.key)} onChange={() => toggleTaseronPersonelZorunlu(alan.key)} className="rounded border-gray-300" />
+                    <span className="text-sm text-gray-700">{alan.label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-end pt-2">
+                <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
+                  {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card p-6 mt-6">
