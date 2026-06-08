@@ -446,10 +446,16 @@ export default function PersonnelForm() {
               Personel Bilgileri
             </h3>
             <div className="space-y-2">
-              <div>
-                <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No{isReq("kimlikNo") && <span className="text-red-500 ml-1">*</span>}</label>
-                <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
-                {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No{isReq("kimlikNo") && <span className="text-red-500 ml-1">*</span>}</label>
+                  <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
+                  {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">İşe Giriş Tarihi</label>
+                  <input type="date" value={form.iseGirisTarihi} onChange={(e) => handleChange("iseGirisTarihi", e.target.value)} className="input" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -464,10 +470,6 @@ export default function PersonnelForm() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">İşe Giriş Tarihi</label>
-                  <input type="date" value={form.iseGirisTarihi} onChange={(e) => handleChange("iseGirisTarihi", e.target.value)} className="input" />
-                </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Meslek Kodu</label>
                   <input type="text" value={form.meslekKodu} onChange={(e) => handleChange("meslekKodu", e.target.value)} className="input" placeholder="Meslek Kodu" />
