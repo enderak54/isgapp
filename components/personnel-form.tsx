@@ -116,7 +116,7 @@ export default function PersonnelForm() {
         try { setZorunluAlanlar(JSON.parse(zorunluRes.data.value)); } catch {}
       }
       if (taseronRes.data?.value) {
-        try { setTaseronPersonelZorunlu(JSON.parse(taseronRes.data.value)); } catch {}
+        try { const v = JSON.parse(taseronRes.data.value); if (Array.isArray(v)) setTaseronPersonelZorunlu(v); } catch {}
       }
     });
   }, []);

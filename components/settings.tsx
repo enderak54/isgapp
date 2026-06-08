@@ -313,7 +313,7 @@ export default function SettingsPage() {
   const fetchTaseronData = async () => {
     const { data } = await supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single();
     if (data?.value) {
-      try { setTaseronPersonelZorunlu(JSON.parse(data.value)); } catch {}
+      try { const v = JSON.parse(data.value); if (Array.isArray(v)) setTaseronPersonelZorunlu(v); } catch {}
     }
   };
 

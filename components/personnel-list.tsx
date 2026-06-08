@@ -140,7 +140,7 @@ export default function PersonnelList() {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
       }
       if (taseronZorunluRes.data?.value) {
-        try { setTaseronPersonelZorunlu(JSON.parse(taseronZorunluRes.data.value)); } catch {}
+        try { const v = JSON.parse(taseronZorunluRes.data.value); if (Array.isArray(v)) setTaseronPersonelZorunlu(v); } catch {}
       }
     });
   }, []);
