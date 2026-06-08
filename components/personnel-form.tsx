@@ -55,7 +55,7 @@ export default function PersonnelForm() {
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
     adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
-    adliSicil: "", gorevlendirme: "", gorevlendirmeGecerlilik: "",
+        adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeGecerlilik: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -196,7 +196,7 @@ export default function PersonnelForm() {
     }
     if (activeZorunluAlanlar.includes("adliSicil")) {
       const hasFile = pendingFiles.some(f => f.field === "adliSicil");
-      if (!hasFile && !form.adliSicil) newErrors.adliSicil = "Adli sicil belgesi yükleyin";
+      if (!hasFile && !form.adliSicilTarihi) newErrors.adliSicilTarihi = "Adli sicil belgesi yükleyin";
     }
     if (activeZorunluAlanlar.includes("gorevlendirme")) {
       const hasFile = pendingFiles.some(f => f.field === "gorevlendirme");
@@ -325,6 +325,7 @@ export default function PersonnelForm() {
         saglik_raporu_gecerlilik_suresi: form.saglikRaporuSuresi ? parseInt(form.saglikRaporuSuresi) : null,
         gorevlendirme_tarihi: form.gorevlendirme || null,
         gorevlendirme_gecerlilik_tarihi: form.gorevlendirmeGecerlilik || null,
+        adli_sicil_tarihi: form.adliSicilTarihi || null,
         kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
@@ -352,7 +353,7 @@ export default function PersonnelForm() {
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
         adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
-        adliSicil: "", gorevlendirme: "", gorevlendirmeGecerlilik: "",
+    adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeGecerlilik: "",
       });
       setMykKayitlar([]);
       setSelectedSantiyeler([]);
@@ -619,18 +620,20 @@ export default function PersonnelForm() {
 
             {/* Belge Alanları */}
             {["adliSicil"].map(field => {
-              const label = field === "adliSicil" ? "Adli Sicil" : "Görevlendirme";
               const fc = fieldFileCount(field);
               return (
                 <div key={field} className="flex items-center justify-between px-3 py-2">
-                  <span className="text-xs text-gray-700 w-28">{label}{isReq(field) && <span className="text-red-500 ml-0.5">*</span>}</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-700 w-28">Adli Sicil{isReq("adliSicil") && <span className="text-red-500 ml-0.5">*</span>}</span>
+                  <div className="flex items-center gap-0.5">
+                    <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.adliSicilTarihi)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("adliSicilTarihi", toDb(v)); setErrors((p) => ({ ...p, adliSicilTarihi: "" })); }} className={`input text-xs ${(errors as any).adliSicilTarihi ? "border-red-500" : ""}`} style={{ width: "5rem" }} title="Evrak Tarihi" />
+                    <button type="button" onClick={() => { const picker = document.getElementById("dp-adliSicil") as HTMLInputElement; if (!picker) return; const rect = (document.getElementById("dp-btn-adliSicil") as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id="dp-btn-adliSicil" className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
+                    <input id="dp-adliSicil" type="date" className="hidden" value={form.adliSicilTarihi} onChange={(e) => handleChange("adliSicilTarihi", e.target.value)} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
                     <button type="button" onClick={() => setUploadModalField(field)} className={`p-1.5 rounded transition relative ${fc > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
                       <Paperclip className="w-3.5 h-3.5" />
                       {fc > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fc}</span>}
                     </button>
                   </div>
-                  {(errors as any)[field] && <p className="text-xs text-red-500">{errors[field]}</p>}
+                  {(errors as any).adliSicilTarihi && <p className="text-xs text-red-500">{(errors as any).adliSicilTarihi}</p>}
                 </div>
               );
             })}
