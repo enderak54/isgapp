@@ -35,6 +35,10 @@ export default function Taseronlar() {
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [form, setForm] = useState({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
+  const [sorumlular, setSorumlular] = useState<{ ad_soyad: string; telefon: string; email: string; pozisyon: string }[]>([]);
+  const addSorumlu = () => setSorumlular(prev => [...prev, { ad_soyad: "", telefon: "", email: "", pozisyon: "" }]);
+  const removeSorumlu = (idx: number) => setSorumlular(prev => prev.filter((_, i) => i !== idx));
+  const updateSorumlu = (idx: number, field: string, value: string) => setSorumlular(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
 
   // Detail view
   const [selectedTaseron, setSelectedTaseron] = useState<any>(null);
@@ -130,10 +134,11 @@ export default function Taseronlar() {
         setAllDocs(allGrouped);
       }
     }
+    supabase.from("taseron_sorumlulari").select("ad_soyad, telefon, email, pozisyon").eq("taseron_id", t.id).then(({ data }) => { if (data) setSorumlular(data); });
     setEmpLoading(false);
   };
 
-  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setDocsByEmp({}); setAllDocs({}); setCellModal(null); };
+  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setDocsByEmp({}); setAllDocs({}); setCellModal(null); setSorumlular([]); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,13 +147,25 @@ export default function Taseronlar() {
       if (editing) {
         const { error } = await supabase.from("taseronlar").update(payload).eq("id", editing.id);
         if (error) throw error;
+        await saveSorumlular(editing.id);
       } else {
-        const { error } = await supabase.from("taseronlar").insert(payload);
+        const { data, error } = await supabase.from("taseronlar").insert(payload).select();
         if (error) throw error;
+        if (data?.[0]) await saveSorumlular(data[0].id);
       }
       setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
+      setSorumlular([]);
       fetchTaseronlar();
     } catch (e: any) { alert(e.message); }
+  };
+
+  const saveSorumlular = async (taseronId: string) => {
+    await supabase.from("taseron_sorumlulari").delete().eq("taseron_id", taseronId);
+    const valid = sorumlular.filter(s => s.ad_soyad.trim());
+    if (valid.length === 0) return;
+    const inserts = valid.map(s => ({ taseron_id: taseronId, ...s }));
+    const { error } = await supabase.from("taseron_sorumlulari").insert(inserts);
+    if (error) throw error;
   };
 
   const handleDelete = async (id: string) => {
@@ -249,7 +266,7 @@ export default function Taseronlar() {
             <h2 className="text-2xl font-bold text-gray-800">Taşeron Dosya Takip</h2>
             <p className="text-sm text-gray-500 mt-1">Toplam {taseronlar.length} firma</p>
           </div>
-          <button onClick={() => { setShowForm(true); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+          <button onClick={() => { setShowForm(true); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" }); setSorumlular([]); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
             <Plus className="w-5 h-5" /> Yeni Firma
           </button>
         </div>
@@ -283,6 +300,28 @@ export default function Taseronlar() {
                   <option value="aktif">Aktif</option>
                   <option value="pasif">Pasif</option>
                 </select>
+
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-gray-700">Sorumlular</h4>
+                    <button type="button" onClick={addSorumlu} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded flex items-center gap-1"><Plus className="w-3 h-3" /> Ekle</button>
+                  </div>
+                  {sorumlular.length === 0 && <p className="text-xs text-gray-400">Henüz sorumlu eklenmemiş</p>}
+                  <div className="space-y-2">
+                    {sorumlular.map((s, i) => (
+                      <div key={i} className="flex items-start gap-1.5 p-2 bg-gray-50 rounded-lg">
+                        <div className="flex-1 grid grid-cols-2 gap-1.5">
+                          <input placeholder="Ad Soyad" value={s.ad_soyad} onChange={e => updateSorumlu(i, "ad_soyad", e.target.value)} className="w-full p-1.5 border rounded text-xs" />
+                          <input placeholder="Telefon" value={s.telefon} onChange={e => updateSorumlu(i, "telefon", e.target.value)} className="w-full p-1.5 border rounded text-xs" />
+                          <input placeholder="Email" value={s.email} onChange={e => updateSorumlu(i, "email", e.target.value)} className="w-full p-1.5 border rounded text-xs" />
+                          <input placeholder="Pozisyon" value={s.pozisyon} onChange={e => updateSorumlu(i, "pozisyon", e.target.value)} className="w-full p-1.5 border rounded text-xs" />
+                        </div>
+                        <button type="button" onClick={() => removeSorumlu(i)} className="text-red-400 hover:text-red-600 p-1 mt-0.5"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
               </form>
             </div>
@@ -306,7 +345,7 @@ export default function Taseronlar() {
                 {t.santiyeler?.ad && <p className="text-sm text-gray-600">Şantiye: {t.santiyeler.ad}</p>}
                 <div className="flex gap-2 mt-3 pt-3 border-t" onClick={e => e.stopPropagation()}>
                   <button onClick={() => openCompany(t)} className="flex-1 text-blue-600 hover:bg-blue-50 py-1 rounded text-sm flex items-center justify-center gap-1"><Users className="w-4 h-4" />Personel</button>
-                  <button onClick={() => { setEditing(t); setForm({ firma_adi: t.firma_adi, yetkili: t.yetkili || "", telefon: t.telefon || "", email: t.email || "", adres: t.adres || "", vergi_no: t.vergi_no || "", santiye_id: t.santiye_id || "", durum: t.durum, notlar: t.notlar || "" }); setShowForm(true); }} className="text-green-600 hover:bg-green-50 py-1 px-2 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => { setEditing(t); setForm({ firma_adi: t.firma_adi, yetkili: t.yetkili || "", telefon: t.telefon || "", email: t.email || "", adres: t.adres || "", vergi_no: t.vergi_no || "", santiye_id: t.santiye_id || "", durum: t.durum, notlar: t.notlar || "" }); setSorumlular([]); supabase.from("taseron_sorumlulari").select("ad_soyad, telefon, email, pozisyon").eq("taseron_id", t.id).then(({ data }) => { if (data) setSorumlular(data); }); setShowForm(true); }} className="text-green-600 hover:bg-green-50 py-1 px-2 rounded text-sm"><Edit className="w-4 h-4" /></button>
                   <button onClick={() => toggleLock(t.id)} className={`px-2 py-1 rounded text-sm ${locked.has(t.id) ? "text-amber-500 bg-amber-50" : "text-gray-400 hover:text-gray-600"}`}>{locked.has(t.id) ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}</button>
                   <button onClick={() => handleDelete(t.id)} disabled={!locked.has(t.id)} className={`py-1 px-2 rounded text-sm ${locked.has(t.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-4 h-4" /></button>
                 </div>
@@ -348,11 +387,18 @@ export default function Taseronlar() {
       </button>
 
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Building className="w-8 h-8 text-orange-600" />
-          <div>
+        <div className="flex items-start gap-3">
+          <Building className="w-8 h-8 text-orange-600 mt-1" />
+          <div className="flex-1">
             <h2 className="text-xl font-bold">{selectedTaseron.firma_adi}</h2>
             <p className="text-sm text-gray-500">{selectedTaseron.yetkili} • {selectedTaseron.telefon} • {selectedTaseron.email}</p>
+            {sorumlular.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {sorumlular.filter(s => s.ad_soyad.trim()).map((s, i) => (
+                  <p key={i} className="text-xs text-gray-500">{s.ad_soyad}{s.pozisyon ? ` (${s.pozisyon})` : ""}{s.telefon ? ` • ${s.telefon}` : ""}{s.email ? ` • ${s.email}` : ""}</p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
