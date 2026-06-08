@@ -49,7 +49,7 @@ interface PendingFile {
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -310,7 +310,7 @@ export default function PersonnelForm() {
       }
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
+        meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, telefon: sanitize(form.telefon), hat: form.hat || null, email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
         santiye_adi: santiyeler.filter(s => selectedSantiyeler.includes(s.id)).map(s => s.ad).join(", ") || null, ekip_id: form.ekipId || null, ekip_adi: ekipler.find(e => e.id === form.ekipId)?.ad || null, taseron_id: form.taseronId || null,
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
@@ -347,7 +347,7 @@ export default function PersonnelForm() {
       }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
         santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -470,7 +470,13 @@ export default function PersonnelForm() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
-                  <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
+                  <div className="flex gap-1">
+                    <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input flex-1" placeholder="05XX XXX XX XX" />
+                    <select value={form.hat} onChange={(e) => handleChange("hat", e.target.value)} className="input w-28 text-xs">
+                      <option value="">Hat</option>
+                      {["Turkcell", "Vodafone", "Türk Telekom", "Diğer"].map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
