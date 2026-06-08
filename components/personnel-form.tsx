@@ -506,8 +506,6 @@ export default function PersonnelForm() {
                     {["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
                   <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="input" placeholder="ornek@mail.com" />
