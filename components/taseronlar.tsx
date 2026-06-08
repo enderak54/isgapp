@@ -62,10 +62,12 @@ export default function Taseronlar() {
   const [uploadExpiry, setUploadExpiry] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Add employee
+  // Add employee — link existing personnel
   const [showAddEmp, setShowAddEmp] = useState(false);
-  const [addEmpForm, setAddEmpForm] = useState({ ad: "", soyad: "", kimlikNo: "", telefon: "", sgkTarihi: "", iseGirisTarihi: "" });
-  const [addEmpSaving, setAddEmpSaving] = useState(false);
+  const [allPersonel, setAllPersonel] = useState<any[]>([]);
+  const [personelSearch, setPersonelSearch] = useState("");
+  const [selectedPersonelIds, setSelectedPersonelIds] = useState<Set<string>>(new Set());
+  const [linkSaving, setLinkSaving] = useState(false);
 
   // Reject
   const [rejectDoc, setRejectDoc] = useState<any>(null);
@@ -212,25 +214,30 @@ export default function Taseronlar() {
     } catch (e: any) { alert(e.message); }
   };
 
-  const handleAddEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addEmpForm.ad.trim() || !addEmpForm.soyad.trim()) return;
-    setAddEmpSaving(true);
+  const handleLinkPersonel = async () => {
+    if (selectedPersonelIds.size === 0) return;
+    setLinkSaving(true);
     try {
-      const payload = {
-        ad: addEmpForm.ad.trim(), soyad: addEmpForm.soyad.trim(),
-        kimlik_no: addEmpForm.kimlikNo.trim(), telefon: addEmpForm.telefon.trim(),
-        sgk_tarihi: addEmpForm.sgkTarihi || null, ise_giris_tarihi: addEmpForm.iseGirisTarihi || null,
-        taseron_id: selectedTaseron?.id || null,
-      };
-      const { data, error } = await supabase.from("personel").insert(payload).select();
+      const ids = Array.from(selectedPersonelIds);
+      const { error } = await supabase.from("personel").update({ taseron_id: selectedTaseron?.id }).in("id", ids);
       if (error) throw error;
-      if (data?.[0]) await logAudit("personel", "INSERT", data[0].id, null, payload);
+      for (const id of ids) await logAudit("personel", "UPDATE", id, null, { taseron_id: selectedTaseron?.id });
       setShowAddEmp(false);
-      setAddEmpForm({ ad: "", soyad: "", kimlikNo: "", telefon: "", sgkTarihi: "", iseGirisTarihi: "" });
+      setSelectedPersonelIds(new Set());
+      setPersonelSearch("");
       if (selectedTaseron) openCompany(selectedTaseron);
     } catch (e: any) { alert(e.message); }
-    finally { setAddEmpSaving(false); }
+    finally { setLinkSaving(false); }
+  };
+
+  const openLinkPersonel = () => {
+    setPersonelSearch("");
+    setSelectedPersonelIds(new Set());
+    const existingIds = new Set(employees.map(e => e.id));
+    supabase.from("personel").select("id, ad, soyad, kimlik_no, telefon").eq("arsivde", false).order("ad").then(({ data }) => {
+      if (data) setAllPersonel(data.filter(p => !existingIds.has(p.id)));
+    });
+    setShowAddEmp(true);
   };
 
   // Company List View
@@ -355,8 +362,8 @@ export default function Taseronlar() {
         <div className="px-4 py-3 border-b flex justify-between items-center relative">
           <h3 className="font-semibold text-gray-700 flex items-center gap-2"><Users className="w-5 h-5" /> Çalışanlar ({employees.length})</h3>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowAddEmp(true)} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
-              <Plus className="w-3.5 h-3.5" /> Personel Ekle
+            <button onClick={openLinkPersonel} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Personel Bağla
             </button>
             <button onClick={() => setShowColMenu(!showColMenu)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded flex items-center gap-1">
               <Eye className="w-3.5 h-3.5" /> Sütunlar
@@ -441,50 +448,46 @@ export default function Taseronlar() {
         )}
       </div>
 
-      {/* Add Employee Modal */}
+      {/* Link Existing Personnel Modal */}
       {showAddEmp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Personel Ekle — {selectedTaseron?.firma_adi}</h3>
+              <h3 className="text-lg font-bold">Personel Bağla — {selectedTaseron?.firma_adi}</h3>
               <button onClick={() => setShowAddEmp(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleAddEmployee} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Ad *</label>
-                  <input required value={addEmpForm.ad} onChange={e => setAddEmpForm({...addEmpForm, ad: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="Ad" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Soyad *</label>
-                  <input required value={addEmpForm.soyad} onChange={e => setAddEmpForm({...addEmpForm, soyad: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="Soyad" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">TC Kimlik No</label>
-                <input type="text" inputMode="numeric" value={addEmpForm.kimlikNo} onChange={e => setAddEmpForm({...addEmpForm, kimlikNo: e.target.value.replace(/\D/g, "").slice(0, 11)})} className="w-full p-2 border rounded-lg text-sm" placeholder="11 haneli TC kimlik" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Telefon</label>
-                <input value={addEmpForm.telefon} onChange={e => setAddEmpForm({...addEmpForm, telefon: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="05XX XXX XX XX" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">İşe Giriş Tarihi</label>
-                  <input type="date" value={addEmpForm.iseGirisTarihi} onChange={e => setAddEmpForm({...addEmpForm, iseGirisTarihi: e.target.value})} className="w-full p-2 border rounded-lg text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">SGK Tarihi</label>
-                  <input type="date" value={addEmpForm.sgkTarihi} onChange={e => setAddEmpForm({...addEmpForm, sgkTarihi: e.target.value})} className="w-full p-2 border rounded-lg text-sm" />
-                </div>
-              </div>
-              <div className="flex gap-2 pt-2 justify-end">
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input value={personelSearch} onChange={e => setPersonelSearch(e.target.value)} className="w-full p-2 pl-9 border rounded-lg text-sm" placeholder="Personel ara (ad, soyad, TC)..."
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1 min-h-0 border rounded-lg p-2">
+              {allPersonel
+                .filter(p => !personelSearch || `${p.ad} ${p.soyad} ${p.kimlik_no || ""}`.toLocaleLowerCase("tr").includes(personelSearch.toLocaleLowerCase("tr")))
+                .map(p => {
+                  const checked = selectedPersonelIds.has(p.id);
+                  return (
+                    <label key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition ${checked ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50 border border-transparent"}`}>
+                      <input type="checkbox" checked={checked} onChange={() => setSelectedPersonelIds(prev => { const n = new Set(prev); if (checked) n.delete(p.id); else n.add(p.id); return n; })} className="rounded border-gray-300" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-800">{p.ad} {p.soyad}</span>
+                        {p.kimlik_no && <span className="text-xs text-gray-400 ml-2">({p.kimlik_no})</span>}
+                      </div>
+                      {p.telefon && <span className="text-xs text-gray-400 flex-shrink-0">{p.telefon}</span>}
+                    </label>
+                  );
+                })}
+              {allPersonel.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Bu taşerona bağlanacak personel kalmadı</p>}
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t mt-3">
+              <span className="text-xs text-gray-500">{selectedPersonelIds.size} personel seçildi</span>
+              <div className="flex gap-2">
                 <button type="button" onClick={() => setShowAddEmp(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
-                <button type="submit" disabled={addEmpSaving || !addEmpForm.ad.trim() || !addEmpForm.soyad.trim()} className="px-4 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1">
-                  <Save className="w-4 h-4" />{addEmpSaving ? "Kaydediliyor..." : "Kaydet"}
+                <button onClick={handleLinkPersonel} disabled={linkSaving || selectedPersonelIds.size === 0} className="px-4 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1">
+                  <Save className="w-4 h-4" />{linkSaving ? "Bağlanıyor..." : "Bağla"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

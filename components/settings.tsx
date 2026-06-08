@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { fetchWithCsrf } from "@/lib/csrf-client";
-import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader, Building } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 import { useTheme } from "@/components/theme-provider";
 
@@ -985,12 +985,9 @@ export default function SettingsPage() {
             onClick={() => setShowTaseronZorunlu(!showTaseronZorunlu)}
             className="w-full flex items-center justify-between"
           >
-            <div className="flex items-center gap-2">
-              <Building className="w-5 h-5 text-gray-400" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-gray-800">Taşeron Personeli Zorunlu Alanlar</h3>
-                <p className="text-sm text-gray-500">Taşerona bağlı personel için geçerli zorunlu alanlar</p>
-              </div>
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Taşeron Personeli Zorunlu Alanlar</h3>
+              <p className="text-sm text-gray-500">Taşerona bağlı personel için geçerli zorunlu alanlar</p>
             </div>
             <div className="flex items-center gap-3">
               {showTaseronZorunlu && (

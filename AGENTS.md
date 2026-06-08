@@ -29,6 +29,7 @@ The file `STANDARDS.md` contains ALL project conventions including:
 - **Error handling:** `try/catch` + `editStatus` state + error/success banner
 - **Search input:** `card p-4 mb-6 > relative > Search(right-4) > input pr-12`
 - **File upload:** `validateFile()` + `sanitizeFileName()` (max 10MB)
+- **Settings page:** no Lucide icons in cards/headings (plain text only)
 
 ### New Module Checklist (12 steps)
 Migration → Component → Route → Sidebar → Settings toggle → Backup API label → Build verify → Audit log → try/catch → sanitizeForm → displayDate → ISO 45001 mapping update
