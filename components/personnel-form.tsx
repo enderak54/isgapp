@@ -54,7 +54,7 @@ export default function PersonnelForm() {
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
-    adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
+    adres: "", acilDurumIrtibat: "", acilDurumTelefon: "",
     adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeSure: "",
   });
 
@@ -345,7 +345,7 @@ export default function PersonnelForm() {
         adres: form.adres ? sanitize(form.adres) : null,
         acil_durum_irtibat: form.acilDurumIrtibat ? sanitize(form.acilDurumIrtibat) : null,
         acil_durum_telefon: form.acilDurumTelefon ? sanitize(form.acilDurumTelefon) : null,
-        sgk_no: form.sgkNo ? sanitize(form.sgkNo) : null,
+
       };
       const { data, error } = await supabase.from("personel").insert(payload).select();
       if (error) throw error;
@@ -362,7 +362,7 @@ export default function PersonnelForm() {
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
-        adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
+        adres: "", acilDurumIrtibat: "", acilDurumTelefon: "",
         adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeSure: "",
       });
       setMykKayitlar([]);
@@ -484,10 +484,6 @@ export default function PersonnelForm() {
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">SGK No</label>
-                  <input type="text" inputMode="numeric" value={form.sgkNo} onChange={(e) => handleChange("sgkNo", e.target.value)} className="input" placeholder="SGK sicil numarası" />
-                </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
@@ -503,10 +499,6 @@ export default function PersonnelForm() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">SGK No</label>
-                  <input type="text" inputMode="numeric" value={form.sgkNo} onChange={(e) => handleChange("sgkNo", e.target.value)} className="input" placeholder="SGK sicil numarası" />
-                </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Öğrenim Durumu</label>
                   <select value={form.ogrenimDurumu} onChange={(e) => handleChange("ogrenimDurumu", e.target.value)} className="input">

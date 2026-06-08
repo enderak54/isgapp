@@ -66,7 +66,6 @@ const TUM_ZORUNLU_ALANLAR = [
   { key: "kimlikNo", label: "TC Kimlik No" },
   { key: "ad", label: "Ad" },
   { key: "soyad", label: "Soyad" },
-  { key: "sgkNo", label: "SGK No" },
   { key: "sgkTarihi", label: "SGK Tarihi" },
   { key: "isgEgitimTarihi", label: "İSG Eğitim" },
   { key: "yuksekteCalisma", label: "Yüksekte Çalışma" },

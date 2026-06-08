@@ -105,7 +105,7 @@ export default function PersonnelList() {
     sertifika_tarihi: false, operator_belgesi_tarihi: false, kkd_tarihi: false,
     oryantasyon_tarihi: false, saglik_raporu_tarihi: false, notlar: false,
     ayrilis_tarihi: false, ayrilis_nedeni: false,
-    adres: false, acil_durum_irtibat: false, acil_durum_telefon: false, sgk_no: false,
+    adres: false, acil_durum_irtibat: false, acil_durum_telefon: false,
   });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
@@ -252,7 +252,6 @@ export default function PersonnelList() {
       adres: p.adres || "",
       acil_durum_irtibat: p.acil_durum_irtibat || "",
       acil_durum_telefon: p.acil_durum_telefon || "",
-      sgk_no: p.sgk_no || "",
     });
     setPendingFiles([]);
     setEditBelgeler([]);
@@ -419,7 +418,6 @@ export default function PersonnelList() {
         adres: editForm.adres || null,
         acil_durum_irtibat: editForm.acil_durum_irtibat || null,
         acil_durum_telefon: editForm.acil_durum_telefon || null,
-        sgk_no: editForm.sgk_no || null,
       });
       const oldValues = { ...editingPerson };
       const { error } = await supabase.from("personel").update(payload).eq("id", editingPerson.id);
@@ -580,7 +578,6 @@ export default function PersonnelList() {
                   { key: "adres", label: "Adres" },
                   { key: "acil_durum_irtibat", label: "Acil İrtibat" },
                   { key: "acil_durum_telefon", label: "Acil Tel" },
-                  { key: "sgk_no", label: "SGK No" },
                 ].map((col) => (
                   <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
                     <input type="checkbox" checked={columnVisibility[col.key]} onChange={() => setColumnVisibility(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
@@ -635,7 +632,6 @@ export default function PersonnelList() {
                   {columnVisibility.adres && <th>Adres</th>}
                   {columnVisibility.acil_durum_irtibat && <th>Acil İrtibat</th>}
                   {columnVisibility.acil_durum_telefon && <th>Acil Tel</th>}
-                  {columnVisibility.sgk_no && <th>SGK No</th>}
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
@@ -673,7 +669,6 @@ export default function PersonnelList() {
                     {columnVisibility.adres && <td className="text-gray-600 align-middle max-w-[150px] truncate" title={p.adres}>{p.adres || "-"}</td>}
                     {columnVisibility.acil_durum_irtibat && <td className="text-gray-600 align-middle">{p.acil_durum_irtibat || "-"}</td>}
                     {columnVisibility.acil_durum_telefon && <td className="text-gray-600 align-middle">{p.acil_durum_telefon || "-"}</td>}
-                    {columnVisibility.sgk_no && <td className="text-gray-600 align-middle">{p.sgk_no || "-"}</td>}
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
@@ -899,16 +894,10 @@ export default function PersonnelList() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500 w-12 shrink-0">SGK No</label>
-                  <input type="text" value={editForm.sgk_no || ""} onChange={e => setEditForm({...editForm, sgk_no: e.target.value})} className="input text-xs flex-1 min-w-0" />
-                </div>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Adres</label>
                   <textarea value={editForm.adres || ""} onChange={e => setEditForm({...editForm, adres: e.target.value})} className="input text-xs flex-1 min-w-0 h-12 resize-none" />
                 </div>
-              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Acil İrtibat</label>
