@@ -207,7 +207,11 @@ export default function PersonnelForm() {
     if (activeZorunluAlanlar.includes("gorevlendirme")) {
       const hasFile = pendingFiles.some(f => f.field === "gorevlendirme");
       if (!hasFile && !form.gorevlendirme) newErrors.gorevlendirme = "Görevlendirme belgesi yükleyin";
-      else if (form.gorevlendirme && !form.gorevlendirmeSure) newErrors.gorevlendirmeSure = "Süre seçiniz";
+      else if (form.gorevlendirme) {
+        const gun = parseInt(form.gorevlendirmeSure);
+        if (!form.gorevlendirmeSure || isNaN(gun)) newErrors.gorevlendirmeSure = "Gün giriniz";
+        else if (gun < 1 || gun > 180) newErrors.gorevlendirmeSure = "1-180 gün arası";
+      }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -263,7 +267,7 @@ export default function PersonnelForm() {
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
       let sonGecerlilik: string | null = null;
       if (pf.field === "gorevlendirme" && form.gorevlendirme && form.gorevlendirmeSure) {
-        sonGecerlilik = calcGorevlendirmeSon(form.gorevlendirme, form.gorevlendirmeSure);
+        sonGecerlilik = calcGorevlendirmeSon(form.gorevlendirme, parseInt(form.gorevlendirmeSure));
       }
       await supabase.from("personel_belgeleri").insert({
         personel_id: personelId,
@@ -330,7 +334,7 @@ export default function PersonnelForm() {
         oryantasyon_gecerlilik_suresi: form.oryantasyonSure ? parseInt(form.oryantasyonSure) : null,
         saglik_raporu_gecerlilik_suresi: form.saglikRaporuSuresi ? parseInt(form.saglikRaporuSuresi) : null,
         gorevlendirme_tarihi: form.gorevlendirme || null,
-        gorevlendirme_gecerlilik_tarihi: form.gorevlendirme && form.gorevlendirmeSure ? calcGorevlendirmeSon(form.gorevlendirme, form.gorevlendirmeSure) : null,
+        gorevlendirme_gecerlilik_tarihi: form.gorevlendirme && form.gorevlendirmeSure ? calcGorevlendirmeSon(form.gorevlendirme, parseInt(form.gorevlendirmeSure)) : null,
         adli_sicil_tarihi: form.adliSicilTarihi || null,
         kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
@@ -386,21 +390,10 @@ export default function PersonnelForm() {
 
   const sureOptions = [1, 2, 3, 4, 5];
   const isReq = (key: string) => activeZorunluAlanlar.includes(key);
-  const GOREVLENDIRME_SURELERI = [
-    { label: "15 Gün", value: "15_gun" },
-    { label: "30 Gün", value: "30_gun" },
-    { label: "60 Gün", value: "60_gun" },
-    { label: "90 Gün", value: "90_gun" },
-    { label: "6 Ay", value: "6_ay" },
-  ];
-  const calcGorevlendirmeSon = (baslangic: string, sure: string) => {
-    const [val, birim] = sure.split("_");
-    const n = parseInt(val);
-    if (!baslangic || !n) return null;
+  const calcGorevlendirmeSon = (baslangic: string, sureGun: number) => {
+    if (!baslangic || !sureGun) return null;
     const d = new Date(baslangic);
-    if (birim === "ay") d.setMonth(d.getMonth() + n);
-    else if (birim === "yil") d.setFullYear(d.getFullYear() + n);
-    else d.setDate(d.getDate() + n);
+    d.setDate(d.getDate() + sureGun);
     return d.toISOString().split("T")[0];
   };
 
@@ -681,10 +674,8 @@ export default function PersonnelForm() {
                 <button type="button" onClick={() => { const picker = document.getElementById("dp-gorevlendirme") as HTMLInputElement; if (!picker) return; const rect = (document.getElementById("dp-btn-gorevlendirme") as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id="dp-btn-gorevlendirme" className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
                 <input id="dp-gorevlendirme" type="date" className="hidden" value={form.gorevlendirme} onChange={(e) => handleChange("gorevlendirme", e.target.value)} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
                 <span className="text-[10px] text-gray-400 mx-0.5">→</span>
-                <select value={form.gorevlendirmeSure} onChange={(e) => { handleChange("gorevlendirmeSure", e.target.value); setErrors((p) => ({ ...p, gorevlendirmeSure: "" })); }} className={`input text-xs ${(errors as any).gorevlendirmeSure ? "border-red-500" : ""}`} style={{ width: "5rem" }}>
-                  <option value="">Süre</option>
-                  {GOREVLENDIRME_SURELERI.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                <input type="number" min="1" max="180" placeholder="gün" value={form.gorevlendirmeSure} onChange={(e) => { handleChange("gorevlendirmeSure", e.target.value); setErrors((p) => ({ ...p, gorevlendirmeSure: "" })); }} className={`input text-xs ${(errors as any).gorevlendirmeSure ? "border-red-500" : ""}`} style={{ width: "4rem" }} />
+                <span className="text-[10px] text-gray-400">gün</span>
                 <button type="button" onClick={() => setUploadModalField("gorevlendirme")} className={`p-1 rounded transition relative ${fieldFileCount("gorevlendirme") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
                   <Paperclip className="w-3.5 h-3.5" />
                   {fieldFileCount("gorevlendirme") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("gorevlendirme")}</span>}
