@@ -27,6 +27,8 @@ const BELGE_TIPLERI: Record<string, string> = {
   yuksekteCalisamaz: "yuksekte_calisamaz",
   geceCalisamaz: "gece_calisamaz",
   vardiyaliCalisamaz: "vardiyali_calisamaz",
+  adliSicil: "adli_sicil",
+  gorevlendirme: "gorevlendirme",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -53,6 +55,7 @@ export default function PersonnelForm() {
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
     adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
+    adliSicil: "", gorevlendirme: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -190,6 +193,14 @@ export default function PersonnelForm() {
     if (activeZorunluAlanlar.includes("saglikRaporuTarihi")) {
       if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
       else if (!form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Süre seçiniz";
+    }
+    if (activeZorunluAlanlar.includes("adliSicil")) {
+      const hasFile = pendingFiles.some(f => f.field === "adliSicil");
+      if (!hasFile && !form.adliSicil) newErrors.adliSicil = "Adli sicil belgesi yükleyin";
+    }
+    if (activeZorunluAlanlar.includes("gorevlendirme")) {
+      const hasFile = pendingFiles.some(f => f.field === "gorevlendirme");
+      if (!hasFile && !form.gorevlendirme) newErrors.gorevlendirme = "Görevlendirme belgesi yükleyin";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -333,6 +344,7 @@ export default function PersonnelForm() {
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
         adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
+        adliSicil: "", gorevlendirme: "",
       });
       setMykKayitlar([]);
       setSelectedSantiyeler([]);
@@ -358,6 +370,7 @@ export default function PersonnelForm() {
   ];
 
   const sureOptions = [1, 2, 3, 4, 5];
+  const isReq = (key: string) => activeZorunluAlanlar.includes(key);
 
   return (
     <div className="flex-1 p-4 app-bg min-h-screen">
@@ -409,18 +422,18 @@ export default function PersonnelForm() {
             </h3>
             <div className="space-y-2">
               <div>
-                <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No</label>
+                <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No{isReq("kimlikNo") && <span className="text-red-500 ml-1">*</span>}</label>
                 <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
                 {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Ad</label>
+                  <label className="text-sm text-gray-600 mb-1 block">Ad{isReq("ad") && <span className="text-red-500 ml-1">*</span>}</label>
                   <input type="text" value={form.ad} onChange={(e) => { handleChange("ad", e.target.value); setErrors((p) => ({ ...p, ad: "" })); }} className={`input ${errors.ad ? "border-red-500" : ""}`} placeholder="Ad" />
                   {errors.ad && <p className="text-xs text-red-500 mt-1">{errors.ad}</p>}
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Soyad</label>
+                  <label className="text-sm text-gray-600 mb-1 block">Soyad{isReq("soyad") && <span className="text-red-500 ml-1">*</span>}</label>
                   <input type="text" value={form.soyad} onChange={(e) => { handleChange("soyad", e.target.value); setErrors((p) => ({ ...p, soyad: "" })); }} className={`input ${errors.soyad ? "border-red-500" : ""}`} placeholder="Soyad" />
                   {errors.soyad && <p className="text-xs text-red-500 mt-1">{errors.soyad}</p>}
                 </div>
@@ -529,7 +542,7 @@ export default function PersonnelForm() {
                 return item.field === "myk" ? (
                   <div key={item.field} className="px-3 py-2">
                     <div className="flex items-center gap-1 mb-2">
-                      <span className="text-xs text-gray-700 w-20 shrink-0">{item.label}</span>
+                      <span className="text-xs text-gray-700 w-20 shrink-0">{item.label}{isReq(item.field) && <span className="text-red-500 ml-0.5">*</span>}</span>
                       <div className="flex-1 min-w-0">
                         <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
                           <option value="">Eğitim seçiniz</option>
@@ -576,7 +589,7 @@ export default function PersonnelForm() {
                   </div>
                 ) : (
                 <div className={`flex items-center justify-between px-3 py-2 ${idx % 2 === 0 ? "bg-gray-100" : "bg-white"}`}>
-                  <span className="text-xs text-gray-700 w-28">{item.label}</span>
+                  <span className="text-xs text-gray-700 w-28">{item.label}{isReq(item.field) && <span className="text-red-500 ml-0.5">*</span>}</span>
                   <div className="flex items-center gap-0.5">
                     <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form[item.field as keyof typeof form] as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange(item.field, toDb(v)); setErrors((p) => ({ ...p, [item.field]: "" })); }} className={`input text-xs ${hasErr ? "border-red-500" : ""}`} style={{ width: "5rem" }} />
                     <button type="button" onClick={() => { const picker = document.getElementById(`dp-${item.field}`) as HTMLInputElement; if (!picker) return; const rect = (document.getElementById(`dp-btn-${item.field}`) as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id={`dp-btn-${item.field}`} className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
@@ -595,6 +608,24 @@ export default function PersonnelForm() {
                 );
               })}
             </div>
+
+            {/* Belge Alanları */}
+            {["adliSicil", "gorevlendirme"].map(field => {
+              const label = field === "adliSicil" ? "Adli Sicil" : "Görevlendirme";
+              const fc = fieldFileCount(field);
+              return (
+                <div key={field} className="flex items-center justify-between px-3 py-2">
+                  <span className="text-xs text-gray-700 w-28">{label}{isReq(field) && <span className="text-red-500 ml-0.5">*</span>}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setUploadModalField(field)} className={`p-1.5 rounded transition relative ${fc > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {fc > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fc}</span>}
+                    </button>
+                  </div>
+                  {(errors as any)[field] && <p className="text-xs text-red-500">{errors[field]}</p>}
+                </div>
+              );
+            })}
 
             {/* İSG Dosya Grid */}
             {pendingFiles.filter(f => BELGE_TIPLERI[f.field] && BELGE_TIPLERI[f.field] !== "saglik_raporu").length > 0 && (
@@ -628,7 +659,7 @@ export default function PersonnelForm() {
             </h3>
             <div className="space-y-2">
               <div>
-                <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu Tarihi</label>
+                <label className="text-sm text-gray-600 mb-2 block">Sağlık Raporu Tarihi{isReq("saglikRaporuTarihi") && <span className="text-red-500 ml-1">*</span>}</label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-0.5">
                     <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.saglikRaporuTarihi)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("saglikRaporuTarihi", toDb(v)); setErrors((p) => ({ ...p, saglikRaporuTarihi: "" })); }} className={`input text-xs ${errors.saglikRaporuTarihi ? "border-red-500" : ""}`} style={{ width: "5rem" }} />

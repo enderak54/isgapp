@@ -58,6 +58,8 @@ const PERSONEL_ZORUNLU_ALANLAR = [
   { key: "kkd", label: "KKD (tarih + süre)" },
   { key: "oryantasyon", label: "Oryantasyon (tarih + süre)" },
   { key: "saglikRaporuTarihi", label: "Sağlık Raporu (tarih + süre)" },
+  { key: "adliSicil", label: "Adli Sicil (belge)" },
+  { key: "gorevlendirme", label: "Görevlendirme (belge)" },
 ];
 
 const TUM_ZORUNLU_ALANLAR = [
