@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { CheckCircle, AlertCircle, Eye, Plus, Search, Edit, Trash2, X } from "lucide-react";
 
 const durumlar = [
@@ -115,10 +116,10 @@ export default function YonetimGozdenGecirme() {
               {filtered.map(i => (
                 <tr key={i.id}>
                   <td className="font-medium">{i.toplantı_adi}</td>
-                  <td>{new Date(i.toplantı_tarihi).toLocaleDateString("tr-TR")}</td>
+                  <td>{displayDate(i.toplantı_tarihi)}</td>
                   <td>{Array.isArray(i.katilimcilar) ? i.katilimcilar.length + " kişi" : "-"}</td>
                   <td><span className={`badge ${i.durum === "tamamlandi" ? "bg-green-100 text-green-700" : i.durum === "yapildi" ? "bg-blue-100 text-blue-700" : i.durum === "rapor_hazirlaniyor" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`}>{durumlar.find(d => d.value === i.durum)?.label}</span></td>
-                  <td>{new Date(i.olusturma_tarihi).toLocaleDateString("tr-TR")}</td>
+                  <td>{displayDate(i.olusturma_tarihi)}</td>
                   <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                 </tr>
               ))}

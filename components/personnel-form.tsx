@@ -52,6 +52,7 @@ export default function PersonnelForm() {
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
+    adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -74,6 +75,8 @@ export default function PersonnelForm() {
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
+  const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<Record<string, string[]>>({});
+  const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
   const [ekipler, setEkipler] = useState<any[]>([]);
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
@@ -103,7 +106,8 @@ export default function PersonnelForm() {
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
       supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
-    ]).then(([egitimRes, ayarRes, zorunluRes]) => {
+      supabase.from("ayarlar").select("value").eq("key", "taseron_zorunlu_alanlar").single(),
+    ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
@@ -111,8 +115,19 @@ export default function PersonnelForm() {
       if (zorunluRes.data?.value) {
         try { setZorunluAlanlar(JSON.parse(zorunluRes.data.value)); } catch {}
       }
+      if (taseronRes.data?.value) {
+        try { setTaseronZorunluAlanlar(JSON.parse(taseronRes.data.value)); } catch {}
+      }
     });
   }, []);
+
+  useEffect(() => {
+    if (form.taseronId && taseronZorunluAlanlar[form.taseronId]) {
+      setActiveZorunluAlanlar(taseronZorunluAlanlar[form.taseronId]);
+    } else {
+      setActiveZorunluAlanlar(zorunluAlanlar);
+    }
+  }, [form.taseronId, taseronZorunluAlanlar, zorunluAlanlar]);
 
   const mykEkle = () => {
     if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
@@ -138,41 +153,41 @@ export default function PersonnelForm() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (zorunluAlanlar.includes("kimlikNo")) {
+    if (activeZorunluAlanlar.includes("kimlikNo")) {
       if (form.kimlikNo.length !== 11) newErrors.kimlikNo = "TC Kimlik No 11 haneli olmalıdır";
       else if (!validateTC(form.kimlikNo)) newErrors.kimlikNo = "Geçersiz TC Kimlik No";
     }
-    if (zorunluAlanlar.includes("ad") && !form.ad.trim()) newErrors.ad = "Ad zorunludur";
-    if (zorunluAlanlar.includes("soyad") && !form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
-    if (zorunluAlanlar.includes("isgEgitimTarihi")) {
+    if (activeZorunluAlanlar.includes("ad") && !form.ad.trim()) newErrors.ad = "Ad zorunludur";
+    if (activeZorunluAlanlar.includes("soyad") && !form.soyad.trim()) newErrors.soyad = "Soyad zorunludur";
+    if (activeZorunluAlanlar.includes("isgEgitimTarihi")) {
       if (!form.isgEgitimTarihi) newErrors.isgEgitimTarihi = "Zorunludur";
       else if (!form.isgEgitimSuresi) newErrors.isgEgitimSuresi = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("yuksekteCalisma")) {
+    if (activeZorunluAlanlar.includes("yuksekteCalisma")) {
       if (!form.yuksekteCalisma) newErrors.yuksekteCalisma = "Zorunludur";
       else if (!form.yuksekteSure) newErrors.yuksekteSure = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("myk")) {
+    if (activeZorunluAlanlar.includes("myk")) {
       const hasMyk = mykKayitlar.length > 0 || form.myk;
       if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
     }
-    if (zorunluAlanlar.includes("sertifika")) {
+    if (activeZorunluAlanlar.includes("sertifika")) {
       if (!form.sertifika) newErrors.sertifika = "Zorunludur";
       else if (!form.sertifikaSure) newErrors.sertifikaSure = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("operatorBelgesi")) {
+    if (activeZorunluAlanlar.includes("operatorBelgesi")) {
       if (!form.operatorBelgesi) newErrors.operatorBelgesi = "Zorunludur";
       else if (!form.operatorSure) newErrors.operatorSure = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("kkd")) {
+    if (activeZorunluAlanlar.includes("kkd")) {
       if (!form.kkd) newErrors.kkd = "Zorunludur";
       else if (!form.kkdSure) newErrors.kkdSure = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("oryantasyon")) {
+    if (activeZorunluAlanlar.includes("oryantasyon")) {
       if (!form.oryantasyon) newErrors.oryantasyon = "Zorunludur";
       else if (!form.oryantasyonSure) newErrors.oryantasyonSure = "Süre seçiniz";
     }
-    if (zorunluAlanlar.includes("saglikRaporuTarihi")) {
+    if (activeZorunluAlanlar.includes("saglikRaporuTarihi")) {
       if (!form.saglikRaporuTarihi) newErrors.saglikRaporuTarihi = "Zorunludur";
       else if (!form.saglikRaporuSuresi) newErrors.saglikRaporuSuresi = "Süre seçiniz";
     }
@@ -297,6 +312,10 @@ export default function PersonnelForm() {
         gece_calisir: !!form.geceCalisir, gece_calisamaz: !!form.geceCalisamaz,
         vardiyali_calisir: !!form.vardiyaliCalisir, vardiyali_calisamaz: !!form.vardiyaliCalisamaz,
         notlar: form.notlar.map((n) => sanitize(n)).filter((n) => n).join(" | "),
+        adres: form.adres ? sanitize(form.adres) : null,
+        acil_durum_irtibat: form.acilDurumIrtibat ? sanitize(form.acilDurumIrtibat) : null,
+        acil_durum_telefon: form.acilDurumTelefon ? sanitize(form.acilDurumTelefon) : null,
+        sgk_no: form.sgkNo ? sanitize(form.sgkNo) : null,
       };
       const { data, error } = await supabase.from("personel").insert(payload).select();
       if (error) throw error;
@@ -313,6 +332,7 @@ export default function PersonnelForm() {
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
+        adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
       });
       setMykKayitlar([]);
       setSelectedSantiyeler([]);
@@ -375,6 +395,11 @@ export default function PersonnelForm() {
             {loading ? "Kaydediliyor..." : "💾 Kaydet"}
           </button>
         </div>
+        {form.taseronId && taseronZorunluAlanlar[form.taseronId] && (
+          <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+            ⚠ Bu taşeron için zorunlu alanlar: {taseronZorunluAlanlar[form.taseronId].join(", ")}
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-4">
           {/* Personel */}
           <div className="card p-4">
@@ -428,8 +453,8 @@ export default function PersonnelForm() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
-                  <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="input" placeholder="ornek@mail.com" />
+                  <label className="text-sm text-gray-600 mb-1.5 block">SGK No</label>
+                  <input type="text" inputMode="numeric" value={form.sgkNo} onChange={(e) => handleChange("sgkNo", e.target.value)} className="input" placeholder="SGK sicil numarası" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">Öğrenim Durumu</label>
@@ -437,6 +462,12 @@ export default function PersonnelForm() {
                     <option value="">Seçiniz...</option>
                     {["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">E-posta</label>
+                  <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="input" placeholder="ornek@mail.com" />
                 </div>
               </div>
               <div>
@@ -454,6 +485,10 @@ export default function PersonnelForm() {
                 </div>
               </div>
               <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Adres</label>
+                <textarea value={form.adres} onChange={(e) => handleChange("adres", e.target.value)} className="input h-16 resize-none" placeholder="Ev adresi..." />
+              </div>
+              <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Taşeron</label>
                 <select value={form.taseronId || ""} onChange={(e) => handleChange("taseronId", e.target.value)} className="input">
                   <option value="">Taşeron Seçin</option>
@@ -466,6 +501,16 @@ export default function PersonnelForm() {
                   <option value="">Ekip Seçin</option>
                   {ekipler.map(ek => <option key={ek.id} value={ek.id}>{ek.ad}</option>)}
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Acil Durum İrtibat</label>
+                  <input type="text" value={form.acilDurumIrtibat} onChange={(e) => handleChange("acilDurumIrtibat", e.target.value)} className="input" placeholder="Yakın akraba adı" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Acil Durum Telefon</label>
+                  <input type="text" value={form.acilDurumTelefon} onChange={(e) => handleChange("acilDurumTelefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
+                </div>
               </div>
             </div>
           </div>

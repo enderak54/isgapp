@@ -94,6 +94,8 @@ export default function PersonnelList() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
+  const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<Record<string, string[]>>({});
+  const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     ad: true, soyad: true, kimlik_no: true, santiye: true, ekip: true, taseron: true,
     telefon: true, email: true, ogrenim: true, ise_giris: true,
@@ -103,6 +105,7 @@ export default function PersonnelList() {
     sertifika_tarihi: false, operator_belgesi_tarihi: false, kkd_tarihi: false,
     oryantasyon_tarihi: false, saglik_raporu_tarihi: false, notlar: false,
     ayrilis_tarihi: false, ayrilis_nedeni: false,
+    adres: false, acil_durum_irtibat: false, acil_durum_telefon: false, sgk_no: false,
   });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
@@ -129,13 +132,26 @@ export default function PersonnelList() {
     Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
-    ]).then(([egitimRes, ayarRes]) => {
+      supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
+      supabase.from("ayarlar").select("value").eq("key", "taseron_zorunlu_alanlar").single(),
+    ]).then(([egitimRes, ayarRes, personelZorunluRes, taseronZorunluRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
       }
+      if (taseronZorunluRes.data?.value) {
+        try { setTaseronZorunluAlanlar(JSON.parse(taseronZorunluRes.data.value)); } catch {}
+      }
     });
   }, []);
+
+  useEffect(() => {
+    if (editingPerson?.taseron_id && taseronZorunluAlanlar[editingPerson.taseron_id]) {
+      setActiveZorunluAlanlar(taseronZorunluAlanlar[editingPerson.taseron_id]);
+    } else {
+      setActiveZorunluAlanlar(["kimlikNo", "ad", "soyad", "myk"]);
+    }
+  }, [editingPerson?.taseron_id, taseronZorunluAlanlar]);
 
   const mykEkle = () => {
     if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
@@ -233,6 +249,10 @@ export default function PersonnelList() {
       vardiyali_calisir: p.vardiyali_calisir || false,
       vardiyali_calisamaz: p.vardiyali_calisamaz || false,
       notlar: p.notlar || "",
+      adres: p.adres || "",
+      acil_durum_irtibat: p.acil_durum_irtibat || "",
+      acil_durum_telefon: p.acil_durum_telefon || "",
+      sgk_no: p.sgk_no || "",
     });
     setPendingFiles([]);
     setEditBelgeler([]);
@@ -396,6 +416,10 @@ export default function PersonnelList() {
         vardiyali_calisir: !!editForm.vardiyali_calisir,
         vardiyali_calisamaz: !!editForm.vardiyali_calisamaz,
         notlar: editForm.notlar,
+        adres: editForm.adres || null,
+        acil_durum_irtibat: editForm.acil_durum_irtibat || null,
+        acil_durum_telefon: editForm.acil_durum_telefon || null,
+        sgk_no: editForm.sgk_no || null,
       });
       const oldValues = { ...editingPerson };
       const { error } = await supabase.from("personel").update(payload).eq("id", editingPerson.id);
@@ -553,6 +577,10 @@ export default function PersonnelList() {
                   { key: "notlar", label: "Notlar" },
                   { key: "ayrilis_tarihi", label: "Ayrılış Tarihi" },
                   { key: "ayrilis_nedeni", label: "Ayrılış Nedeni" },
+                  { key: "adres", label: "Adres" },
+                  { key: "acil_durum_irtibat", label: "Acil İrtibat" },
+                  { key: "acil_durum_telefon", label: "Acil Tel" },
+                  { key: "sgk_no", label: "SGK No" },
                 ].map((col) => (
                   <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
                     <input type="checkbox" checked={columnVisibility[col.key]} onChange={() => setColumnVisibility(prev => ({ ...prev, [col.key]: !prev[col.key] }))} className="rounded" />
@@ -604,6 +632,10 @@ export default function PersonnelList() {
                   {columnVisibility.notlar && <th>Notlar</th>}
                   {columnVisibility.ayrilis_tarihi && <th>Ayr.Tarihi</th>}
                   {columnVisibility.ayrilis_nedeni && <th>Ayr.Nedeni</th>}
+                  {columnVisibility.adres && <th>Adres</th>}
+                  {columnVisibility.acil_durum_irtibat && <th>Acil İrtibat</th>}
+                  {columnVisibility.acil_durum_telefon && <th>Acil Tel</th>}
+                  {columnVisibility.sgk_no && <th>SGK No</th>}
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
@@ -638,6 +670,10 @@ export default function PersonnelList() {
                     {columnVisibility.notlar && <td className="text-gray-600 align-middle max-w-[150px] truncate" title={p.notlar}>{p.notlar || "-"}</td>}
                     {columnVisibility.ayrilis_tarihi && <td className="text-gray-500 align-middle">{displayDate(p.ayrilis_tarihi)}</td>}
                     {columnVisibility.ayrilis_nedeni && <td className="text-gray-600 align-middle max-w-[120px] truncate" title={p.ayrilis_nedeni}>{p.ayrilis_nedeni || "-"}</td>}
+                    {columnVisibility.adres && <td className="text-gray-600 align-middle max-w-[150px] truncate" title={p.adres}>{p.adres || "-"}</td>}
+                    {columnVisibility.acil_durum_irtibat && <td className="text-gray-600 align-middle">{p.acil_durum_irtibat || "-"}</td>}
+                    {columnVisibility.acil_durum_telefon && <td className="text-gray-600 align-middle">{p.acil_durum_telefon || "-"}</td>}
+                    {columnVisibility.sgk_no && <td className="text-gray-600 align-middle">{p.sgk_no || "-"}</td>}
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
@@ -788,6 +824,12 @@ export default function PersonnelList() {
                 </div>
               )}
 
+              {editingPerson?.taseron_id && taseronZorunluAlanlar[editingPerson.taseron_id] && (
+                <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                  ⚠ Bu taşeron için zorunlu alanlar: {taseronZorunluAlanlar[editingPerson.taseron_id].join(", ")}
+                </div>
+              )}
+
               {/* Kişisel Bilgiler */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
@@ -855,6 +897,26 @@ export default function PersonnelList() {
                     <option value="">Taşeron Seçin</option>
                     {taseronlar.map(t => <option key={t.id} value={t.id}>{t.firma_adi}</option>)}
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">SGK No</label>
+                  <input type="text" value={editForm.sgk_no || ""} onChange={e => setEditForm({...editForm, sgk_no: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Adres</label>
+                  <textarea value={editForm.adres || ""} onChange={e => setEditForm({...editForm, adres: e.target.value})} className="input text-xs flex-1 min-w-0 h-12 resize-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Acil İrtibat</label>
+                  <input type="text" value={editForm.acil_durum_irtibat || ""} onChange={e => setEditForm({...editForm, acil_durum_irtibat: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Acil Tel</label>
+                  <input type="text" value={editForm.acil_durum_telefon || ""} onChange={e => setEditForm({...editForm, acil_durum_telefon: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
 

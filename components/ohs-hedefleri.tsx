@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { Target, Plus, Search, Edit, Trash2, X, TrendingUp, CheckCircle, Clock } from "lucide-react";
+import { Target, Plus, Search, Edit, Trash2, X, CheckCircle } from "lucide-react";
 
 const durumOptions = [
   { value: "devam", label: "Devam Ediyor" },

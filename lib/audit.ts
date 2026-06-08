@@ -8,8 +8,8 @@ export async function logAudit(
   newValues: Record<string, any> | null = null
 ) {
   try {
-    const ip = typeof window !== "undefined" ? "" : ""; // Server-side would get from headers
-    const userAgent = typeof window !== "undefined" ? navigator.userAgent : "";
+    const ip = typeof window !== "undefined" ? window.location.hostname : "";
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
 
     await supabase.from("audit_log").insert({
       table_name: tableName,

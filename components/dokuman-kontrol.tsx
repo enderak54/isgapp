@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { FileCheck, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const dokumanTipleri = [
@@ -134,7 +135,7 @@ export default function DokumanKontrol() {
                   <td><span className="badge bg-gray-100 text-gray-700">v{i.versiyon}</span></td>
                   <td>{i.hazirlayan || "-"}</td>
                   <td>{i.onaylayan || "-"}</td>
-                  <td>{i.yayin_tarihi ? new Date(i.yayin_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
+                  <td>{displayDate(i.yayin_tarihi)}</td>
                   <td><span className={`badge ${i.durum === "yayinda" ? "bg-green-100 text-green-700" : i.durum === "onay_bekliyor" ? "bg-blue-100 text-blue-700" : i.durum === "taslak" ? "bg-gray-100 text-gray-700" : i.durum === "arsiv" ? "bg-purple-100 text-purple-700" : "bg-red-100 text-red-700"}`}>{durumlar.find(d => d.value === i.durum)?.label}</span></td>
                   <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                 </tr>

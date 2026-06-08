@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { ClipboardCheck, Plus, Search, Edit, Trash2, X, Eye, CheckCircle, AlertCircle } from "lucide-react";
 
 const denetimTipleri = [
@@ -167,7 +168,7 @@ export default function ICDenetim() {
               {filtered.map(i => (
                 <tr key={i.id}>
                   <td className="font-medium">{i.denetim_adi}</td>
-                  <td>{new Date(i.denetim_tarihi).toLocaleDateString("tr-TR")}</td>
+                  <td>{displayDate(i.denetim_tarihi)}</td>
                   <td>{denetimTipleri.find(d => d.value === i.denetim_tipi)?.label}</td>
                   <td>{i.denetci}</td>
                   <td className="text-center">{i.bulgu_sayisi || 0}</td>

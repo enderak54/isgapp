@@ -75,8 +75,9 @@ export default function Sidebar() {
 
   const loadVersion = async () => {
     try {
-      const { data } = await supabase.from("versiyonlar").select("versiyon").order("tarih", { ascending: false }).limit(1).maybeSingle();
-      if (data?.versiyon && data.versiyon.trim()) setVersion("v" + data.versiyon.trim());
+      const res = await fetch("/api/version");
+      const data = await res.json();
+      if (data?.version) setVersion("v" + data.version);
     } catch {}
   };
 
@@ -142,7 +143,12 @@ export default function Sidebar() {
             <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-white" />
             </div>
-            {(!collapsed || mobile) && <span className="text-sm font-semibold text-gray-800">İSG Takip {version && <span className="text-[10px] text-gray-400 font-normal">{version}</span>}</span>}
+            {(!collapsed || mobile) && (
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-800">İSG Takip</span>
+                {version && <span className="text-[10px] text-gray-400 font-mono">{version}</span>}
+              </div>
+            )}
           </div>
         </Link>
       </div>

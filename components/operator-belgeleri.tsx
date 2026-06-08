@@ -115,7 +115,7 @@ export default function OperatorBelgeleri() {
               </div>
               <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="w-full p-2 border rounded-lg">
                 <option value="gecerli">Geçerli</option>
-                <option value="süresi_doldu">Süresi Doldu</option>
+                <option value="suresi_doldu">Süresi Doldu</option>
                 <option value="yenileniyor">Yenileniyor</option>
               </select>
               <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
@@ -144,7 +144,7 @@ export default function OperatorBelgeleri() {
                   <td className="px-4 py-3 text-sm">{b.belge_adi}</td>
                   <td className="px-4 py-3 text-sm">{b.belge_no || "-"}</td>
                   <td className={`px-4 py-3 text-sm ${isExpired(b.gecerlilik_tarihi) ? "text-red-600 font-medium" : ""}`}>{displayDate(b.gecerlilik_tarihi)}</td>
-                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${b.durum === "gecerli" ? "bg-green-100 text-green-700" : b.durum === "süresi_doldu" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{b.durum}</span></td>
+                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${b.durum === "gecerli" ? "bg-green-100 text-green-700" : b.durum === "suresi_doldu" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{b.durum}</span></td>
                   <td className="px-4 py-3 flex justify-center gap-2">
                     <button onClick={() => { setEditing(b); setForm({ personel_id: b.personel_id, belge_adi: b.belge_adi, belge_no: b.belge_no || "", alis_tarihi: b.alis_tarihi || "", gecerlilik_tarihi: b.gecerlilik_tarihi || "", durum: b.durum, notlar: b.notlar || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => handleDelete(b.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>

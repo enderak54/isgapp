@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { ScrollText, Plus, Search, Edit, Trash2, X, CheckCircle, FileText } from "lucide-react";
+import { ScrollText, Plus, Search, Edit, Trash2, X, CheckCircle } from "lucide-react";
 
 const durumOptions = [
   { value: "aktif", label: "Aktif" },

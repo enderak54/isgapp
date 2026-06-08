@@ -11,7 +11,7 @@ setInterval(() => {
 }, 60000);
 
 const CSRF_HEADER = "x-csrf-token";
-const CSRF_SKIP_PATHS = ["/api/commits", "/api/csrf-token"];
+const CSRF_SKIP_PATHS = ["/api/commits", "/api/csrf-token", "/api/validate-file"];
 
 function generateCsrfToken(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -20,6 +20,15 @@ function generateCsrfToken(): string {
   crypto.getRandomValues(array);
   for (let i = 0; i < 32; i++) token += chars[array[i] % chars.length];
   return token;
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const bufA = new TextEncoder().encode(a);
+  const bufB = new TextEncoder().encode(b);
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
 }
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -48,7 +57,7 @@ export function middleware(request: NextRequest) {
     if (STATE_CHANGING.has(method) && !CSRF_SKIP_PATHS.some(p => pathname.startsWith(p))) {
       const cookieToken = request.cookies.get("csrf-token")?.value;
       const headerToken = request.headers.get(CSRF_HEADER);
-      if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+      if (!cookieToken || !headerToken || !timingSafeEqual(cookieToken, headerToken)) {
         return NextResponse.json({ error: "CSRF token geçersiz" }, { status: 403 });
       }
     }

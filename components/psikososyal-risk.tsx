@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { Briefcase, Users, Shield, Calendar, X, CheckCircle, Search, Edit, Trash2 } from "lucide-react";
+import { X, CheckCircle, Search, Edit, Trash2 } from "lucide-react";
 
 export default function PsikososyalRisk() {
   const [loading, setLoading] = useState(true);

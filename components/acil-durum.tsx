@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { Siren, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const senaryoTipleri = [
@@ -138,8 +139,8 @@ export default function AcilDurum() {
                     <td className="font-medium">{i.plan_adi}</td>
                     <td>{senaryoTipleri.find(s => s.value === i.senaryo_tipi)?.label}</td>
                     <td><span className={`badge ${rs.color}`}>{rs.label}</span></td>
-                    <td>{i.son_tatbikat_tarihi ? new Date(i.son_tatbikat_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
-                    <td>{i.sonraki_tatbikat_tarihi ? new Date(i.sonraki_tatbikat_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
+                    <td>{displayDate(i.son_tatbikat_tarihi)}</td>
+                    <td>{displayDate(i.sonraki_tatbikat_tarihi)}</td>
                     <td><span className={`badge ${i.durum === "aktif" ? "bg-green-100 text-green-700" : i.durum === "gozden_geciriliyor" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}`}>{durumlar.find(d => d.value === i.durum)?.label}</span></td>
                     <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                   </tr>

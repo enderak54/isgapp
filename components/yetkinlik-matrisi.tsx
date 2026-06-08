@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { Award, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const yetkinlikTipleri = [
@@ -136,8 +137,8 @@ export default function YetkinlikMatrisi() {
                   <td>{yetkinlikTipleri.find(y => y.value === i.yetkinlik_tipi)?.label}</td>
                   <td className="text-center">{i.seviye}/5</td>
                   <td className="text-center">{i.gereken_seviye}/5</td>
-                  <td>{i.alis_tarihi ? new Date(i.alis_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
-                  <td>{i.gecerlilik_tarihi ? new Date(i.gecerlilik_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
+                  <td>{displayDate(i.alis_tarihi)}</td>
+                  <td>{displayDate(i.gecerlilik_tarihi)}</td>
                   <td><span className={`badge ${i.durum === "gecerli" ? "bg-green-100 text-green-700" : i.durum === "suresi_doluyor" ? "bg-amber-100 text-amber-700" : i.durum === "suresi_dolmus" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>{durumlar.find(d => d.value === i.durum)?.label}</span></td>
                   <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                 </tr>

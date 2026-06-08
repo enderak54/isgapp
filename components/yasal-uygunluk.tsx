@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { Scale, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle, AlertTriangle, HelpCircle } from "lucide-react";
 
 const uyumlulukDurumlari = [
@@ -123,10 +124,10 @@ export default function YasalUygunluk() {
                   <tr key={i.id}>
                     <td className="font-medium">{i.yasal_metin_adi}</td>
                     <td>{i.yasal_dayanak || "-"}</td>
-                    <td>{i.yayin_tarihi ? new Date(i.yayin_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
+                    <td>{displayDate(i.yayin_tarihi)}</td>
                     <td><span className={`badge ${d.color}`}><Icon className="w-3 h-3 mr-1" />{d.label}</span></td>
                     <td>{i.sorumlu_kisi || "-"}</td>
-                    <td>{i.son_degerlendirme_tarihi ? new Date(i.son_degerlendirme_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
+                    <td>{displayDate(i.son_degerlendirme_tarihi)}</td>
                     <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                   </tr>
                 );

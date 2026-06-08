@@ -43,7 +43,10 @@ const TURKISH_LABELS: Record<string, string> = {
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
   const backupApiKey = process.env.BACKUP_API_KEY;
-  if (backupApiKey && apiKey !== backupApiKey) {
+  if (!backupApiKey) {
+    return NextResponse.json({ error: "BACKUP_API_KEY ortam değişkeni tanımlı değil" }, { status: 503 });
+  }
+  if (apiKey !== backupApiKey) {
     return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
   }
 

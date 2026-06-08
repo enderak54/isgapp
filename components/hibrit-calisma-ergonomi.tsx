@@ -32,7 +32,7 @@ export default function HibritCalismaErgonomi() {
 
   const fetchItems = async () => {
     try {
-      const { data } = await supabase.from("hibrit_calisma_ergonomi").select("*, personel:personel_id(ad_soyad)").order("degerlendirme_tarihi", { ascending: false });
+      const { data } = await supabase.from("hibrit_calisma_ergonomi").select("*, personel:personel_id(ad, soyad)").order("degerlendirme_tarihi", { ascending: false });
       if (data) setItems(data);
     } catch (e: any) {
       setEditStatus({ type: "error", message: "Veriler yuklenirken hata olustu" });
@@ -41,13 +41,13 @@ export default function HibritCalismaErgonomi() {
 
   const fetchPersonels = async () => {
     try {
-      const { data } = await supabase.from("personel").select("id, ad_soyad").order("ad_soyad");
+      const { data } = await supabase.from("personel").select("id, ad, soyad").order("ad");
       if (data) setPersonels(data);
     } catch {}
   };
 
   const filtered = items.filter((i: any) =>
-    (i.personel?.ad_soyad || "").toLowerCase().includes(search.toLowerCase()) ||
+    ((i.personel?.ad || "") + " " + (i.personel?.soyad || "")).toLowerCase().includes(search.toLowerCase()) ||
     (i.calisma_turu || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -138,7 +138,7 @@ export default function HibritCalismaErgonomi() {
                   <label className="block text-sm font-medium mb-2">Personel *</label>
                   <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="block w-full pl-4 pr-4 py-2 border border-gray-300 rounded-md text-sm">
                     <option value="">Secin...</option>
-                    {personels.map((p: any) => <option key={p.id} value={p.id}>{p.ad_soyad}</option>)}
+                    {personels.map((p: any) => <option key={p.id} value={p.id}>{p.ad + " " + p.soyad}</option>)}
                   </select>
                 </div>
                 <div>
@@ -235,7 +235,7 @@ export default function HibritCalismaErgonomi() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filtered.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{item.personel?.ad_soyad || "-"}</td>
+                    <td className="px-4 py-3 text-sm">{(item.personel?.ad || "") + " " + (item.personel?.soyad || "") || "-"}</td>
                     <td className="px-4 py-3 text-sm">{item.degerlendirme_tarihi ? new Date(item.degerlendirme_tarihi).toLocaleDateString("tr-TR") : "-"}</td>
                     <td className="px-4 py-3 text-sm">{calismaTuruLabels[item.calisma_turu] || item.calisma_turu}</td>
                     <td className="px-4 py-3 text-sm">{item.ofis_gunu_sayisi}</td>

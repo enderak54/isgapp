@@ -9,7 +9,8 @@ export async function GET() {
     if (!res.ok) return NextResponse.json([], { status: 200 });
     const data = await res.json();
     return NextResponse.json(data);
-  } catch {
+  } catch (err) {
+    console.error("Failed to fetch commits:", err);
     return NextResponse.json([], { status: 200 });
   }
 }

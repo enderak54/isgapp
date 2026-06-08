@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { RotateCcw, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const kaynaklar = [
@@ -145,7 +146,7 @@ export default function DuzelticiFaaliyet() {
                   <td>{kaynaklar.find(k => k.value === i.kaynak)?.label || "-"}</td>
                   <td>{analizYontemleri.find(a => a.value === i.analiz_yontemi)?.label || "-"}</td>
                   <td>{i.sorumlu_kisi}</td>
-                  <td>{i.hedef_tarih ? new Date(i.hedef_tarih).toLocaleDateString("tr-TR") : "-"}</td>
+                  <td>{displayDate(i.hedef_tarih)}</td>
                   <td><span className={`badge ${i.durum === "tamamlandi" || i.durum === "kapatildi" ? "bg-green-100 text-green-700" : i.durum === "devam" ? "bg-blue-100 text-blue-700" : i.durum === "dogrulama" ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"}`}>{durumlar.find(d => d.value === i.durum)?.label}</span></td>
                   <td>{i.dogrulama_sonucu ? <span className={`badge ${i.dogrulama_sonucu === "etkili" ? "bg-green-100 text-green-700" : i.dogrulama_sonucu === "kismen_etkili" ? "bg-amber-100 text-amber-700" : i.dogrulama_sonucu === "etkisiz" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}>{dogrulamaSonuclari.find(d => d.value === i.dogrulama_sonucu)?.label}</span> : "-"}</td>
                   <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>

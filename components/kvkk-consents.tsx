@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { Briefcase, Users, Shield, Calendar, X, CheckCircle, Search, Edit, Trash2 } from "lucide-react";
+import { X, CheckCircle, Search, Edit, Trash2 } from "lucide-react";
 
 export default function KVKKConsents() {
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function KVKKConsents() {
           ip_address,
           user_agent,
           notes,
-          personel:personel_id (ad_soyad, kimlik_no)
+          personel:personel_id (ad, soyad, kimlik_no)
         `)
         .order("consent_date", { ascending: false });
       if (data) setConsents(data);
@@ -58,7 +58,7 @@ export default function KVKKConsents() {
 
   const fetchPersonels = async () => {
     try {
-      const { data } = await supabase.from("personel").select("id, ad_soyad, kimlik_no").order("ad_soyad");
+      const { data } = await supabase.from("personel").select("id, ad, soyad, kimlik_no").order("ad");
       if (data) setPersonels(data);
     } catch (e: any) {
       console.error("Personel yükleme hatası:", e);
@@ -67,7 +67,7 @@ export default function KVKKConsents() {
   };
 
   const filtered = consents.filter((c) => {
-    const personel = c.personel ? c.personel.ad_soyad : "";
+    const personel = c.personel ? (c.personel.ad + " " + c.personel.soyad) : "";
     const kimlik = c.personel ? c.personel.kimlik_no : "";
     const type = c.consent_type || "";
     return (
@@ -237,7 +237,7 @@ export default function KVKKConsents() {
                     <option value="">Personel seçin...</option>
                     {personels.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.ad_soyad} ({p.kimlik_no})
+                        {p.ad + " " + p.soyad} ({p.kimlik_no})
                       </option>
                     ))}
                   </select>
@@ -396,7 +396,7 @@ export default function KVKKConsents() {
                 {filtered.map((consent) => (
                   <tr key={consent.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {consent.personel ? consent.personel.ad_soyad : "Bilinmiyor"}
+                      {consent.personel ? (consent.personel.ad + " " + consent.personel.soyad) : "Bilinmiyor"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {consent.personel ? consent.personel.kimlik_no : "Bilinmiyor"}

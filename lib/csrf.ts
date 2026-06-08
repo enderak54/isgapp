@@ -17,26 +17,17 @@ function generateToken(): string {
   return token;
 }
 
-export async function setCsrfCookie(): Promise<string> {
-  const token = generateToken();
-  const cookieStore = await cookies();
-  cookieStore.set(CSRF_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60,
-  });
-  return token;
-}
-
 export async function validateCsrf(request: Request): Promise<boolean> {
   const cookieStore = await cookies();
   const cookieToken = cookieStore.get(CSRF_COOKIE)?.value;
   const headerToken = request.headers.get(CSRF_HEADER);
   if (!cookieToken || !headerToken) return false;
   if (cookieToken.length !== TOKEN_LENGTH || headerToken.length !== TOKEN_LENGTH) return false;
-  return cookieToken === headerToken;
+  const bufA = new TextEncoder().encode(cookieToken);
+  const bufB = new TextEncoder().encode(headerToken);
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
 }
 
 export { CSRF_HEADER, CSRF_COOKIE };

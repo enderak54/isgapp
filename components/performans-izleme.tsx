@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { logAudit } from "@/lib/audit";
+import { displayDate } from "@/lib/tarih";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { TrendingUp, Plus, Search, Edit, Trash2, X, ArrowUpRight, ArrowDownRight, Minus, CheckCircle, AlertCircle } from "lucide-react";
@@ -118,7 +119,7 @@ export default function PerformansIzleme() {
                     {i.trend === "artis" ? <ArrowUpRight className="w-4 h-4 text-green-600 inline" /> : i.trend === "azalis" ? <ArrowDownRight className="w-4 h-4 text-red-600 inline" /> : <Minus className="w-4 h-4 text-gray-400 inline" />}
                     <span className="ml-1 text-xs text-gray-500">{i.trend}</span>
                   </td>
-                  <td>{new Date(i.olcum_tarihi).toLocaleDateString("tr-TR")}</td>
+                  <td>{displayDate(i.olcum_tarihi)}</td>
                   <td>{i.aksiyon_gerekli_mu ? <span className="badge bg-red-100 text-red-700">Gerekli</span> : <span className="badge bg-green-100 text-green-700">Yok</span>}</td>
                   <td><div className="flex gap-1"><button onClick={() => handleEdit(i)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete(i.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div></td>
                 </tr>
