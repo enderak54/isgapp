@@ -84,6 +84,8 @@ export default function PersonnelForm() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
+  const [hatList, setHatList] = useState<string[]>([]);
+  const DEFAULT_HATS = ["Turkcell", "Vodafone", "Türk Telekom", "Netgsm", "Bimcell", "Teknosacell", "Pttcell", "Diğer"];
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
@@ -110,7 +112,8 @@ export default function PersonnelForm() {
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
       supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
       supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single(),
-    ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes]) => {
+      supabase.from("ayarlar").select("value").eq("key", "hat_listesi").single(),
+    ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes, hatRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
@@ -120,6 +123,9 @@ export default function PersonnelForm() {
       }
       if (taseronRes.data?.value) {
         try { const v = JSON.parse(taseronRes.data.value); if (Array.isArray(v)) setTaseronPersonelZorunlu(v); } catch {}
+      }
+      if (hatRes.data?.value) {
+        try { const v = JSON.parse(hatRes.data.value); if (Array.isArray(v) && v.length > 0) setHatList(v); } catch {}
       }
     });
   }, []);
@@ -469,14 +475,21 @@ export default function PersonnelForm() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">SGK No</label>
+                  <input type="text" inputMode="numeric" value={form.sgkNo} onChange={(e) => handleChange("sgkNo", e.target.value)} className="input" placeholder="SGK sicil numarası" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
                   <label className="text-sm text-gray-600 mb-1.5 block">Telefon</label>
-                  <div className="flex gap-1">
-                    <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input flex-1" placeholder="05XX XXX XX XX" />
-                    <select value={form.hat} onChange={(e) => handleChange("hat", e.target.value)} className="input w-28 text-xs">
-                      <option value="">Hat</option>
-                      {["Turkcell", "Vodafone", "Türk Telekom", "Diğer"].map(h => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                  </div>
+                  <input type="text" value={form.telefon} onChange={(e) => handleChange("telefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Hat</label>
+                  <select value={form.hat} onChange={(e) => handleChange("hat", e.target.value)} className="input text-xs">
+                    <option value="">Seçin</option>
+                    {(hatList.length > 0 ? hatList : DEFAULT_HATS).map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">

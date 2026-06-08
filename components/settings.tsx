@@ -172,6 +172,11 @@ export default function SettingsPage() {
   const [showTaseronZorunlu, setShowTaseronZorunlu] = useState(false);
   const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
 
+  const [showHatList, setShowHatList] = useState(false);
+  const [hatList, setHatList] = useState<string[]>([]);
+  const [hatListSaving, setHatListSaving] = useState(false);
+  const [hatNew, setHatNew] = useState("");
+
   const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
     { key: "personel", label: "Personel", grup: "kritik" },
     { key: "personel_belgeleri", label: "Personel Belgeleri", grup: "kritik" },
@@ -356,6 +361,21 @@ export default function SettingsPage() {
       setStatus({ type: "error", message: e.message || "Taşeron zorunlu alanlar kaydedilemedi" });
     } finally {
       setTaseronZorunluSaving(false);
+    }
+  };
+
+  const saveHatList = async () => {
+    setHatListSaving(true);
+    setStatus(null);
+    try {
+      const valid = hatList.filter(h => h.trim());
+      await supabase.from("ayarlar").upsert({ key: "hat_listesi", value: JSON.stringify(valid), type: "system", description: "Telefon hat operatörleri listesi" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "hat_listesi", null, valid);
+      setStatus({ type: "success", message: "Hat listesi kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Hat listesi kaydedilemedi" });
+    } finally {
+      setHatListSaving(false);
     }
   };
 
@@ -1013,6 +1033,47 @@ export default function SettingsPage() {
               <div className="flex justify-end pt-2">
                 <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
                   {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Hat Listesi */}
+        <div className="card p-6 mt-6">
+          <button onClick={() => setShowHatList(!showHatList)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Hat Listesi</h3>
+              <p className="text-sm text-gray-500">Telefon operatörleri (personel formunda seçim listesi)</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showHatList && (
+                <button onClick={(e) => { e.stopPropagation(); saveHatList(); }} disabled={hatListSaving} className="btn btn-primary text-sm">
+                  {hatListSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showHatList ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showHatList && (
+            <div className="mt-4">
+              <p className="text-xs text-gray-500 mb-3">Yeni operatör eklemek için aşağıya yazıp "Ekle" butonuna tıklayın.</p>
+              <div className="space-y-2">
+                {hatList.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700 flex-1">{h}</span>
+                    <button onClick={() => setHatList(prev => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 p-1"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <input value={hatNew} onChange={e => setHatNew(e.target.value)} className="input flex-1 text-sm" placeholder="Yeni operatör adı" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } } }} />
+                  <button onClick={() => { if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } }} disabled={!hatNew.trim()} className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"><Plus className="w-4 h-4" /> Ekle</button>
+                </div>
+              </div>
+              <div className="flex justify-end pt-3">
+                <button onClick={saveHatList} disabled={hatListSaving} className="btn btn-primary text-sm">
+                  {hatListSaving ? "Kaydediliyor..." : "Kaydet"}
                 </button>
               </div>
             </div>
