@@ -53,7 +53,7 @@ export default function PersonnelForm() {
     santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
-    isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
+    isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "", gorevlendirmeSure: "",
     adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
     adliSicil: "", gorevlendirme: "",
   });
@@ -201,6 +201,7 @@ export default function PersonnelForm() {
     if (activeZorunluAlanlar.includes("gorevlendirme")) {
       const hasFile = pendingFiles.some(f => f.field === "gorevlendirme");
       if (!hasFile && !form.gorevlendirme) newErrors.gorevlendirme = "Görevlendirme belgesi yükleyin";
+      else if (form.gorevlendirme && !form.gorevlendirmeSure) newErrors.gorevlendirmeSure = "Süre seçiniz";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -254,6 +255,12 @@ export default function PersonnelForm() {
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+      let sonGecerlilik: string | null = null;
+      if (pf.field === "gorevlendirme" && form.gorevlendirme && form.gorevlendirmeSure) {
+        const d = new Date(form.gorevlendirme);
+        d.setFullYear(d.getFullYear() + parseInt(form.gorevlendirmeSure));
+        sonGecerlilik = d.toISOString().split("T")[0];
+      }
       await supabase.from("personel_belgeleri").insert({
         personel_id: personelId,
         belge_tipi: BELGE_TIPLERI[pf.field],
@@ -261,6 +268,7 @@ export default function PersonnelForm() {
         dosya_adi: pf.file.name,
         dosya_uzantisi: fileExt,
         dosya_boyut: pf.file.size,
+        son_gecerlilik_tarihi: sonGecerlilik,
       });
     }
     setPendingFiles([]);
@@ -317,6 +325,8 @@ export default function PersonnelForm() {
         kkd_gecerlilik_suresi: form.kkdSure ? parseInt(form.kkdSure) : null,
         oryantasyon_gecerlilik_suresi: form.oryantasyonSure ? parseInt(form.oryantasyonSure) : null,
         saglik_raporu_gecerlilik_suresi: form.saglikRaporuSuresi ? parseInt(form.saglikRaporuSuresi) : null,
+        gorevlendirme_tarihi: form.gorevlendirme || null,
+        gorevlendirme_gecerlilik_suresi: form.gorevlendirmeSure ? parseInt(form.gorevlendirmeSure) : null,
         kan_grubu: form.kanGrubu || null,
         saglik_raporu_tarihi: form.saglikRaporuTarihi || null, kronik_rahatlik: form.kronikRahatsizlik ? sanitize(form.kronikRahatsizlik) : null,
         yuksekte_calisir: !!form.yuksekteCalisir, yuksekte_calisamaz: !!form.yuksekteCalisamaz,
@@ -342,7 +352,7 @@ export default function PersonnelForm() {
         santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
-        isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
+        isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "", gorevlendirmeSure: "",
         adres: "", acilDurumIrtibat: "", acilDurumTelefon: "", sgkNo: "",
         adliSicil: "", gorevlendirme: "",
       });
@@ -610,7 +620,7 @@ export default function PersonnelForm() {
             </div>
 
             {/* Belge Alanları */}
-            {["adliSicil", "gorevlendirme"].map(field => {
+            {["adliSicil"].map(field => {
               const label = field === "adliSicil" ? "Adli Sicil" : "Görevlendirme";
               const fc = fieldFileCount(field);
               return (
@@ -626,6 +636,24 @@ export default function PersonnelForm() {
                 </div>
               );
             })}
+            {/* Görevlendirme satırı */}
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-xs text-gray-700 w-28">Görevlendirme{isReq("gorevlendirme") && <span className="text-red-500 ml-0.5">*</span>}</span>
+              <div className="flex items-center gap-0.5">
+                <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.gorevlendirme)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("gorevlendirme", toDb(v)); setErrors((p) => ({ ...p, gorevlendirme: "" })); }} className={`input text-xs ${(errors as any).gorevlendirme ? "border-red-500" : ""}`} style={{ width: "5rem" }} />
+                <button type="button" onClick={() => { const picker = document.getElementById("dp-gorevlendirme") as HTMLInputElement; if (!picker) return; const rect = (document.getElementById("dp-btn-gorevlendirme") as HTMLElement).getBoundingClientRect(); picker.style.position = "fixed"; picker.style.left = rect.left + "px"; picker.style.top = rect.top + "px"; picker.style.width = "1px"; picker.style.height = "1px"; picker.style.opacity = "0"; picker.style.display = "block"; picker.focus(); picker.showPicker(); }} id="dp-btn-gorevlendirme" className="text-gray-400 hover:text-gray-600 p-0.5"><Calendar className="w-3.5 h-3.5" /></button>
+                <input id="dp-gorevlendirme" type="date" className="hidden" value={form.gorevlendirme} onChange={(e) => handleChange("gorevlendirme", e.target.value)} onBlur={(e) => { e.currentTarget.style.display = "none"; }} />
+                <select value={form.gorevlendirmeSure} onChange={(e) => { handleChange("gorevlendirmeSure", e.target.value); setErrors((p) => ({ ...p, gorevlendirmeSure: "" })); }} className={`input text-xs ${(errors as any).gorevlendirmeSure ? "border-red-500" : ""}`} style={{ width: "3.5rem" }}>
+                  <option value="">yıl</option>
+                  {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <button type="button" onClick={() => setUploadModalField("gorevlendirme")} className={`p-1 rounded transition relative ${fieldFileCount("gorevlendirme") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {fieldFileCount("gorevlendirme") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("gorevlendirme")}</span>}
+                </button>
+              </div>
+              {(errors as any).gorevlendirme && <p className="text-xs text-red-500">{(errors as any).gorevlendirme}</p>}
+            </div>
 
             {/* İSG Dosya Grid */}
             {pendingFiles.filter(f => BELGE_TIPLERI[f.field] && BELGE_TIPLERI[f.field] !== "saglik_raporu").length > 0 && (

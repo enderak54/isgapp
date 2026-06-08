@@ -83,7 +83,7 @@ export default function Taseronlar() {
     kkd: "KKD Zimmet", adli_sicil: "Adli Sicil",
     gorevlendirme: "Görevlendirme", giris_durumu: "Giriş Durumu",
   };
-  const BELGE_SUTUNLARI = ["myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme"];
+  const BELGE_SUTUNLARI = ["sgk", "myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme"];
 
   const fetchTaseronlar = async () => {
     const { data } = await supabase.from("taseronlar").select("*, santiyeler(ad)").order("firma_adi");
@@ -445,7 +445,7 @@ export default function Taseronlar() {
             <thead>
               <tr>
                 <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap sticky left-0 z-10">Adı Soyadı</th>
-                {colOrder.filter(k => colVis[k]).map(k => k === "sgk" || k === "giris_durumu" ? (
+                {colOrder.filter(k => colVis[k]).map(k => k === "giris_durumu" ? (
                   <th key={k} rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{COL_LABELS[k]}</th>
                 ) : (
                   <th key={k} colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-gray-50 border-r whitespace-nowrap">{COL_LABELS[k]}</th>
@@ -467,7 +467,25 @@ export default function Taseronlar() {
                   <tr key={emp.id} className="hover:bg-blue-50/40 transition">
                     <td className="px-3 py-2 text-sm font-medium text-gray-800 border-r sticky left-0 bg-white whitespace-nowrap">{emp.ad} {emp.soyad}</td>
                     {colOrder.filter(k => colVis[k]).map(k => {
-                      if (k === "sgk") return <td key={k} className="px-3 py-2 text-center text-xs text-gray-600 border-r">{displayDate(emp.sgk_tarihi)}</td>;
+                      if (k === "sgk") {
+                        const doc = empDocs["ssk"];
+                        return (
+                          <React.Fragment key={k}>
+                            <td className="px-2 py-2 text-center border-r cursor-pointer hover:bg-blue-100/50" onClick={() => setCellModal({ emp, tip: "ssk", docs: (allDocs[emp.id] || []).filter(d => d.belge_tipi === "ssk") })}>
+                              <span className="text-xs text-gray-600">{displayDate(emp.sgk_tarihi)}</span>
+                            </td>
+                            <td className="px-2 py-2 text-center border-r">
+                              {doc ? (
+                                <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 inline-flex" title={doc.dosya_adi}>
+                                  <FileText className="w-3.5 h-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-300">-</span>
+                              )}
+                            </td>
+                          </React.Fragment>
+                        );
+                      }
                       if (k === "giris_durumu") return <td key={k} className="px-3 py-2 text-center text-xs text-gray-600">{displayDate(emp.ise_giris_tarihi)}</td>;
                       const doc = empDocs[k];
                       return (
