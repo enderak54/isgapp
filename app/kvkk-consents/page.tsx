@@ -1,10 +1,7 @@
+import type { Metadata } from "next";
 import KVKKConsents from "@/components/kvkk-consents";
-import { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "KVKK Onay Yönetimi",
-  description: "KVKK uyumluluğu için kişisel veri onaylarını yönetin",
-};
+export const metadata: Metadata = { title: "KVKK Onayları - ISG Takip" };
 
 export default function KVKKConsentsPage() {
   return (

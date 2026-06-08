@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { AlertTriangle, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
+import { AlertTriangle, Plus, Edit, Trash2, Search, X, Save, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function IsKazalari() {
   const [kazalar, setKazalar] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function IsKazalari() {
   const [editing, setEditing] = useState<any>(null);
   const [personel, setPersonel] = useState<any[]>([]);
   const [form, setForm] = useState({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchKazalar(); fetchPersonel(); }, []);
 
@@ -30,13 +33,42 @@ export default function IsKazalari() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("is_kazalari").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("is_kazalari").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null); setForm({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" });
-    fetchKazalar();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      if (editing) {
+        const { error } = await supabase.from("is_kazalari").update(sanitizeForm(form)).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("is_kazalari", "UPDATE", editing.id, editing, form);
+        setEditStatus({ type: "success", message: "Kaza kaydı güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("is_kazalari").insert(sanitizeForm(form)).select();
+        if (error) throw error;
+        if (data) await logAudit("is_kazalari", "INSERT", data[0].id, null, form);
+        setEditStatus({ type: "success", message: "Kaza kaydı eklendi" });
+      }
+      setShowForm(false); setEditing(null); setForm({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" });
+      fetchKazalar();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("is_kazalari").delete().eq("id", id); fetchKazalar(); } };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Silmek istediğinize emin misiniz?")) return;
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("is_kazalari").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("is_kazalari", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Kaza kaydı silindi" });
+      fetchKazalar();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
+  };
 
   return (
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
@@ -53,6 +85,13 @@ export default function IsKazalari() {
           <input type="text" placeholder="Kaza ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
         </div>
       </div>
+
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -82,7 +121,7 @@ export default function IsKazalari() {
               <input placeholder="Rapor No" value={form.rapor_no} onChange={(e) => setForm({ ...form, rapor_no: e.target.value })} className="w-full p-2 border rounded-lg" />
               <textarea placeholder="Kaza Açıklaması" value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
               <textarea placeholder="Önleyici Önlemler" value={form.onleyici_onlemler} onChange={(e) => setForm({ ...form, onleyici_onlemler: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
-              <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
+              <button type="submit" disabled={saving} className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50">{saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}{saving ? "Kaydediliyor..." : "Kaydet"}</button>
             </form>
           </div>
         </div>

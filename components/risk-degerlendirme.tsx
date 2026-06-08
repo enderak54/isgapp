@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
 import { ShieldCheck, Plus, Search, Edit, Trash2, X, AlertTriangle, AlertCircle, CheckCircle, Info } from "lucide-react";
 
 const riskLevels = { Dusuk: { color: "bg-green-100 text-green-700", icon: CheckCircle }, Orta: { color: "bg-amber-100 text-amber-700", icon: AlertCircle }, Yuksek: { color: "bg-orange-100 text-orange-700", icon: AlertTriangle }, Kritik: { color: "bg-red-100 text-red-700", icon: AlertTriangle } };
@@ -22,6 +23,8 @@ export default function RiskDegerlendirme() {
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ risk_adi: "", bolum: "", tehlike_tipi: "", mevcut_onlem: "", olasilik: 1, siddet: 1, ek_onlemler: "", sorumlu_kisi: "", tamamlanma_tarihi: "", durum: "acik", santiye_id: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchRisks(); fetchSites(); }, []);
 
@@ -40,16 +43,30 @@ export default function RiskDegerlendirme() {
 
   const handleSubmit = async () => {
     if (!form.risk_adi) return;
-    const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
-    if (editing) {
-      await supabase.from("risk_degerlendirme").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("risk_degerlendirme").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
+      if (editing) {
+        const { error } = await supabase.from("risk_degerlendirme").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("risk_degerlendirme", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Risk güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("risk_degerlendirme").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("risk_degerlendirme", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Risk kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ risk_adi: "", bolum: "", tehlike_tipi: "", mevcut_onlem: "", olasilik: 1, siddet: 1, ek_onlemler: "", sorumlu_kisi: "", tamamlanma_tarihi: "", durum: "acik", santiye_id: "" });
+      fetchRisks();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ risk_adi: "", bolum: "", tehlike_tipi: "", mevcut_onlem: "", olasilik: 1, siddet: 1, ek_onlemler: "", sorumlu_kisi: "", tamamlanma_tarihi: "", durum: "acik", santiye_id: "" });
-    fetchRisks();
   };
 
   const handleEdit = (r: any) => {
@@ -60,8 +77,16 @@ export default function RiskDegerlendirme() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu risk kaydını silmek istediğinize emin misiniz?")) return;
-    await supabase.from("risk_degerlendirme").delete().eq("id", id);
-    fetchRisks();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("risk_degerlendirme").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("risk_degerlendirme", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Risk silindi" });
+      fetchRisks();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -99,6 +124,13 @@ export default function RiskDegerlendirme() {
             <input type="text" placeholder="Risk ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" />
           </div>
         </div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
 
-import { Search, Plus, Calendar, Pin, X, ChevronDown, Lock, Unlock } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { Search, Plus, Calendar, Pin, X, ChevronDown, Lock, Unlock, CheckCircle, AlertCircle } from "lucide-react";
 
 const DEFAULT_SUTUNLAR = [
   "Vinç Kullanımı",
@@ -28,6 +29,7 @@ export default function Talimatlar() {
   const [notlar, setNotlar] = useState<string[]>(["", "", ""]);
   const [lockedNotes, setLockedNotes] = useState<Set<number>>(new Set());
   const [seciliHucre, setSeciliHucre] = useState<{ personel_id: string; talimat_adi: string } | null>(null);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -70,23 +72,39 @@ export default function Talimatlar() {
   const sutunEkle = async () => {
     const name = yeniSutunAdi.trim();
     if (!name || sutunlar.includes(name)) return;
-    const yeni = [...sutunlar, name];
-    setSutunlar(yeni);
-    setYeniSutunAdi("");
-    setShowYeniSutun(false);
-    await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+    setEditStatus(null);
+    try {
+      const yeni = [...sutunlar, name];
+      setSutunlar(yeni);
+      setYeniSutunAdi("");
+      setShowYeniSutun(false);
+      await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "talimat_sutunlari", null, { value: JSON.stringify(yeni) });
+      setEditStatus({ type: "success", message: "Sütun eklendi" });
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Sütun eklenirken hata oluştu" });
+    }
   };
 
   const sutunSil = async (ad: string) => {
     if (!confirm(`"${ad}" sütununu sil?`)) return;
-    const yeni = sutunlar.filter(s => s !== ad);
-    setSutunlar(yeni);
-    const updated = { ...cellData };
-    Object.keys(updated).forEach(k => { if (k.endsWith(`_${ad}`)) delete updated[k]; });
-    setCellData(updated);
-    await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
-    await supabase.from("personel_talimat_matrisi").delete().eq("talimat_adi", ad);
-    setSeciliHucre(null);
+    setEditStatus(null);
+    try {
+      const yeni = sutunlar.filter(s => s !== ad);
+      const oldValue = sutunlar;
+      setSutunlar(yeni);
+      const updated = { ...cellData };
+      Object.keys(updated).forEach(k => { if (k.endsWith(`_${ad}`)) delete updated[k]; });
+      setCellData(updated);
+      await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      await supabase.from("personel_talimat_matrisi").delete().eq("talimat_adi", ad);
+      await logAudit("ayarlar", "UPDATE", "talimat_sutunlari", { value: JSON.stringify(oldValue) }, { value: JSON.stringify(yeni) });
+      await logAudit("personel_talimat_matrisi", "DELETE", null, { talimat_adi: ad }, null);
+      setEditStatus({ type: "success", message: `"${ad}" silindi` });
+      setSeciliHucre(null);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   const tarihGuncelle = (personel_id: string, talimat_adi: string, displayVal: string) => {
@@ -95,18 +113,27 @@ export default function Talimatlar() {
   };
 
   const tarihKaydet = async (personel_id: string, talimat_adi: string) => {
-    const key = cellKey(personel_id, talimat_adi);
-    const displayVal = cellData[key];
-    const db = parseDisplayToDb(displayVal || "");
-    if (db) {
-      await supabase.from("personel_talimat_matrisi").upsert(
-        { personel_id, talimat_adi, tarih: db },
-        { onConflict: "personel_id, talimat_adi" }
-      );
-    } else {
-      await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });
+    setEditStatus(null);
+    try {
+      const key = cellKey(personel_id, talimat_adi);
+      const displayVal = cellData[key];
+      const db = parseDisplayToDb(displayVal || "");
+      if (db) {
+        await supabase.from("personel_talimat_matrisi").upsert(
+          { personel_id, talimat_adi, tarih: db },
+          { onConflict: "personel_id, talimat_adi" }
+        );
+        await logAudit("personel_talimat_matrisi", "INSERT", null, null, { personel_id, talimat_adi, tarih: db });
+        setEditStatus({ type: "success", message: "Tarih kaydedildi" });
+      } else {
+        await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });
+        await logAudit("personel_talimat_matrisi", "DELETE", null, null, { personel_id, talimat_adi });
+        setEditStatus({ type: "success", message: "Tarih kaldırıldı" });
+      }
+      setSeciliHucre(null);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Tarih kaydedilirken hata oluştu" });
     }
-    setSeciliHucre(null);
   };
 
   const filteredPersonel = personel.filter(p =>
@@ -169,6 +196,13 @@ export default function Talimatlar() {
           </div>
         </div>
       </div>
+
+      {editStatus && (
+        <div className={`mx-6 mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {/* Matrix Table */}
       {loading ? (

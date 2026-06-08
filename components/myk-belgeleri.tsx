@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logAudit } from "@/lib/audit";
 import { supabase } from "@/lib/supabase";
-import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown, Download, CheckCircle, AlertCircle } from "lucide-react";
 import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
 import { displayDate, kalanSureText } from "@/lib/tarih";
 import * as XLSX from "xlsx";
@@ -20,6 +21,8 @@ export default function MykBelgeleri() {
   const [lockedKayitlar, setLockedKayitlar] = useState<Set<string>>(new Set());
   const [sortCol, setSortCol] = useState<string>("alis_tarihi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -104,9 +107,17 @@ export default function MykBelgeleri() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("personel_myk_egitimleri").delete().eq("id", id);
-    setLockedKayitlar(prev => { const n = new Set(prev); n.delete(id); return n; });
-    fetchData();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("personel_myk_egitimleri").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("personel_myk_egitimleri", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Kayıt silindi" });
+      setLockedKayitlar(prev => { const n = new Set(prev); n.delete(id); return n; });
+      fetchData();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   const sorted = [...kayitlar]
@@ -147,6 +158,13 @@ export default function MykBelgeleri() {
         </div>
       </div>
       </div>
+
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {viewMode === "list" ? (
         <>

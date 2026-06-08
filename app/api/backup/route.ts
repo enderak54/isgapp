@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       for (const row of backup["personel_belgeleri"].rows) {
         if (row.dosya_url) {
           try {
-            const { data } = await supabase.storage.from("isg-files").createSignedUrl(row.dosya_url, 604800);
+            const { data } = await supabase.storage.from("personel-belgeleri").createSignedUrl(row.dosya_url, 604800);
             fileRefs.push({ id: row.id, dosya_adi: row.dosya_adi, dosya_url: row.dosya_url, signed_url: data?.signedUrl || null, field: row.field, personel_id: row.personel_id });
           } catch { fileRefs.push({ id: row.id, dosya_adi: row.dosya_adi, dosya_url: row.dosya_url, signed_url: null, field: row.field, personel_id: row.personel_id }); }
         }

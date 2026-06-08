@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { X, CheckCircle, AlertTriangle, Info, Lightbulb, RefreshCw, BarChart3, Activity } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { X, CheckCircle, AlertTriangle, Info, Lightbulb, RefreshCw, BarChart3, Activity, AlertCircle } from "lucide-react";
 
 const severityConfig: Record<string, { icon: any; class: string; label: string }> = {
   kritik: { icon: AlertTriangle, class: "bg-red-50 border-red-200 text-red-700", label: "Kritik" },
@@ -20,6 +21,7 @@ export default function AIDashboard() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any[]>([]);
   const [running, setRunning] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -37,25 +39,42 @@ export default function AIDashboard() {
 
   const runAnalysis = async () => {
     setRunning(true);
+    setEditStatus(null);
     try {
       const { error } = await supabase.rpc("generate_risk_suggestions");
       if (error) throw error;
+      await logAudit("ai_risk_suggestions", "INSERT", null, null, { action: "generate_risk_suggestions" });
+      setEditStatus({ type: "success", message: "Analiz tamamlandı" });
       await loadData();
-    } catch {}
-    setRunning(false);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Analiz başarısız" });
+    } finally {
+      setRunning(false);
+    }
   };
 
   const resolveSuggestion = async (id: string) => {
+    setEditStatus(null);
     try {
-      await supabase.from("ai_risk_suggestions").update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("ai_risk_suggestions").update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+      await logAudit("ai_risk_suggestions", "UPDATE", id, null, { is_resolved: true });
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
-    } catch {}
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Öneri kapatılamadı" });
+    }
   };
 
   const avgScore = metrics.length > 0 ? Math.round(metrics.reduce((a, m) => a + Number(m.quality_score), 0) / metrics.length) : 0;
 
   return (
     <div className="p-6">
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">AI Dashboard</h1>

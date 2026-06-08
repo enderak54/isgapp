@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { UserCog, Plus, Edit, Trash2, Search, X, Save, Users, Lock, Unlock } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { UserCog, Plus, Edit, Trash2, Search, X, Save, Users, Lock, Unlock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function SahaSorumlulari() {
   const [sorumlular, setSorumlular] = useState<any[]>([]);
@@ -24,6 +25,8 @@ export default function SahaSorumlulari() {
   const [lockedSorumlular, setLockedSorumlular] = useState<Set<string>>(new Set());
   const [ekipUyeleri, setEkipUyeleri] = useState<any[]>([]);
   const [ekipUyeleriModal, setEkipUyeleriModal] = useState<{ open: boolean; ekipAd: string }>({ open: false, ekipAd: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchSorumlular(); fetchSantiyeler(); fetchEkipler(); fetchPersonel(); }, []);
 
@@ -61,29 +64,77 @@ export default function SahaSorumlulari() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("saha_sorumlulari").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("saha_sorumlulari").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null); setForm({ ad_soyad: "", telefon: "", email: "", pozisyon: "", santiye_id: "", durum: "aktif", notlar: "" });
-    fetchSorumlular();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm(form);
+      if (editing) {
+        await supabase.from("saha_sorumlulari").update(payload).eq("id", editing.id);
+        await logAudit("saha_sorumlulari", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Sorumlu güncellendi" });
+      } else {
+        const { data } = await supabase.from("saha_sorumlulari").insert(payload).select();
+        if (data) await logAudit("saha_sorumlulari", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Sorumlu kaydedildi" });
+      }
+      setShowForm(false); setEditing(null); setForm({ ad_soyad: "", telefon: "", email: "", pozisyon: "", santiye_id: "", durum: "aktif", notlar: "" });
+      fetchSorumlular();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("saha_sorumlulari").delete().eq("id", id); fetchSorumlular(); } };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Sil?")) return;
+    setEditStatus(null);
+    try {
+      await supabase.from("saha_sorumlulari").delete().eq("id", id);
+      await logAudit("saha_sorumlulari", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Sorumlu silindi" });
+      fetchSorumlular();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
+  };
 
   const handleEkipSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ekipForm.ad.trim()) return;
-    const payload = sanitizeForm({ ad: ekipForm.ad.trim(), sorumlu_personel_id: ekipForm.sorumlu_personel_id || null });
-    if (ekipEditing) await supabase.from("ekipler").update(payload).eq("id", ekipEditing.id);
-    else await supabase.from("ekipler").insert(payload);
-    setShowEkipForm(false); setEkipEditing(null); setEkipForm({ ad: "", sorumlu_personel_id: "" });
-    fetchEkipler();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ad: ekipForm.ad.trim(), sorumlu_personel_id: ekipForm.sorumlu_personel_id || null });
+      if (ekipEditing) {
+        await supabase.from("ekipler").update(payload).eq("id", ekipEditing.id);
+        await logAudit("ekipler", "UPDATE", ekipEditing.id, ekipEditing, payload);
+        setEditStatus({ type: "success", message: "Ekip güncellendi" });
+      } else {
+        const { data } = await supabase.from("ekipler").insert(payload).select();
+        if (data) await logAudit("ekipler", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Ekip kaydedildi" });
+      }
+      setShowEkipForm(false); setEkipEditing(null); setEkipForm({ ad: "", sorumlu_personel_id: "" });
+      fetchEkipler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEkipDelete = async (id: string) => {
-    if (confirm("Bu ekibi silmek istediğinize emin misiniz?")) {
+    if (!confirm("Bu ekibi silmek istediğinize emin misiniz?")) return;
+    setEditStatus(null);
+    try {
       await supabase.from("personel").update({ ekip_id: null }).eq("ekip_id", id);
       await supabase.from("ekipler").delete().eq("id", id);
+      await logAudit("ekipler", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Ekip silindi" });
       fetchEkipler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
     }
   };
 
@@ -110,6 +161,13 @@ export default function SahaSorumlulari() {
             <input type="text" placeholder="Sorumlu ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
           </div>
         </div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         {showForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

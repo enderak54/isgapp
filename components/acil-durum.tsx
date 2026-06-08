@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Siren, Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { Siren, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const senaryoTipleri = [
   { value: "yangin", label: "Yangın" },
@@ -34,6 +35,8 @@ export default function AcilDurum() {
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ plan_adi: "", senaryo_tipi: "yangin", senaryo_aciklama: "", etki_alani: "", risk_seviyesi: "orta", onleyici_onlemler: "", mudahale_proseduru: "", tahliye_plani: "", acil_durum_ekibi: "", iletisim_bilgileri: "", ekipman_listesi: "", son_tatbikat_tarihi: "", sonraki_tatbikat_tarihi: "", tatbikat_sonucu: "", durum: "aktif" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchItems(); }, []);
 
@@ -47,16 +50,27 @@ export default function AcilDurum() {
 
   const handleSubmit = async () => {
     if (!form.plan_adi || !form.senaryo_tipi) return;
-    const payload = sanitizeForm({ ...form, acil_durum_ekibi: form.acil_durum_ekibi ? form.acil_durum_ekibi.split(",").map((s: string) => s.trim()) : [], son_tatbikat_tarihi: form.son_tatbikat_tarihi || null, sonraki_tatbikat_tarihi: form.sonraki_tatbikat_tarihi || null });
-    if (editing) {
-      await supabase.from("acil_durum").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("acil_durum").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, acil_durum_ekibi: form.acil_durum_ekibi ? form.acil_durum_ekibi.split(",").map((s: string) => s.trim()) : [], son_tatbikat_tarihi: form.son_tatbikat_tarihi || null, sonraki_tatbikat_tarihi: form.sonraki_tatbikat_tarihi || null });
+      if (editing) {
+        await supabase.from("acil_durum").update(payload).eq("id", editing.id);
+        await logAudit("acil_durum", "UPDATE", editing.id, editing, payload);
+      } else {
+        const { data } = await supabase.from("acil_durum").insert(payload).select().single();
+        await logAudit("acil_durum", "INSERT", data?.id, null, payload);
+      }
+      setEditStatus({ type: "success", message: editing ? "Plan güncellendi!" : "Plan eklendi!" });
+      setShowForm(false);
+      setEditing(null);
+      setForm({ plan_adi: "", senaryo_tipi: "yangin", senaryo_aciklama: "", etki_alani: "", risk_seviyesi: "orta", onleyici_onlemler: "", mudahale_proseduru: "", tahliye_plani: "", acil_durum_ekibi: "", iletisim_bilgileri: "", ekipman_listesi: "", son_tatbikat_tarihi: "", sonraki_tatbikat_tarihi: "", tatbikat_sonucu: "", durum: "aktif" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Bir hata oluştu" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ plan_adi: "", senaryo_tipi: "yangin", senaryo_aciklama: "", etki_alani: "", risk_seviyesi: "orta", onleyici_onlemler: "", mudahale_proseduru: "", tahliye_plani: "", acil_durum_ekibi: "", iletisim_bilgileri: "", ekipman_listesi: "", son_tatbikat_tarihi: "", sonraki_tatbikat_tarihi: "", tatbikat_sonucu: "", durum: "aktif" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -67,8 +81,19 @@ export default function AcilDurum() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu planı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("acil_durum").delete().eq("id", id);
-    fetchItems();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const old = items.find(i => i.id === id);
+      await supabase.from("acil_durum").delete().eq("id", id);
+      await logAudit("acil_durum", "DELETE", id, old, null);
+      setEditStatus({ type: "success", message: "Plan silindi!" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Bir hata oluştu" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -94,6 +119,13 @@ export default function AcilDurum() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Plan ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>

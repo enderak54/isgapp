@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
 import { Scale, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle, AlertTriangle, HelpCircle } from "lucide-react";
 
 const uyumlulukDurumlari = [
@@ -19,6 +20,8 @@ export default function YasalUygunluk() {
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ yasal_metin_adi: "", yasal_dayanak: "", yayin_tarihi: "", resmi_gazete_no: "", kapsam: "", uyumluluk_durumu: "degerlendirilecek", uyumsuzluk_aciklama: "", gerekli_aksiyonlar: "", sorumlu_kisi: "", son_degerlendirme_tarihi: "", sonraki_degerlendirme_tarihi: "", notlar: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchItems(); }, []);
 
@@ -32,16 +35,30 @@ export default function YasalUygunluk() {
 
   const handleSubmit = async () => {
     if (!form.yasal_metin_adi) return;
-    const payload = sanitizeForm({ ...form, yayin_tarihi: form.yayin_tarihi || null, son_degerlendirme_tarihi: form.son_degerlendirme_tarihi || null, sonraki_degerlendirme_tarihi: form.sonraki_degerlendirme_tarihi || null });
-    if (editing) {
-      await supabase.from("yasal_uygunluk").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("yasal_uygunluk").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, yayin_tarihi: form.yayin_tarihi || null, son_degerlendirme_tarihi: form.son_degerlendirme_tarihi || null, sonraki_degerlendirme_tarihi: form.sonraki_degerlendirme_tarihi || null });
+      if (editing) {
+        const { error } = await supabase.from("yasal_uygunluk").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("yasal_uygunluk", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Yasal uygunluk güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("yasal_uygunluk").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("yasal_uygunluk", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Yasal uygunluk kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ yasal_metin_adi: "", yasal_dayanak: "", yayin_tarihi: "", resmi_gazete_no: "", kapsam: "", uyumluluk_durumu: "degerlendirilecek", uyumsuzluk_aciklama: "", gerekli_aksiyonlar: "", sorumlu_kisi: "", son_degerlendirme_tarihi: "", sonraki_degerlendirme_tarihi: "", notlar: "" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ yasal_metin_adi: "", yasal_dayanak: "", yayin_tarihi: "", resmi_gazete_no: "", kapsam: "", uyumluluk_durumu: "degerlendirilecek", uyumsuzluk_aciklama: "", gerekli_aksiyonlar: "", sorumlu_kisi: "", son_degerlendirme_tarihi: "", sonraki_degerlendirme_tarihi: "", notlar: "" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -52,8 +69,16 @@ export default function YasalUygunluk() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("yasal_uygunluk").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("yasal_uygunluk").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("yasal_uygunluk", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Yasal uygunluk silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -79,6 +104,13 @@ export default function YasalUygunluk() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Yasal metin ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/sidebar";
 import ThemeProvider from "@/components/theme-provider";
+import SkipLink from "@/components/skip-link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,9 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang="tr" suppressHydrationWarning className="h-full">
       <head />
-      <body className="min-h-full flex flex-col">
+      <body className="h-full flex flex-col">
+        <SkipLink />
         <ThemeProvider>
           <div className="flex min-h-screen">
             <Sidebar />

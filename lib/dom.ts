@@ -1,6 +1,3 @@
-// Safe DOM class manipulation — guards against empty/invalid tokens
-// DOMException: DOMTokenList.remove/add: The empty string is not a valid token
-
 export function safeRemoveClass(el: Element, ...classes: string[]): void {
   const valid = classes.filter(Boolean);
   if (valid.length > 0) el.classList.remove(...valid);

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logAudit } from "@/lib/audit";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
-import { Shield, Plus, Edit, Trash2, Search, X, Save } from "lucide-react";
+import { Shield, Plus, Edit, Trash2, Search, X, Save, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function OperatorBelgeleri() {
   const [belgeler, setBelgeler] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function OperatorBelgeleri() {
   const [editing, setEditing] = useState<any>(null);
   const [personel, setPersonel] = useState<any[]>([]);
   const [form, setForm] = useState({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchBelgeler(); fetchPersonel(); }, []);
 
@@ -30,13 +33,42 @@ export default function OperatorBelgeleri() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("operator_belgeri").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("operator_belgeri").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" });
-    fetchBelgeler();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      if (editing) {
+        const { error } = await supabase.from("operator_belgeri").update(sanitizeForm(form)).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("operator_belgeri", "UPDATE", editing.id, editing, sanitizeForm(form));
+        setEditStatus({ type: "success", message: "Belge güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("operator_belgeri").insert(sanitizeForm(form)).select();
+        if (error) throw error;
+        if (data) await logAudit("operator_belgeri", "INSERT", data[0].id, null, sanitizeForm(form));
+        setEditStatus({ type: "success", message: "Belge kaydedildi" });
+      }
+      setShowForm(false); setEditing(null); setForm({ personel_id: "", belge_adi: "", belge_no: "", alis_tarihi: "", gecerlilik_tarihi: "", durum: "gecerli", notlar: "" });
+      fetchBelgeler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "İşlem başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("operator_belgeri").delete().eq("id", id); fetchBelgeler(); } };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Sil?")) return;
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("operator_belgeri").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("operator_belgeri", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Belge silindi" });
+      fetchBelgeler();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
+  };
 
   const isExpired = (tarih: string) => tarih && new Date(tarih) < new Date();
 
@@ -55,6 +87,13 @@ export default function OperatorBelgeleri() {
           <input type="text" placeholder="Belge ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
         </div>
       </div>
+
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

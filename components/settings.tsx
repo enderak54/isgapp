@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 import { useTheme } from "@/components/theme-provider";
@@ -100,6 +102,8 @@ async function setupDatabase() {
       }));
       if (insertError && !insertError.message.includes("duplicate")) {
         console.log("Database setup needed - please run SQL in Supabase");
+      } else if (!insertError) {
+        await logAudit("ayarlar", "INSERT", "setup_check", null, { key: "setup_check", value: "true" });
       }
     }
   } catch (e) {
@@ -250,12 +254,19 @@ export default function SettingsPage() {
 
   const saveMenuOrder = async () => {
     setMenuSaving(true);
-    const mainKeys = menuItems.filter(i => i.grup === "main").map(i => i.key);
-    const ekKeys = menuItems.filter(i => i.grup === "ek").map(i => i.key);
-    await supabase.from("ayarlar").upsert({ key: "menu_order_main", value: JSON.stringify(mainKeys), type: "menu_order" }, { onConflict: "key" });
-    await supabase.from("ayarlar").upsert({ key: "menu_order_ek", value: JSON.stringify(ekKeys), type: "menu_order" }, { onConflict: "key" });
-    setMenuSaving(false);
-    setStatus({ type: "success", message: "Menü sırası kaydedildi!" });
+    setStatus(null);
+    try {
+      const mainKeys = menuItems.filter(i => i.grup === "main").map(i => i.key);
+      const ekKeys = menuItems.filter(i => i.grup === "ek").map(i => i.key);
+      await supabase.from("ayarlar").upsert({ key: "menu_order_main", value: JSON.stringify(mainKeys), type: "menu_order" }, { onConflict: "key" });
+      await supabase.from("ayarlar").upsert({ key: "menu_order_ek", value: JSON.stringify(ekKeys), type: "menu_order" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "menu_order", null, { main: mainKeys, ek: ekKeys });
+      setStatus({ type: "success", message: "Menü sırası kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Menü sırası kaydedilemedi" });
+    } finally {
+      setMenuSaving(false);
+    }
   };
 
   const fetchMykZorunlu = async () => {
@@ -286,16 +297,30 @@ export default function SettingsPage() {
 
   const saveZorunluAlanlar = async () => {
     setZorunluAlanlarSaving(true);
-    await supabase.from("ayarlar").upsert({ key: "personel_zorunlu_alanalar", value: JSON.stringify(zorunluAlanlar), type: "personel", description: "Personel kaydında zorunlu alanlar" }, { onConflict: "key" });
-    setZorunluAlanlarSaving(false);
-    setStatus({ type: "success", message: "Zorunlu alanlar kaydedildi!" });
+    setStatus(null);
+    try {
+      await supabase.from("ayarlar").upsert({ key: "personel_zorunlu_alanalar", value: JSON.stringify(zorunluAlanlar), type: "personel", description: "Personel kaydında zorunlu alanlar" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "personel_zorunlu_alanalar", null, zorunluAlanlar);
+      setStatus({ type: "success", message: "Zorunlu alanlar kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Zorunlu alanlar kaydedilemedi" });
+    } finally {
+      setZorunluAlanlarSaving(false);
+    }
   };
 
   const saveMykZorunlu = async () => {
     setMykZorunluSaving(true);
-    await supabase.from("ayarlar").upsert({ key: "myk_zorunlu_ids", value: JSON.stringify(mykZorunluIds), type: "myk_zorunlu", description: "Zorunlu MYK meslekleri" }, { onConflict: "key" });
-    setMykZorunluSaving(false);
-    setStatus({ type: "success", message: "Zorunlu meslekler kaydedildi!" });
+    setStatus(null);
+    try {
+      await supabase.from("ayarlar").upsert({ key: "myk_zorunlu_ids", value: JSON.stringify(mykZorunluIds), type: "myk_zorunlu", description: "Zorunlu MYK meslekleri" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "myk_zorunlu_ids", null, mykZorunluIds);
+      setStatus({ type: "success", message: "Zorunlu meslekler kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Zorunlu meslekler kaydedilemedi" });
+    } finally {
+      setMykZorunluSaving(false);
+    }
   };
 
   const fetchAIEntries = async () => {
@@ -313,7 +338,7 @@ export default function SettingsPage() {
         ? ALL_TABLES.map(t => t.key)
         : Object.entries(backupTables).filter(([, v]) => v).map(([k]) => k);
       if (tables.length === 0) { setStatus({ type: "error", message: "En az bir tablo seçin" }); setBackupLoading(false); return; }
-      const res = await fetch("/api/backup", {
+      const res = await fetchWithCsrf("/api/backup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tables, includeFiles: backupIncludeFiles, mod: backupMode }),
@@ -401,6 +426,7 @@ export default function SettingsPage() {
         modules.reduce((acc, m) => ({ ...acc, [m.key]: m.enabled }), {})
       ));
       
+      await logAudit("ayarlar", "UPDATE", "modules", null, modules.map(m => ({ key: m.key, enabled: m.enabled })));
       setStatus({ type: "success", message: "Ayarlar kaydedildi!" });
     } catch (err: any) {
       setStatus({ type: "error", message: "Hata: " + err.message });
@@ -412,35 +438,54 @@ export default function SettingsPage() {
   const saveTheme = async () => {
     setThemeSaving(true);
     setStatus(null);
-    await saveThemeCtx(theme);
-    setStatus({ type: "success", message: "Tema kaydedildi!" });
-    setThemeSaving(false);
+    try {
+      await saveThemeCtx(theme);
+      await logAudit("ayarlar", "UPDATE", "theme", null, theme);
+      setStatus({ type: "success", message: "Tema kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Tema kaydedilemedi" });
+    } finally {
+      setThemeSaving(false);
+    }
   };
 
   const saveUyari = async () => {
     setUyariSaving(true);
-    for (const field of EGITIM_FIELDS) {
-      const val = uyariAyarlari[field.ayarKey];
-      if (val) {
-        await supabase.from("ayarlar").upsert(sanitizeForm({ key: field.ayarKey, value: val, type: "egitim_uyari", description: field.label + " - bitiş uyarı günü" }), { onConflict: "key" });
+    setStatus(null);
+    try {
+      for (const field of EGITIM_FIELDS) {
+        const val = uyariAyarlari[field.ayarKey];
+        if (val) {
+          await supabase.from("ayarlar").upsert(sanitizeForm({ key: field.ayarKey, value: val, type: "egitim_uyari", description: field.label + " - bitiş uyarı günü" }), { onConflict: "key" });
+        }
       }
+      await logAudit("ayarlar", "INSERT", "egitim_uyari", null, uyariAyarlari);
+      setStatus({ type: "success", message: "Uyarı süreleri kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Uyarı süreleri kaydedilemedi" });
+    } finally {
+      setUyariSaving(false);
     }
-    setUyariSaving(false);
-    setStatus({ type: "success", message: "Uyarı süreleri kaydedildi!" });
   };
 
   const saveVersion = async () => {
     if (!newVersion.versiyon || !newVersion.aciklama) return;
-    const payload = sanitizeForm({
-      ...newVersion,
-      tarih: new Date().toISOString().split("T")[0],
-      detaylar: newVersion.detaylar ? newVersion.detaylar.split("\n").filter((d: string) => d.trim()) : [],
-    });
-    await supabase.from("versiyonlar").insert(payload);
-    setShowAddVersion(false);
-    setNewVersion({ versiyon: "", tip: "minor", aciklama: "", detaylar: "", yazar: "" });
-    fetchVersions();
-    setStatus({ type: "success", message: "Yeni sürüm kaydedildi!" });
+    setStatus(null);
+    try {
+      const payload = sanitizeForm({
+        ...newVersion,
+        tarih: new Date().toISOString().split("T")[0],
+        detaylar: newVersion.detaylar ? newVersion.detaylar.split("\n").filter((d: string) => d.trim()) : [],
+      });
+      await supabase.from("versiyonlar").insert(payload);
+      await logAudit("versiyonlar", "INSERT", payload.versiyon, null, payload);
+      setShowAddVersion(false);
+      setNewVersion({ versiyon: "", tip: "minor", aciklama: "", detaylar: "", yazar: "" });
+      fetchVersions();
+      setStatus({ type: "success", message: "Yeni sürüm kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Sürüm kaydedilemedi" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;

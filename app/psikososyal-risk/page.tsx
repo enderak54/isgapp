@@ -1,9 +1,8 @@
 import PsikososyalRisk from "@/components/psikososyal-risk";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Psikososyal Risk Degerlendirme",
-  description: "Psikososyal risk faktorlerini degerlendirin ve yonetin",
+  title: "Psikososyal Risk - ISG Takip",
 };
 
 export default function PsikososyalRiskPage() {

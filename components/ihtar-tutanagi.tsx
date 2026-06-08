@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { AlertOctagon, Plus, Search, Edit, Trash2, X, Eye, Upload, FileText, Image as ImageIcon, Download, Calendar, FileQuestion, FolderOpen } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { AlertOctagon, Plus, Search, Edit, Trash2, X, Eye, Upload, FileText, Image as ImageIcon, Download, Calendar, FileQuestion, FolderOpen, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 const ihtarTipleri = [
   { value: "yazili", label: "Yazılı İhtar" },
@@ -59,6 +60,8 @@ export default function IhtarTutanagi() {
   const [editNeden, setEditNeden] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
@@ -82,16 +85,30 @@ export default function IhtarTutanagi() {
 
   const handleSubmit = async () => {
     if (!form.konu || !form.personel_id || !form.tarih) return;
-    const payload = sanitizeForm({ ...form, tarih: form.tarih || null, teblig_tarihi: form.teblig_tarihi || null });
-    if (editing) {
-      await supabase.from("ihtar_tutanagi").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("ihtar_tutanagi").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, tarih: form.tarih || null, teblig_tarihi: form.teblig_tarihi || null });
+      if (editing) {
+        const { error } = await supabase.from("ihtar_tutanagi").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("ihtar_tutanagi", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "İhtar güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("ihtar_tutanagi").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("ihtar_tutanagi", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "İhtar kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ personel_id: "", ihtar_tipi: "uyari", tarih: "", yer: "", konu: "", aciklama: "", dayanak_madde: "", teblig_tarihi: "", personel_gorusu: "", durum: "duzenlendi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ personel_id: "", ihtar_tipi: "uyari", tarih: "", yer: "", konu: "", aciklama: "", dayanak_madde: "", teblig_tarihi: "", personel_gorusu: "", durum: "duzenlendi" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -102,8 +119,16 @@ export default function IhtarTutanagi() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu ihtar tutanağını silmek istediğinize emin misiniz?")) return;
-    await supabase.from("ihtar_tutanagi").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("ihtar_tutanagi").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("ihtar_tutanagi", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "İhtar silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   const handleOpenIhtar = (i: any) => {
@@ -147,6 +172,8 @@ export default function IhtarTutanagi() {
 
   const handleUpload = async () => {
     if (!selectedIhtar || uploadFiles.length === 0 || !uploadNeden.trim()) return;
+    setSaving(true);
+    setEditStatus(null);
     setUploading(true);
     try {
       for (const file of uploadFiles) {
@@ -156,7 +183,7 @@ export default function IhtarTutanagi() {
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from("ihtar-dosyalari").getPublicUrl(fileName);
         const fileType = getFileType(file.type);
-        await supabase.from("ihtar_dosyalari").insert(sanitizeForm({
+        const { data: dosyaData, error: dosyaError } = await supabase.from("ihtar_dosyalari").insert(sanitizeForm({
           ihtar_id: selectedIhtar.id,
           dosya_url: urlData.publicUrl,
           dosya_adi: file.name,
@@ -164,34 +191,58 @@ export default function IhtarTutanagi() {
           dosya_uzantisi: fileExt,
           dosya_boyut: file.size,
           neden: uploadNeden.trim(),
-        }));
+        })).select();
+        if (dosyaError) throw dosyaError;
+        if (dosyaData) await logAudit("ihtar_dosyalari", "INSERT", dosyaData[0].id, null, { ihtar_id: selectedIhtar.id, dosya_adi: file.name });
       }
       setUploadFiles([]);
       setUploadNeden("");
+      setEditStatus({ type: "success", message: "Dosyalar yüklendi" });
       fetchDosyalar(selectedIhtar.id);
     } catch (err: any) {
-      alert("Yükleme hatası: " + err.message);
+      setEditStatus({ type: "error", message: err.message || "Yükleme hatası" });
     } finally {
       setUploading(false);
+      setSaving(false);
     }
   };
 
   const handleDeleteDosya = async (dosya: any) => {
     if (!confirm("Bu dosyayı silmek istediğinize emin misiniz?")) return;
-    const urlParts = dosya.dosya_url.split("/ihtar-dosyalari/");
-    if (urlParts.length > 1) {
-      await supabase.storage.from("ihtar-dosyalari").remove([urlParts[1]]);
+    setEditStatus(null);
+    try {
+      const urlParts = dosya.dosya_url.split("/ihtar-dosyalari/");
+      if (urlParts.length > 1) {
+        await supabase.storage.from("ihtar-dosyalari").remove([urlParts[1]]);
+      }
+      const { error } = await supabase.from("ihtar_dosyalari").update({ silinme_tarihi: new Date().toISOString() }).eq("id", dosya.id);
+      if (error) throw error;
+      await logAudit("ihtar_dosyalari", "DELETE", dosya.id, dosya, null);
+      setEditStatus({ type: "success", message: "Dosya silindi" });
+      fetchDosyalar(selectedIhtar.id);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
     }
-    await supabase.from("ihtar_dosyalari").update({ silinme_tarihi: new Date().toISOString() }).eq("id", dosya.id);
-    fetchDosyalar(selectedIhtar.id);
   };
 
   const handleEditDosya = async () => {
     if (!editingDosya || !editNeden.trim()) return;
-    await supabase.from("ihtar_dosyalari").update(sanitizeForm({ neden: editNeden.trim(), guncelleme_tarihi: new Date().toISOString() })).eq("id", editingDosya.id);
-    setEditingDosya(null);
-    setEditNeden("");
-    fetchDosyalar(selectedIhtar.id);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ neden: editNeden.trim(), guncelleme_tarihi: new Date().toISOString() });
+      const { error } = await supabase.from("ihtar_dosyalari").update(payload).eq("id", editingDosya.id);
+      if (error) throw error;
+      await logAudit("ihtar_dosyalari", "UPDATE", editingDosya.id, editingDosya, payload);
+      setEditStatus({ type: "success", message: "Dosya güncellendi" });
+      setEditingDosya(null);
+      setEditNeden("");
+      fetchDosyalar(selectedIhtar.id);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Güncelleme başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -217,6 +268,13 @@ export default function IhtarTutanagi() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="İhtar ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>
@@ -261,7 +319,7 @@ export default function IhtarTutanagi() {
               <div><label>Tebliğ Tarihi</label><input type="date" value={form.teblig_tarihi} onChange={e => setForm({ ...form, teblig_tarihi: e.target.value })} /></div>
               <div><label>Personel Görüşü</label><textarea value={form.personel_gorusu} onChange={e => setForm({ ...form, personel_gorusu: e.target.value })} rows={2} placeholder="Personelin beyanı..." /></div>
               <div><label>Durum</label><select value={form.durum} onChange={e => setForm({ ...form, durum: e.target.value })}>{durumlar.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}</select></div>
-              <div className="flex justify-end gap-2 pt-4"><button onClick={() => setShowForm(false)} className="btn" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button><button onClick={handleSubmit} className="btn btn-primary">{editing ? "Güncelle" : "Kaydet"}</button></div>
+              <div className="flex justify-end gap-2 pt-4"><button onClick={() => setShowForm(false)} className="btn" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button><button onClick={handleSubmit} disabled={saving} className="btn btn-primary disabled:opacity-50">{saving ? "Kaydediliyor..." : (editing ? "Güncelle" : "Kaydet")}</button></div>
             </div>
           </div>
         </div>
@@ -381,7 +439,7 @@ export default function IhtarTutanagi() {
                       </div>
                       <div className="flex justify-end gap-2 mt-4">
                         <button onClick={() => { setShowUpload(false); setUploadFiles([]); setUploadNeden(""); }} className="btn text-sm" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button>
-                        <button onClick={handleUpload} disabled={uploading || !uploadNeden.trim()} className="btn btn-primary text-sm">{uploading ? "Yükleniyor..." : `${uploadFiles.length} Dosya Yükle`}</button>
+                        <button onClick={handleUpload} disabled={saving || uploading || !uploadNeden.trim()} className="btn btn-primary text-sm disabled:opacity-50">{uploading ? "Yükleniyor..." : `${uploadFiles.length} Dosya Yükle`}</button>
                       </div>
                     </div>
                   )}
@@ -418,7 +476,7 @@ export default function IhtarTutanagi() {
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                       <button onClick={() => { setEditingDosya(null); setEditNeden(""); }} className="btn text-sm" style={{ background: "#f3f4f6", color: "#374151" }}>İptal</button>
-                      <button onClick={handleEditDosya} className="btn btn-primary text-sm">Güncelle</button>
+                      <button onClick={handleEditDosya} disabled={saving} className="btn btn-primary text-sm disabled:opacity-50">{saving ? "Kaydediliyor..." : "Güncelle"}</button>
                     </div>
                   </div>
                 </div>

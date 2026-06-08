@@ -8,17 +8,20 @@
 |-------|-------|-------|-------|
 | 4.1/4.2 | Bağlam Analizi | `baglam_analizi` | ✅ |
 | 5.1 | Politika Yönetimi | `politika_yonetimi` | ✅ |
+| 5.3 | Roller, Sorumluluklar ve Yetkiler | Saha Sorumluları (`saha_sorumlulari`) | ✅ |
 | 5.4 | İşçi Katılımı | `isci_katilimi` | ✅ |
 | 6.1 | Risk Değerlendirme | `risk_degerlendirme` | ✅ |
 | 6.2 | OHS Hedefleri | `ohs_hedefleri` | ✅ |
-| 7.1 | Doküman Kontrol | `dokuman_kontrol` | ✅ |
 | 7.2 | Yetkinlik Matrisi | `yetkinlik_matrisi` | ✅ |
 | 7.4 | İletişim Kaydı | `iletisim_kaydi` | ✅ |
+| 7.5 | Doküman Kontrol | `dokuman_kontrol` | ✅ |
 | 8.1 | Acil Durum | `acil_durum` | ✅ |
+| 8.1.4.2 | Taşeron Yönetimi (müteahhit/taşeron) | `taseronlar` | ✅ |
 | 9.1 | Performans İzleme | `performans_izleme` | ✅ |
 | 9.2 | İç Denetim | `ic_denetim` (+ `denetim_bulgulari`) | ✅ |
 | 9.3 | Yönetim Gözden Geçirme | `yonetim_gozden_gecirme` | ✅ |
 | 10.1 | Düzeltici Faaliyet | `duzeltici_faaliyet` | ✅ |
+| 10.1 | Olay Yönetimi (iş kazaları) | `is_kazalari` | ✅ |
 | 10.2 | Yasal Uygunluk | `yasal_uygunluk` | ✅ |
 
 > Her ISO 45001 modülünde: migration SQL → component → route → sidebar → settings toggle → backup API etiketi → audit log bulunmalıdır.

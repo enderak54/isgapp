@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { Award, Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { Award, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const yetkinlikTipleri = [
   { value: "egitim", label: "Eğitim" },
@@ -27,6 +28,8 @@ export default function YetkinlikMatrisi() {
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ personel_id: "", yetkinlik_adi: "", yetkinlik_tipi: "egitim", zorunlu_mu: false, seviye: 1, gereken_seviye: 1, alis_tarihi: "", gecerlilik_tarihi: "", veren_kurum: "", belge_no: "", belge_url: "", durum: "gecerli", notlar: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
@@ -45,16 +48,30 @@ export default function YetkinlikMatrisi() {
 
   const handleSubmit = async () => {
     if (!form.yetkinlik_adi || !form.personel_id) return;
-    const payload = sanitizeForm({ ...form, alis_tarihi: form.alis_tarihi || null, gecerlilik_tarihi: form.gecerlilik_tarihi || null });
-    if (editing) {
-      await supabase.from("yetkinlik_matrisi").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("yetkinlik_matrisi").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, alis_tarihi: form.alis_tarihi || null, gecerlilik_tarihi: form.gecerlilik_tarihi || null });
+      if (editing) {
+        const { error } = await supabase.from("yetkinlik_matrisi").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("yetkinlik_matrisi", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Yetkinlik güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("yetkinlik_matrisi").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("yetkinlik_matrisi", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Yetkinlik kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ personel_id: "", yetkinlik_adi: "", yetkinlik_tipi: "egitim", zorunlu_mu: false, seviye: 1, gereken_seviye: 1, alis_tarihi: "", gecerlilik_tarihi: "", veren_kurum: "", belge_no: "", belge_url: "", durum: "gecerli", notlar: "" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ personel_id: "", yetkinlik_adi: "", yetkinlik_tipi: "egitim", zorunlu_mu: false, seviye: 1, gereken_seviye: 1, alis_tarihi: "", gecerlilik_tarihi: "", veren_kurum: "", belge_no: "", belge_url: "", durum: "gecerli", notlar: "" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -65,8 +82,16 @@ export default function YetkinlikMatrisi() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("yetkinlik_matrisi").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("yetkinlik_matrisi").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("yetkinlik_matrisi", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Yetkinlik silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -92,6 +117,13 @@ export default function YetkinlikMatrisi() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Yetkinlik veya personel ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>

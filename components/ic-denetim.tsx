@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { ClipboardCheck, Plus, Search, Edit, Trash2, X, Eye } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { ClipboardCheck, Plus, Search, Edit, Trash2, X, Eye, CheckCircle, AlertCircle } from "lucide-react";
 
 const denetimTipleri = [
   { value: "ic", label: "İç Denetim" },
@@ -26,6 +27,8 @@ export default function ICDenetim() {
   const [selectedDenetim, setSelectedDenetim] = useState<string | null>(null);
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ denetim_adi: "", denetim_tarihi: "", denetim_tipi: "ic", denetci: "", kapsam: "", kapsam_alanlari: "", guclu_yonler: "", iyilestirme_alanlari: "", genel_degerlendirme: "", durum: "planlandi" });
   const [bulguForm, setBulguForm] = useState({ bulgu_no: "", bulgu_tipi: "uygunsuzluk", bolum: "", bulgu_aciklama: "", dayanak_madde: "", oneri: "", sorumlu_kisi: "", duzeltme_tarihi: "", durum: "acik" });
 
@@ -46,16 +49,30 @@ export default function ICDenetim() {
 
   const handleSubmit = async () => {
     if (!form.denetim_adi || !form.denetim_tarihi || !form.denetci) return;
-    const payload = sanitizeForm({ ...form, denetim_tarihi: form.denetim_tarihi || null, kapsam_alanlari: form.kapsam_alanlari ? form.kapsam_alanlari.split(",").map((s: string) => s.trim()) : [] });
-    if (editing) {
-      await supabase.from("ic_denetim").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("ic_denetim").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, denetim_tarihi: form.denetim_tarihi || null, kapsam_alanlari: form.kapsam_alanlari ? form.kapsam_alanlari.split(",").map((s: string) => s.trim()) : [] });
+      if (editing) {
+        const { error } = await supabase.from("ic_denetim").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("ic_denetim", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Denetim güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("ic_denetim").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("ic_denetim", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Denetim kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ denetim_adi: "", denetim_tarihi: "", denetim_tipi: "ic", denetci: "", kapsam: "", kapsam_alanlari: "", guclu_yonler: "", iyilestirme_alanlari: "", genel_degerlendirme: "", durum: "planlandi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ denetim_adi: "", denetim_tarihi: "", denetim_tipi: "ic", denetci: "", kapsam: "", kapsam_alanlari: "", guclu_yonler: "", iyilestirme_alanlari: "", genel_degerlendirme: "", durum: "planlandi" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -66,23 +83,50 @@ export default function ICDenetim() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu denetimi silmek istediğinize emin misiniz?")) return;
-    await supabase.from("ic_denetim").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("ic_denetim").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("ic_denetim", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Denetim silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   const handleBulguSubmit = async () => {
     if (!bulguForm.bulgu_aciklama || !selectedDenetim) return;
-    const payload = sanitizeForm({ ...bulguForm, denetim_id: selectedDenetim, duzeltme_tarihi: bulguForm.duzeltme_tarihi || null });
-    await supabase.from("denetim_bulgulari").insert(payload);
-    setShowBulguForm(false);
-    setBulguForm({ bulgu_no: "", bulgu_tipi: "uygunsuzluk", bolum: "", bulgu_aciklama: "", dayanak_madde: "", oneri: "", sorumlu_kisi: "", duzeltme_tarihi: "", durum: "acik" });
-    fetchBulgular(selectedDenetim);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...bulguForm, denetim_id: selectedDenetim, duzeltme_tarihi: bulguForm.duzeltme_tarihi || null });
+      const { data, error } = await supabase.from("denetim_bulgulari").insert(payload).select();
+      if (error) throw error;
+      if (data) await logAudit("denetim_bulgulari", "INSERT", data[0].id, null, payload);
+      setEditStatus({ type: "success", message: "Bulgu kaydedildi" });
+      setShowBulguForm(false);
+      setBulguForm({ bulgu_no: "", bulgu_tipi: "uygunsuzluk", bolum: "", bulgu_aciklama: "", dayanak_madde: "", oneri: "", sorumlu_kisi: "", duzeltme_tarihi: "", durum: "acik" });
+      fetchBulgular(selectedDenetim);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteBulgu = async (id: string) => {
     if (!confirm("Bu bulguyu silmek istediğinize emin misiniz?")) return;
-    await supabase.from("denetim_bulgulari").delete().eq("id", id);
-    if (selectedDenetim) fetchBulgular(selectedDenetim);
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("denetim_bulgulari").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("denetim_bulgulari", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Bulgu silindi" });
+      if (selectedDenetim) fetchBulgular(selectedDenetim);
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -108,6 +152,13 @@ export default function ICDenetim() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Denetim ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden mb-6">
           <table>

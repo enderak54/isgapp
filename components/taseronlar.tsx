@@ -47,11 +47,14 @@ export default function Taseronlar() {
   const [cellModal, setCellModal] = useState<{ emp: any; tip: string; docs: any[] } | null>(null);
   const [docLocked, setDocLocked] = useState<Set<string>>(new Set());
 
-  const [colVis, setColVis] = useState<Record<string, boolean>>({
-    sgk: true, myk: true, saglik_raporu: true, isg_egitim: true,
-    yuksekte_calisma: true, kkd: true, adli_sicil: true, gorevlendirme: true, giris_durumu: true,
+  const [colVis, setColVis] = useState<Record<string, boolean>>(() => {
+    try { const s = localStorage.getItem("taseron_col_vis"); if (s) { const p = JSON.parse(s); if (p && typeof p === "object") return p; } } catch {}
+    return { sgk: true, myk: true, saglik_raporu: true, isg_egitim: true, yuksekte_calisma: true, kkd: true, adli_sicil: true, gorevlendirme: true, giris_durumu: true };
   });
-  const [colOrder, setColOrder] = useState<string[]>(["sgk", "myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme", "giris_durumu"]);
+  const [colOrder, setColOrder] = useState<string[]>(() => {
+    try { const s = localStorage.getItem("taseron_col_order"); if (s) { const p = JSON.parse(s); if (Array.isArray(p) && p.length > 0) return p; } } catch {}
+    return ["sgk", "myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme", "giris_durumu"];
+  });
   const [showColMenu, setShowColMenu] = useState(false);
 
   // Upload inside cell modal
@@ -72,6 +75,11 @@ export default function Taseronlar() {
   const BELGE_SUTUNLARI = ["myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme"];
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
+
+  useEffect(() => {
+    localStorage.setItem("taseron_col_order", JSON.stringify(colOrder));
+    localStorage.setItem("taseron_col_vis", JSON.stringify(colVis));
+  }, [colOrder, colVis]);
 
   const toggleLock = (id: string) => {
     setLocked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });

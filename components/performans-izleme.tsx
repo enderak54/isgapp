@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logAudit } from "@/lib/audit";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { TrendingUp, Plus, Search, Edit, Trash2, X, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { TrendingUp, Plus, Search, Edit, Trash2, X, ArrowUpRight, ArrowDownRight, Minus, CheckCircle, AlertCircle } from "lucide-react";
 
 const gostergeTipleri = [
   { value: "leading", label: "Öncül (Leading)" },
@@ -17,6 +18,8 @@ export default function PerformansIzleme() {
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ gosterge_adi: "", gosterge_tipi: "leading", birim: "", hedef_deger: "", gercek_deger: "", olcum_tarihi: "", onceki_deger: "", aciklama: "", aksiyon_gerekli_mu: false, aksiyon_aciklama: "" });
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchItems(); }, []);
 
@@ -30,16 +33,30 @@ export default function PerformansIzleme() {
 
   const handleSubmit = async () => {
     if (!form.gosterge_adi || !form.olcum_tarihi) return;
-    const payload = sanitizeForm({ ...form, hedef_deger: form.hedef_deger ? parseFloat(form.hedef_deger) : null, gercek_deger: form.gercek_deger ? parseFloat(form.gercek_deger) : null, onceki_deger: form.onceki_deger ? parseFloat(form.onceki_deger) : null, olcum_tarihi: form.olcum_tarihi || null });
-    if (editing) {
-      await supabase.from("performans_izleme").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("performans_izleme").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, hedef_deger: form.hedef_deger ? parseFloat(form.hedef_deger) : null, gercek_deger: form.gercek_deger ? parseFloat(form.gercek_deger) : null, onceki_deger: form.onceki_deger ? parseFloat(form.onceki_deger) : null, olcum_tarihi: form.olcum_tarihi || null });
+      if (editing) {
+        const { error } = await supabase.from("performans_izleme").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("performans_izleme", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Gösterge güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("performans_izleme").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("performans_izleme", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Gösterge eklendi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ gosterge_adi: "", gosterge_tipi: "leading", birim: "", hedef_deger: "", gercek_deger: "", olcum_tarihi: "", onceki_deger: "", aciklama: "", aksiyon_gerekli_mu: false, aksiyon_aciklama: "" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "İşlem başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ gosterge_adi: "", gosterge_tipi: "leading", birim: "", hedef_deger: "", gercek_deger: "", olcum_tarihi: "", onceki_deger: "", aciklama: "", aksiyon_gerekli_mu: false, aksiyon_aciklama: "" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -50,8 +67,16 @@ export default function PerformansIzleme() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("performans_izleme").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("performans_izleme").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("performans_izleme", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Gösterge silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -103,6 +128,13 @@ export default function PerformansIzleme() {
           </table>
         </div>
       </div>
+
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>

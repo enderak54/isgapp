@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { Wrench, Plus, Edit, Trash2, Search, X, Save, AlertTriangle } from "lucide-react";
+import { Wrench, Plus, Edit, Trash2, Search, X, Save, AlertTriangle, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function IsEkipmanlari() {
   const [ekipmanlar, setEkipmanlar] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function IsEkipmanlari() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ad: "", seri_no: "", tip: "", santiye_id: "", son_kontrol_tarihi: "", sonraki_kontrol_tarihi: "", durum: "aktif", notlar: "" });
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => { fetchEkipmanlar(); fetchSantiyeler(); }, []);
 
@@ -30,14 +33,43 @@ export default function IsEkipmanlari() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await supabase.from("is_ekipmanlari").update(sanitizeForm(form)).eq("id", editing.id);
-    else await supabase.from("is_ekipmanlari").insert(sanitizeForm(form));
-    setShowForm(false); setEditing(null);
-    setForm({ ad: "", seri_no: "", tip: "", santiye_id: "", son_kontrol_tarihi: "", sonraki_kontrol_tarihi: "", durum: "aktif", notlar: "" });
-    fetchEkipmanlar();
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      if (editing) {
+        const { error } = await supabase.from("is_ekipmanlari").update(sanitizeForm(form)).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("is_ekipmanlari", "UPDATE", editing.id, editing, form);
+        setEditStatus({ type: "success", message: "Ekipman güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("is_ekipmanlari").insert(sanitizeForm(form)).select();
+        if (error) throw error;
+        if (data) await logAudit("is_ekipmanlari", "INSERT", data[0].id, null, form);
+        setEditStatus({ type: "success", message: "Ekipman eklendi" });
+      }
+      setShowForm(false); setEditing(null);
+      setForm({ ad: "", seri_no: "", tip: "", santiye_id: "", son_kontrol_tarihi: "", sonraki_kontrol_tarihi: "", durum: "aktif", notlar: "" });
+      fetchEkipmanlar();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string) => { if (confirm("Sil?")) { await supabase.from("is_ekipmanlari").delete().eq("id", id); fetchEkipmanlar(); } };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Silmek istediğinize emin misiniz?")) return;
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("is_ekipmanlari").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("is_ekipmanlari", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Ekipman silindi" });
+      fetchEkipmanlar();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
+  };
 
   const filtered = ekipmanlar.filter((e) => e.ad.toLowerCase().includes(search.toLowerCase()));
 
@@ -59,6 +91,13 @@ export default function IsEkipmanlari() {
           <input type="text" placeholder="Ekipman ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
         </div>
       </div>
+
+      {editStatus && (
+        <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {editStatus.message}
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -84,7 +123,7 @@ export default function IsEkipmanlari() {
                 <option value="bakimda">Bakımda</option>
                 <option value="kullanilmaz">Kullanılmaz</option>
               </select>
-              <button type="submit" className="w-full btn btn-primary"><Save className="w-4 h-4" /> Kaydet</button>
+              <button type="submit" disabled={saving} className="w-full btn btn-primary disabled:opacity-50">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}{saving ? "Kaydediliyor..." : "Kaydet"}</button>
             </form>
           </div>
         </div>

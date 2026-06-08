@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { FileCheck, Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { FileCheck, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const dokumanTipleri = [
   { value: "prosedur", label: "Prosedür" },
@@ -28,6 +29,8 @@ export default function DokumanKontrol() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ dokuman_adi: "", dokuman_no: "", versiyon: "1.0", dokuman_tipi: "prosedur", icerik_ozeti: "", hazirlayan: "", onaylayan: "", onay_tarihi: "", yayin_tarihi: "", gecerlilik_tarihi: "", dosya_url: "", durum: "taslak", degisiklik_aciklama: "", ilgili_dokumanlar: "" });
 
   useEffect(() => { fetchItems(); }, []);
@@ -42,16 +45,30 @@ export default function DokumanKontrol() {
 
   const handleSubmit = async () => {
     if (!form.dokuman_adi) return;
-    const payload = sanitizeForm({ ...form, onay_tarihi: form.onay_tarihi || null, yayin_tarihi: form.yayin_tarihi || null, gecerlilik_tarihi: form.gecerlilik_tarihi || null, ilgili_dokumanlar: form.ilgili_dokumanlar ? form.ilgili_dokumanlar.split(",").map((s: string) => s.trim()) : [] });
-    if (editing) {
-      await supabase.from("dokuman_kontrol").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("dokuman_kontrol").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, onay_tarihi: form.onay_tarihi || null, yayin_tarihi: form.yayin_tarihi || null, gecerlilik_tarihi: form.gecerlilik_tarihi || null, ilgili_dokumanlar: form.ilgili_dokumanlar ? form.ilgili_dokumanlar.split(",").map((s: string) => s.trim()) : [] });
+      if (editing) {
+        const { error } = await supabase.from("dokuman_kontrol").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("dokuman_kontrol", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Doküman güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("dokuman_kontrol").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("dokuman_kontrol", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Doküman kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ dokuman_adi: "", dokuman_no: "", versiyon: "1.0", dokuman_tipi: "prosedur", icerik_ozeti: "", hazirlayan: "", onaylayan: "", onay_tarihi: "", yayin_tarihi: "", gecerlilik_tarihi: "", dosya_url: "", durum: "taslak", degisiklik_aciklama: "", ilgili_dokumanlar: "" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ dokuman_adi: "", dokuman_no: "", versiyon: "1.0", dokuman_tipi: "prosedur", icerik_ozeti: "", hazirlayan: "", onaylayan: "", onay_tarihi: "", yayin_tarihi: "", gecerlilik_tarihi: "", dosya_url: "", durum: "taslak", degisiklik_aciklama: "", ilgili_dokumanlar: "" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -62,8 +79,16 @@ export default function DokumanKontrol() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu dokümanı silmek istediğinize emin misiniz?")) return;
-    await supabase.from("dokuman_kontrol").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("dokuman_kontrol").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("dokuman_kontrol", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Doküman silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -89,6 +114,13 @@ export default function DokumanKontrol() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Doküman ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>

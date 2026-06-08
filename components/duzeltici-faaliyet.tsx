@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { RotateCcw, Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { logAudit } from "@/lib/audit";
+import { RotateCcw, Plus, Search, Edit, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 
 const kaynaklar = [
   { value: "is_kazasi", label: "İş Kazası" },
@@ -41,6 +42,8 @@ export default function DuzelticiFaaliyet() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState({ kaynak: "gozlem", baslik: "", uygunsuzluk_aciklama: "", kok_neden_analizi: "", analiz_yontemi: "", duzeltici_aksiyon: "", onleyici_aksiyon: "", sorumlu_kisi: "", baslangic_tarihi: "", hedef_tarih: "", tamamlanma_tarihi: "", etki_degerlendirmesi: "", dogrulama_sonucu: "", durum: "acik" });
 
   useEffect(() => { fetchItems(); }, []);
@@ -55,16 +58,30 @@ export default function DuzelticiFaaliyet() {
 
   const handleSubmit = async () => {
     if (!form.baslik || !form.uygunsuzluk_aciklama || !form.sorumlu_kisi) return;
-    const payload = sanitizeForm({ ...form, baslangic_tarihi: form.baslangic_tarihi || null, hedef_tarih: form.hedef_tarih || null, tamamlanma_tarihi: form.tamamlanma_tarihi || null });
-    if (editing) {
-      await supabase.from("duzeltici_faaliyet").update(payload).eq("id", editing.id);
-    } else {
-      await supabase.from("duzeltici_faaliyet").insert(payload);
+    setSaving(true);
+    setEditStatus(null);
+    try {
+      const payload = sanitizeForm({ ...form, baslangic_tarihi: form.baslangic_tarihi || null, hedef_tarih: form.hedef_tarih || null, tamamlanma_tarihi: form.tamamlanma_tarihi || null });
+      if (editing) {
+        const { error } = await supabase.from("duzeltici_faaliyet").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await logAudit("duzeltici_faaliyet", "UPDATE", editing.id, editing, payload);
+        setEditStatus({ type: "success", message: "Faaliyet güncellendi" });
+      } else {
+        const { data, error } = await supabase.from("duzeltici_faaliyet").insert(payload).select();
+        if (error) throw error;
+        if (data) await logAudit("duzeltici_faaliyet", "INSERT", data[0].id, null, payload);
+        setEditStatus({ type: "success", message: "Faaliyet kaydedildi" });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ kaynak: "gozlem", baslik: "", uygunsuzluk_aciklama: "", kok_neden_analizi: "", analiz_yontemi: "", duzeltici_aksiyon: "", onleyici_aksiyon: "", sorumlu_kisi: "", baslangic_tarihi: "", hedef_tarih: "", tamamlanma_tarihi: "", etki_degerlendirmesi: "", dogrulama_sonucu: "", durum: "acik" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ kaynak: "gozlem", baslik: "", uygunsuzluk_aciklama: "", kok_neden_analizi: "", analiz_yontemi: "", duzeltici_aksiyon: "", onleyici_aksiyon: "", sorumlu_kisi: "", baslangic_tarihi: "", hedef_tarih: "", tamamlanma_tarihi: "", etki_degerlendirmesi: "", dogrulama_sonucu: "", durum: "acik" });
-    fetchItems();
   };
 
   const handleEdit = (i: any) => {
@@ -75,8 +92,16 @@ export default function DuzelticiFaaliyet() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu faaliyeti silmek istediğinize emin misiniz?")) return;
-    await supabase.from("duzeltici_faaliyet").delete().eq("id", id);
-    fetchItems();
+    setEditStatus(null);
+    try {
+      const { error } = await supabase.from("duzeltici_faaliyet").delete().eq("id", id);
+      if (error) throw error;
+      await logAudit("duzeltici_faaliyet", "DELETE", id, null, null);
+      setEditStatus({ type: "success", message: "Faaliyet silindi" });
+      fetchItems();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Silme işlemi başarısız" });
+    }
   };
 
   if (loading) return <div className="flex-1 p-8 flex items-center justify-center text-gray-400">Yükleniyor...</div>;
@@ -102,6 +127,13 @@ export default function DuzelticiFaaliyet() {
         </div>
 
         <div className="card p-4 mb-6"><div className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Faaliyet ara..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-12" /></div></div>
+
+        {editStatus && (
+          <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm border ${editStatus.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {editStatus.message}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <table>
