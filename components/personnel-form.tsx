@@ -474,8 +474,6 @@ export default function PersonnelForm() {
                   <label className="text-sm text-gray-600 mb-1.5 block">Meslek Kodu</label>
                   <input type="text" value={form.meslekKodu} onChange={(e) => handleChange("meslekKodu", e.target.value)} className="input" placeholder="Meslek Kodu" />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-sm text-gray-600 mb-1.5 block">SGK Tarihi</label>
                   <div className="flex items-center gap-1">
