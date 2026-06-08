@@ -392,7 +392,6 @@ export default function PersonnelForm() {
     { label: "60 Gün", value: "60_gun" },
     { label: "90 Gün", value: "90_gun" },
     { label: "6 Ay", value: "6_ay" },
-    { label: "1 Yıl", value: "1_yil" },
   ];
   const calcGorevlendirmeSon = (baslangic: string, sure: string) => {
     const [val, birim] = sure.split("_");
