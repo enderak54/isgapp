@@ -166,6 +166,7 @@ export default function Taseronlar() {
     const inserts = valid.map(s => ({ taseron_id: taseronId, ...s }));
     const { error } = await supabase.from("taseron_sorumlulari").insert(inserts);
     if (error) throw error;
+    await logAudit("taseron_sorumlulari", editing ? "UPDATE" : "INSERT", taseronId, null, valid);
   };
 
   const handleDelete = async (id: string) => {
