@@ -62,6 +62,11 @@ export default function Taseronlar() {
   const [uploadExpiry, setUploadExpiry] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  // Add employee
+  const [showAddEmp, setShowAddEmp] = useState(false);
+  const [addEmpForm, setAddEmpForm] = useState({ ad: "", soyad: "", kimlikNo: "", telefon: "", sgkTarihi: "", iseGirisTarihi: "" });
+  const [addEmpSaving, setAddEmpSaving] = useState(false);
+
   // Reject
   const [rejectDoc, setRejectDoc] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -207,6 +212,27 @@ export default function Taseronlar() {
     } catch (e: any) { alert(e.message); }
   };
 
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addEmpForm.ad.trim() || !addEmpForm.soyad.trim()) return;
+    setAddEmpSaving(true);
+    try {
+      const payload = {
+        ad: addEmpForm.ad.trim(), soyad: addEmpForm.soyad.trim(),
+        kimlik_no: addEmpForm.kimlikNo.trim(), telefon: addEmpForm.telefon.trim(),
+        sgk_tarihi: addEmpForm.sgkTarihi || null, ise_giris_tarihi: addEmpForm.iseGirisTarihi || null,
+        taseron_id: selectedTaseron?.id || null,
+      };
+      const { data, error } = await supabase.from("personel").insert(payload).select();
+      if (error) throw error;
+      if (data?.[0]) await logAudit("personel", "INSERT", data[0].id, null, payload);
+      setShowAddEmp(false);
+      setAddEmpForm({ ad: "", soyad: "", kimlikNo: "", telefon: "", sgkTarihi: "", iseGirisTarihi: "" });
+      if (selectedTaseron) openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
+    finally { setAddEmpSaving(false); }
+  };
+
   // Company List View
   if (!selectedTaseron) {
     return (
@@ -329,6 +355,9 @@ export default function Taseronlar() {
         <div className="px-4 py-3 border-b flex justify-between items-center relative">
           <h3 className="font-semibold text-gray-700 flex items-center gap-2"><Users className="w-5 h-5" /> Çalışanlar ({employees.length})</h3>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowAddEmp(true)} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Personel Ekle
+            </button>
             <button onClick={() => setShowColMenu(!showColMenu)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded flex items-center gap-1">
               <Eye className="w-3.5 h-3.5" /> Sütunlar
             </button>
@@ -411,6 +440,54 @@ export default function Taseronlar() {
           </table>
         )}
       </div>
+
+      {/* Add Employee Modal */}
+      {showAddEmp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Personel Ekle — {selectedTaseron?.firma_adi}</h3>
+              <button onClick={() => setShowAddEmp(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleAddEmployee} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Ad *</label>
+                  <input required value={addEmpForm.ad} onChange={e => setAddEmpForm({...addEmpForm, ad: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="Ad" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Soyad *</label>
+                  <input required value={addEmpForm.soyad} onChange={e => setAddEmpForm({...addEmpForm, soyad: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="Soyad" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">TC Kimlik No</label>
+                <input type="text" inputMode="numeric" value={addEmpForm.kimlikNo} onChange={e => setAddEmpForm({...addEmpForm, kimlikNo: e.target.value.replace(/\D/g, "").slice(0, 11)})} className="w-full p-2 border rounded-lg text-sm" placeholder="11 haneli TC kimlik" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Telefon</label>
+                <input value={addEmpForm.telefon} onChange={e => setAddEmpForm({...addEmpForm, telefon: e.target.value})} className="w-full p-2 border rounded-lg text-sm" placeholder="05XX XXX XX XX" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">İşe Giriş Tarihi</label>
+                  <input type="date" value={addEmpForm.iseGirisTarihi} onChange={e => setAddEmpForm({...addEmpForm, iseGirisTarihi: e.target.value})} className="w-full p-2 border rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">SGK Tarihi</label>
+                  <input type="date" value={addEmpForm.sgkTarihi} onChange={e => setAddEmpForm({...addEmpForm, sgkTarihi: e.target.value})} className="w-full p-2 border rounded-lg text-sm" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2 justify-end">
+                <button type="button" onClick={() => setShowAddEmp(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
+                <button type="submit" disabled={addEmpSaving || !addEmpForm.ad.trim() || !addEmpForm.soyad.trim()} className="px-4 py-2 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1">
+                  <Save className="w-4 h-4" />{addEmpSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Cell Modal - document detail/upload for a specific employee+type */}
       {cellModal && (
