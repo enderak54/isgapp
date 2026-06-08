@@ -23,13 +23,13 @@ export default function YasalUygunluk() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  useEffect(() => { fetchItems(); }, []);
-
   const fetchItems = async () => {
     const { data } = await supabase.from("yasal_uygunluk").select("*").order("olusturma_tarihi", { ascending: false });
     if (data) setItems(data);
     setLoading(false);
   };
+
+  useEffect(() => { fetchItems(); }, []);
 
   const filtered = items.filter(i => i.yasal_metin_adi.toLowerCase().includes(search.toLowerCase()) || (i.yasal_dayanak && i.yasal_dayanak.toLowerCase().includes(search.toLowerCase())));
 

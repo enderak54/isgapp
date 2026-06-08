@@ -31,8 +31,6 @@ export default function YetkinlikMatrisi() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  useEffect(() => { fetchItems(); fetchPersonel(); }, []);
-
   const fetchItems = async () => {
     const { data } = await supabase.from("yetkinlik_matrisi").select("*, personel(ad, soyad, kimlik_no)").order("olusturma_tarihi", { ascending: false });
     if (data) setItems(data);
@@ -43,6 +41,8 @@ export default function YetkinlikMatrisi() {
     const { data } = await supabase.from("personel").select("id, ad, soyad").eq("arsivde", false);
     if (data) setPersonel(data);
   };
+
+  useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
   const filtered = items.filter(i => i.yetkinlik_adi.toLowerCase().includes(search.toLowerCase()) || (i.personel && `${i.personel.ad || ""} ${i.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())));
 

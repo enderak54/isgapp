@@ -27,6 +27,7 @@ export default function AIDashboard() {
 
   const loadData = async () => {
     setLoading(true);
+    setEditStatus(null);
     try {
       const [sRes, mRes] = await Promise.all([
         supabase.from("ai_risk_suggestions").select("*").eq("is_resolved", false).order("created_at", { ascending: false }).limit(20),
@@ -34,7 +35,9 @@ export default function AIDashboard() {
       ]);
       if (sRes.data) setSuggestions(sRes.data);
       if (mRes.data) setMetrics(mRes.data);
-    } catch {} finally { setLoading(false); }
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: e.message || "Veri yüklenemedi" });
+    } finally { setLoading(false); }
   };
 
   const runAnalysis = async () => {

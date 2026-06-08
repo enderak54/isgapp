@@ -523,7 +523,7 @@ function EgitanimBolumu({ baslik, items, onEkle, onSil }: {
   const handleEkle = async () => {
     if (!yeni.trim()) return;
     setEkleme(true);
-    try { await onEkle(yeni.trim()); setYeni(""); } catch {}
+    try { await onEkle(yeni.trim()); setYeni(""); } catch (e: any) { alert(e.message || "Eklenemedi"); }
     setEkleme(false);
   };
   return (

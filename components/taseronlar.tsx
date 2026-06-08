@@ -74,17 +74,6 @@ export default function Taseronlar() {
   };
   const BELGE_SUTUNLARI = ["myk", "saglik_raporu", "isg_egitim", "yuksekte_calisma", "kkd", "adli_sicil", "gorevlendirme"];
 
-  useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
-
-  useEffect(() => {
-    localStorage.setItem("taseron_col_order", JSON.stringify(colOrder));
-    localStorage.setItem("taseron_col_vis", JSON.stringify(colVis));
-  }, [colOrder, colVis]);
-
-  const toggleLock = (id: string) => {
-    setLocked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  };
-
   const fetchTaseronlar = async () => {
     const { data } = await supabase.from("taseronlar").select("*, santiyeler(ad)").order("firma_adi");
     if (data) setTaseronlar(data);
@@ -94,6 +83,17 @@ export default function Taseronlar() {
   const fetchSantiyeler = async () => {
     const { data } = await supabase.from("santiyeler").select("id, ad");
     if (data) setSantiyeler(data);
+  };
+
+  useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
+
+  useEffect(() => {
+    localStorage.setItem("taseron_col_order", JSON.stringify(colOrder));
+    localStorage.setItem("taseron_col_vis", JSON.stringify(colVis));
+  }, [colOrder, colVis]);
+
+  const toggleLock = (id: string) => {
+    setLocked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   };
 
   const openCompany = async (t: any) => {
