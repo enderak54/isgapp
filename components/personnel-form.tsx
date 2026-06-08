@@ -75,7 +75,7 @@ export default function PersonnelForm() {
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
-  const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<Record<string, string[]>>({});
+  const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
   const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
   const [ekipler, setEkipler] = useState<any[]>([]);
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
@@ -106,7 +106,7 @@ export default function PersonnelForm() {
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
       supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
-      supabase.from("ayarlar").select("value").eq("key", "taseron_zorunlu_alanlar").single(),
+      supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single(),
     ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
@@ -116,18 +116,18 @@ export default function PersonnelForm() {
         try { setZorunluAlanlar(JSON.parse(zorunluRes.data.value)); } catch {}
       }
       if (taseronRes.data?.value) {
-        try { setTaseronZorunluAlanlar(JSON.parse(taseronRes.data.value)); } catch {}
+        try { setTaseronPersonelZorunlu(JSON.parse(taseronRes.data.value)); } catch {}
       }
     });
   }, []);
 
   useEffect(() => {
-    if (form.taseronId && taseronZorunluAlanlar[form.taseronId]) {
-      setActiveZorunluAlanlar(taseronZorunluAlanlar[form.taseronId]);
+    if (form.taseronId && taseronPersonelZorunlu.length > 0) {
+      setActiveZorunluAlanlar(taseronPersonelZorunlu);
     } else {
       setActiveZorunluAlanlar(zorunluAlanlar);
     }
-  }, [form.taseronId, taseronZorunluAlanlar, zorunluAlanlar]);
+  }, [form.taseronId, taseronPersonelZorunlu, zorunluAlanlar]);
 
   const mykEkle = () => {
     if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
@@ -395,9 +395,9 @@ export default function PersonnelForm() {
             {loading ? "Kaydediliyor..." : "💾 Kaydet"}
           </button>
         </div>
-        {form.taseronId && taseronZorunluAlanlar[form.taseronId] && (
+        {form.taseronId && taseronPersonelZorunlu.length > 0 && (
           <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
-            ⚠ Bu taşeron için zorunlu alanlar: {taseronZorunluAlanlar[form.taseronId].join(", ")}
+            ⚠ Taşeron personeli için zorunlu alanlar: {taseronPersonelZorunlu.join(", ")}
           </div>
         )}
         <div className="grid grid-cols-3 gap-4">

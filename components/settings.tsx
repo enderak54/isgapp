@@ -165,8 +165,10 @@ export default function SettingsPage() {
   const [showZorunluAlanlar, setShowZorunluAlanlar] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [zorunluAlanlarSaving, setZorunluAlanlarSaving] = useState(false);
-  const [taseronlar, setTaseronlar] = useState<any[]>([]);
-  const [taseronZorunlu, setTaseronZorunlu] = useState<Record<string, string[]>>({});
+  const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
+
+  const [showTaseronZorunlu, setShowTaseronZorunlu] = useState(false);
+  const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
 
   const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
     { key: "personel", label: "Personel", grup: "kritik" },
@@ -309,20 +311,14 @@ export default function SettingsPage() {
   };
 
   const fetchTaseronData = async () => {
-    const { data: taseronData } = await supabase.from("taseronlar").select("id, firma_adi").order("firma_adi");
-    if (taseronData) setTaseronlar(taseronData);
-    const { data: taseronZorunluRes } = await supabase.from("ayarlar").select("value").eq("key", "taseron_zorunlu_alanlar").single();
-    if (taseronZorunluRes?.value) {
-      try { setTaseronZorunlu(JSON.parse(taseronZorunluRes.value)); } catch {}
+    const { data } = await supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single();
+    if (data?.value) {
+      try { setTaseronPersonelZorunlu(JSON.parse(data.value)); } catch {}
     }
   };
 
-  const toggleTaseronZorunlu = (taseronId: string, alanKey: string) => {
-    setTaseronZorunlu(prev => {
-      const current = prev[taseronId] || [];
-      const next = current.includes(alanKey) ? current.filter(k => k !== alanKey) : [...current, alanKey];
-      return { ...prev, [taseronId]: next };
-    });
+  const toggleTaseronPersonelZorunlu = (alanKey: string) => {
+    setTaseronPersonelZorunlu(prev => prev.includes(alanKey) ? prev.filter(k => k !== alanKey) : [...prev, alanKey]);
   };
 
   const toggleMykZorunlu = (id: string) => {
@@ -347,14 +343,17 @@ export default function SettingsPage() {
     }
   };
 
-  const saveTaseronZorunlu = async () => {
+  const saveTaseronPersonelZorunlu = async () => {
+    setTaseronZorunluSaving(true);
     setStatus(null);
     try {
-      await supabase.from("ayarlar").upsert({ key: "taseron_zorunlu_alanlar", value: JSON.stringify(taseronZorunlu), type: "taseron", description: "Taşeron bazlı zorunlu alanlar" }, { onConflict: "key" });
-      await logAudit("ayarlar", "INSERT", "taseron_zorunlu_alanlar", null, taseronZorunlu);
-      setStatus({ type: "success", message: "Taşeron zorunlu alanlar kaydedildi!" });
+      await supabase.from("ayarlar").upsert({ key: "taseron_personel_zorunlu_alanlar", value: JSON.stringify(taseronPersonelZorunlu), type: "personel", description: "Taşeron personeli için zorunlu alanlar" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "taseron_personel_zorunlu_alanlar", null, taseronPersonelZorunlu);
+      setStatus({ type: "success", message: "Taşeron personel zorunlu alanlar kaydedildi!" });
     } catch (e: any) {
       setStatus({ type: "error", message: e.message || "Taşeron zorunlu alanlar kaydedilemedi" });
+    } finally {
+      setTaseronZorunluSaving(false);
     }
   };
 
@@ -978,39 +977,31 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Taşeron Bazlı Zorunlu Alanlar */}
+        {/* Taşeron Personeli Zorunlu Alanlar */}
         <div className="card p-6 mt-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Building className="w-5 h-5 text-gray-400" />
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">Taşeron Bazlı Zorunlu Alanlar</h3>
-                <p className="text-sm text-gray-500">Her taşeron için farklı zorunlu alanlar belirleyebilirsiniz</p>
+                <h3 className="text-lg font-semibold text-gray-800">Taşeron Personeli Zorunlu Alanlar</h3>
+                <p className="text-sm text-gray-500">Taşerona bağlı personel için geçerli zorunlu alanlar</p>
               </div>
             </div>
-            <button onClick={saveTaseronZorunlu} className="btn btn-primary text-sm">
-              Kaydet
+            <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
+              {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mb-3">Boş bırakılan taşeronlar genel ayarları kullanır.</p>
-          <div className="space-y-3">
-            {taseronlar.map((t: any) => (
-              <div key={t.id} className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">{t.firma_adi}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {TUM_ZORUNLU_ALANLAR.map((alan) => {
-                    const checked = taseronZorunlu[t.id]?.includes(alan.key) || false;
-                    return (
-                      <label key={alan.key} className={`flex items-center gap-1 px-2 py-1 rounded border text-xs cursor-pointer transition ${checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleTaseronZorunlu(t.id, alan.key)} className="sr-only" />
-                        {checked ? "✓ " : ""}{alan.label}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            {taseronlar.length === 0 && <p className="text-xs text-gray-400">Henüz taşeron eklenmemiş</p>}
+          <p className="text-xs text-gray-500 mb-3">Taşeron seçili personelde bu alanlar zorunlu olur. Boş bırakılırsa genel ayarlar kullanılır.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {PERSONEL_ZORUNLU_ALANLAR.map((alan) => {
+              const checked = taseronPersonelZorunlu.includes(alan.key);
+              return (
+                <label key={alan.key} className={`flex items-center gap-1 px-2.5 py-1.5 rounded border text-xs cursor-pointer transition ${checked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleTaseronPersonelZorunlu(alan.key)} className="sr-only" />
+                  {checked ? "✓ " : ""}{alan.label}
+                </label>
+              );
+            })}
           </div>
         </div>
 

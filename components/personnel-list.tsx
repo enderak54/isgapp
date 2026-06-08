@@ -94,7 +94,7 @@ export default function PersonnelList() {
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
-  const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<Record<string, string[]>>({});
+  const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
   const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     ad: true, soyad: true, kimlik_no: true, santiye: true, ekip: true, taseron: true,
@@ -133,25 +133,25 @@ export default function PersonnelList() {
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
       supabase.from("ayarlar").select("value").eq("key", "myk_zorunlu_ids").single(),
       supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
-      supabase.from("ayarlar").select("value").eq("key", "taseron_zorunlu_alanlar").single(),
+      supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single(),
     ]).then(([egitimRes, ayarRes, personelZorunluRes, taseronZorunluRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
       }
       if (taseronZorunluRes.data?.value) {
-        try { setTaseronZorunluAlanlar(JSON.parse(taseronZorunluRes.data.value)); } catch {}
+        try { setTaseronPersonelZorunlu(JSON.parse(taseronZorunluRes.data.value)); } catch {}
       }
     });
   }, []);
 
   useEffect(() => {
-    if (editingPerson?.taseron_id && taseronZorunluAlanlar[editingPerson.taseron_id]) {
-      setActiveZorunluAlanlar(taseronZorunluAlanlar[editingPerson.taseron_id]);
+    if (editingPerson?.taseron_id && taseronPersonelZorunlu.length > 0) {
+      setActiveZorunluAlanlar(taseronPersonelZorunlu);
     } else {
       setActiveZorunluAlanlar(["kimlikNo", "ad", "soyad", "myk"]);
     }
-  }, [editingPerson?.taseron_id, taseronZorunluAlanlar]);
+  }, [editingPerson?.taseron_id, taseronPersonelZorunlu]);
 
   const mykEkle = () => {
     if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
@@ -824,9 +824,9 @@ export default function PersonnelList() {
                 </div>
               )}
 
-              {editingPerson?.taseron_id && taseronZorunluAlanlar[editingPerson.taseron_id] && (
+              {editingPerson?.taseron_id && taseronPersonelZorunlu.length > 0 && (
                 <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
-                  ⚠ Bu taşeron için zorunlu alanlar: {taseronZorunluAlanlar[editingPerson.taseron_id].join(", ")}
+                  ⚠ Taşeron personeli için zorunlu alanlar: {taseronPersonelZorunlu.join(", ")}
                 </div>
               )}
 
