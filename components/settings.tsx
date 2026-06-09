@@ -166,7 +166,12 @@ export default function SettingsPage() {
   const [showZorunluAlanlar, setShowZorunluAlanlar] = useState(false);
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [zorunluAlanlarSaving, setZorunluAlanlarSaving] = useState(false);
+  const [sadeceZorunlu, setSadeceZorunlu] = useState(false);
   const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
+  const [notModu, setNotModu] = useState<"per_personnel" | "sabit">("per_personnel");
+  const [sabitNot, setSabitNot] = useState("");
+  const [showNotAyarlari, setShowNotAyarlari] = useState(false);
+  const [notSaving, setNotSaving] = useState(false);
 
   const [showTaseronZorunlu, setShowTaseronZorunlu] = useState(false);
   const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
@@ -226,6 +231,7 @@ export default function SettingsPage() {
       fetchMykZorunlu();
       fetchZorunluAlanlar();
       fetchTaseronData();
+      fetchNotAyarlari();
   }, []);
 
   const fetchUyariAyarlari = async () => {
@@ -314,6 +320,10 @@ export default function SettingsPage() {
     if (data?.value) {
       try { setZorunluAlanlar(JSON.parse(data.value)); } catch { setZorunluAlanlar(["kimlikNo", "ad", "soyad", "myk"]); }
     }
+    const { data: sadeceData } = await supabase.from("ayarlar").select("value").eq("key", "personel_sadece_zorunlu").single();
+    if (sadeceData?.value) {
+      try { setSadeceZorunlu(JSON.parse(sadeceData.value) === true); } catch {}
+    }
   };
 
   const fetchTaseronData = async () => {
@@ -325,6 +335,33 @@ export default function SettingsPage() {
 
   const toggleTaseronPersonelZorunlu = (alanKey: string) => {
     setTaseronPersonelZorunlu(prev => prev.includes(alanKey) ? prev.filter(k => k !== alanKey) : [...prev, alanKey]);
+  };
+
+  const fetchNotAyarlari = async () => {
+    const { data: moduData } = await supabase.from("ayarlar").select("value").eq("key", "personel_not_modu").single();
+    if (moduData?.value) {
+      try { const v = JSON.parse(moduData.value); if (v === "per_personnel" || v === "sabit") setNotModu(v); } catch {}
+    }
+    const { data: sabitData } = await supabase.from("ayarlar").select("value").eq("key", "personel_sabit_not").single();
+    if (sabitData?.value) {
+      try { setSabitNot(JSON.parse(sabitData.value)); } catch {}
+    }
+  };
+
+  const saveNotAyarlari = async () => {
+    setNotSaving(true);
+    setStatus(null);
+    try {
+      await supabase.from("ayarlar").upsert({ key: "personel_not_modu", value: JSON.stringify(notModu), type: "personel", description: "Personel not modu (per_personnel/sabit)" }, { onConflict: "key" });
+      await supabase.from("ayarlar").upsert({ key: "personel_sabit_not", value: JSON.stringify(sabitNot), type: "personel", description: "Personel sabit not içeriği" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", "personel_not_ayarlari", null, { mod: notModu, sabitNot });
+      setStatus({ type: "success", message: "Not ayarları kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Not ayarları kaydedilemedi" });
+    } finally {
+      setNotSaving(false);
+    }
+    setTimeout(() => setStatus(null), 2000);
   };
 
   const toggleMykZorunlu = (id: string) => {
@@ -347,6 +384,18 @@ export default function SettingsPage() {
     } finally {
       setZorunluAlanlarSaving(false);
     }
+  };
+
+  const saveSadeceZorunlu = async () => {
+    setStatus(null);
+    try {
+      await supabase.from("ayarlar").upsert({ key: "personel_sadece_zorunlu", value: JSON.stringify(sadeceZorunlu), type: "personel", description: "Personel kaydında sadece zorunlu alanları göster" }, { onConflict: "key" });
+      await logAudit("ayarlar", "UPDATE", "personel_sadece_zorunlu", null, { deger: sadeceZorunlu });
+      setStatus({ type: "success", message: "Görünüm ayarı kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Görünüm ayarı kaydedilemedi" });
+    }
+    setTimeout(() => setStatus(null), 2000);
   };
 
   const saveTaseronPersonelZorunlu = async () => {
@@ -983,6 +1032,23 @@ export default function SettingsPage() {
 
           {showZorunluAlanlar && (
             <div className="mt-4 space-y-1">
+              <div className="flex items-center justify-between py-2 px-2 mb-2 bg-gray-50 rounded">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Sadece zorunlu alanları göster</p>
+                  <p className="text-xs text-gray-400">Personel kayıt formunda zorunlu olmayan alanlar gizlenir</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const val = !sadeceZorunlu;
+                    setSadeceZorunlu(val);
+                    await supabase.from("ayarlar").upsert({ key: "personel_sadece_zorunlu", value: JSON.stringify(val), type: "personel", description: "Personel kaydında sadece zorunlu alanları göster" }, { onConflict: "key" });
+                    await logAudit("ayarlar", "UPDATE", "personel_sadece_zorunlu", null, { deger: val });
+                  }}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${sadeceZorunlu ? "bg-blue-600" : "bg-gray-300"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${sadeceZorunlu ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
               {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
                 <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
                   <input type="checkbox" checked={zorunluAlanlar.includes(alan.key)} onChange={() => toggleZorunluAlan(alan.key)} className="rounded border-gray-300" />
@@ -1034,6 +1100,53 @@ export default function SettingsPage() {
                   {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Personel Not Ayarları */}
+        <div className="card p-6 mt-6">
+          <button onClick={() => setShowNotAyarlari(!showNotAyarlari)} className="w-full flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Personel Not Ayarları</h3>
+              <p className="text-sm text-gray-500">Personel formundaki not alanının davranışını belirleyin</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {showNotAyarlari && (
+                <button onClick={(e) => { e.stopPropagation(); saveNotAyarlari(); }} disabled={notSaving} className="btn btn-primary text-sm">
+                  {notSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              )}
+              {showNotAyarlari ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            </div>
+          </button>
+
+          {showNotAyarlari && (
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
+                  <input type="radio" name="notModu" checked={notModu === "per_personnel"} onChange={() => setNotModu("per_personnel")} className="accent-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Personele Özel</p>
+                    <p className="text-xs text-gray-400">Her personel için ayrı not girilebilir (mevcut davranış)</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
+                  <input type="radio" name="notModu" checked={notModu === "sabit"} onChange={() => setNotModu("sabit")} className="accent-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Sabit Not</p>
+                    <p className="text-xs text-gray-400">Tüm personel kayıtlarında aynı not içeriği kullanılır</p>
+                  </div>
+                </label>
+              </div>
+
+              {notModu === "sabit" && (
+                <div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">Sabit Not İçeriği</label>
+                  <textarea value={sabitNot} onChange={(e) => setSabitNot(e.target.value)} className="input h-24 resize-none" placeholder="Tüm personel kayıtlarında gösterilecek not içeriği..." />
+                  <p className="text-xs text-gray-400 mt-1">Personel eklerken bu not otomatik doldurulur, istenirse değiştirilebilir.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

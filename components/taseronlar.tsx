@@ -117,16 +117,46 @@ export default function Taseronlar() {
       setEmployees(emp);
       if (emp.length > 0) {
         const ids = emp.map(e => e.id);
-        const { data: allDocs } = await supabase.from("personel_belgeleri")
-          .select("*").in("personel_id", ids).order("eklenme_tarihi", { ascending: false });
+        const [allDocsResult, mykKayitResult, egitimListesiResult] = await Promise.all([
+          supabase.from("personel_belgeleri").select("*").in("personel_id", ids).order("eklenme_tarihi", { ascending: false }),
+          supabase.from("personel_myk_egitimleri").select("*").in("personel_id", ids),
+          supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
+        ]);
+        const allDocs = allDocsResult.data || [];
+        const mykKayitlari = mykKayitResult.data || [];
+        const egitimMap = new Map((egitimListesiResult.data || []).map(e => [e.id, e.ad]));
         const grouped: Record<string, Record<string, any>> = {};
         const allGrouped: Record<string, any[]> = {};
         for (const e of emp) {
           const latestMap: Record<string, any> = {};
           const empDocs = (allDocs || []).filter(d => d.personel_id === e.id);
-          allGrouped[e.id] = empDocs;
+          const empMyk = mykKayitlari.filter(m => m.personel_id === e.id);
+          const mykSynthetic = empMyk.map(m => {
+            const egitimAd = egitimMap.get(m.myk_egitim_id) || "MYK";
+            let expiry = null;
+            if (m.alis_tarihi && m.gecerlilik_suresi) {
+              const d = new Date(m.alis_tarihi);
+              d.setFullYear(d.getFullYear() + m.gecerlilik_suresi);
+              expiry = d.toISOString().split("T")[0];
+            }
+            return {
+              id: m.id,
+              personel_id: m.personel_id,
+              belge_tipi: "myk",
+              dosya_adi: egitimAd,
+              dosya_url: null,
+              son_gecerlilik_tarihi: expiry,
+              onay_durumu: "onaylandi",
+              eklenme_tarihi: m.alis_tarihi,
+              is_synthetic: true,
+            };
+          });
+          allGrouped[e.id] = [...empDocs, ...mykSynthetic];
           for (const d of empDocs) {
             if (!latestMap[d.belge_tipi]) latestMap[d.belge_tipi] = d;
+          }
+          if (!latestMap["myk"] && mykSynthetic.length > 0) {
+            latestMap["myk"] = mykSynthetic[0];
           }
           grouped[e.id] = latestMap;
         }
@@ -494,7 +524,7 @@ export default function Taseronlar() {
                             {cellContent(emp.id, k)}
                           </td>
                           <td className="px-2 py-2 text-center border-r">
-                            {doc ? (
+                            {doc?.dosya_url ? (
                               <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 inline-flex" title={doc.dosya_adi}>
                                 <FileText className="w-3.5 h-3.5" />
                               </a>
@@ -598,7 +628,7 @@ export default function Taseronlar() {
                           <div className="flex items-center gap-1">
                             <FileText className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="truncate max-w-[180px] block" title={doc.dosya_adi}>{doc.dosya_adi}</span>
-                            <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0"><ExternalLink className="w-3 h-3" /></a>
+                            {doc.dosya_url && <a href={doc.dosya_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0"><ExternalLink className="w-3 h-3" /></a>}
                           </div>
                         </td>
                         <td className="py-1.5 text-gray-500">{displayDate(doc.eklenme_tarihi?.split("T")[0])}</td>
@@ -612,14 +642,18 @@ export default function Taseronlar() {
                         <td className={`py-1.5 text-center ${kg.cls}`}>{kg.text}</td>
                         <td className="py-1.5 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            {doc.onay_durumu === "beklemede" && (
+                            {doc.onay_durumu === "beklemede" && !doc.is_synthetic && (
                               <>
                                 <button onClick={() => { handleApprove(doc); setCellModal(null); }} className="text-green-600 hover:bg-green-50 p-0.5 rounded" title="Onayla"><CheckCircle className="w-3.5 h-3.5" /></button>
                                 <button onClick={() => setRejectDoc(doc)} className="text-red-600 hover:bg-red-50 p-0.5 rounded" title="Reddet"><X className="w-3.5 h-3.5" /></button>
                               </>
                             )}
-                            <button onClick={() => setDocLocked(prev => { const n = new Set(prev); if (n.has(doc.id)) n.delete(doc.id); else n.add(doc.id); return n; })} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-amber-500 bg-amber-50" : "text-gray-400 hover:text-gray-600"}`}>{docLocked.has(doc.id) ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}</button>
-                            <button onClick={() => { handleDeleteDoc(doc); setCellModal(null); }} disabled={!docLocked.has(doc.id)} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                            {!doc.is_synthetic && (
+                              <button onClick={() => setDocLocked(prev => { const n = new Set(prev); if (n.has(doc.id)) n.delete(doc.id); else n.add(doc.id); return n; })} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-amber-500 bg-amber-50" : "text-gray-400 hover:text-gray-600"}`}>{docLocked.has(doc.id) ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}</button>
+                            )}
+                            {!doc.is_synthetic && (
+                              <button onClick={() => { handleDeleteDoc(doc); setCellModal(null); }} disabled={!docLocked.has(doc.id)} className={`p-0.5 rounded ${docLocked.has(doc.id) ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                            )}
                           </div>
                         </td>
                       </tr>

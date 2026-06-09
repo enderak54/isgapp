@@ -80,6 +80,9 @@ export default function PersonnelForm() {
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
   const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
+  const [sadeceZorunlu, setSadeceZorunlu] = useState(false);
+  const [notModu, setNotModu] = useState<"per_personnel" | "sabit">("per_personnel");
+  const [sabitNot, setSabitNot] = useState("");
   const [ekipler, setEkipler] = useState<any[]>([]);
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
@@ -113,7 +116,10 @@ export default function PersonnelForm() {
       supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single(),
       supabase.from("ayarlar").select("value").eq("key", "taseron_personel_zorunlu_alanlar").single(),
       supabase.from("ayarlar").select("value").eq("key", "hat_listesi").single(),
-    ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes, hatRes]) => {
+      supabase.from("ayarlar").select("value").eq("key", "personel_sadece_zorunlu").single(),
+      supabase.from("ayarlar").select("value").eq("key", "personel_not_modu").single(),
+      supabase.from("ayarlar").select("value").eq("key", "personel_sabit_not").single(),
+    ]).then(([egitimRes, ayarRes, zorunluRes, taseronRes, hatRes, sadeceRes, notModuRes, sabitNotRes]) => {
       if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
@@ -127,15 +133,38 @@ export default function PersonnelForm() {
       if (hatRes.data?.value) {
         try { const v = JSON.parse(hatRes.data.value); if (Array.isArray(v) && v.length > 0) setHatList(v); } catch {}
       }
+      if (sadeceRes.data?.value) {
+        try { setSadeceZorunlu(JSON.parse(sadeceRes.data.value) === true); } catch {}
+      }
+      let loadedModu: "per_personnel" | "sabit" = "per_personnel";
+      let loadedSabitNot = "";
+      if (notModuRes.data?.value) {
+        try { const v = JSON.parse(notModuRes.data.value); if (v === "per_personnel" || v === "sabit") { loadedModu = v; setNotModu(v); } } catch {}
+      }
+      if (sabitNotRes.data?.value) {
+        try { loadedSabitNot = JSON.parse(sabitNotRes.data.value); setSabitNot(loadedSabitNot); } catch {}
+      }
+      if (loadedModu === "sabit" && loadedSabitNot) {
+        setForm(prev => ({ ...prev, notlar: [loadedSabitNot] }));
+      }
     });
   }, []);
 
   useEffect(() => {
-    if (form.taseronId && taseronPersonelZorunlu.length > 0) {
-      setActiveZorunluAlanlar(taseronPersonelZorunlu);
-    } else {
-      setActiveZorunluAlanlar(zorunluAlanlar);
-    }
+    const loadActive = async () => {
+      let active = [...zorunluAlanlar];
+      if (form.taseronId) {
+        if (taseronPersonelZorunlu.length > 0) {
+          active = [...taseronPersonelZorunlu];
+        }
+        const { data: taseron } = await supabase.from("taseronlar").select("personel_zorunlu_alanlar").eq("id", form.taseronId).single();
+        if (taseron?.personel_zorunlu_alanlar && Array.isArray(taseron.personel_zorunlu_alanlar) && taseron.personel_zorunlu_alanlar.length > 0) {
+          active = taseron.personel_zorunlu_alanlar;
+        }
+      }
+      setActiveZorunluAlanlar(active);
+    };
+    loadActive();
   }, [form.taseronId, taseronPersonelZorunlu, zorunluAlanlar]);
 
   const mykEkle = () => {
@@ -557,7 +586,7 @@ export default function PersonnelForm() {
               İSG Eğitimler
             </h3>
             <div className="flex flex-col gap-0">
-              {belgeFields.map((item, idx) => {
+              {belgeFields.filter(item => !sadeceZorunlu || activeZorunluAlanlar.includes(item.field)).map((item, idx) => {
                 const errField = item.field as keyof typeof errors;
                 const hasErr = errors[errField as string];
                 const fc = fieldFileCount(item.field);
@@ -632,7 +661,7 @@ export default function PersonnelForm() {
             </div>
 
             {/* Belge Alanları */}
-            {["adliSicil"].map(field => {
+            {["adliSicil"].filter(field => !sadeceZorunlu || activeZorunluAlanlar.includes(field)).map(field => {
               const fc = fieldFileCount(field);
               return (
                 <div key={field} className="flex items-center justify-between px-3 py-2">
@@ -675,7 +704,7 @@ export default function PersonnelForm() {
           </div>
 
           {/* Sağlık */}
-          <div className="card p-4">
+          <div className={`card p-4 ${sadeceZorunlu && !activeZorunluAlanlar.includes("saglikRaporuTarihi") ? "hidden" : ""}`}>
             <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Heart className="w-4 h-4 text-gray-400" />
               Sağlık Durumu
@@ -765,10 +794,17 @@ export default function PersonnelForm() {
             <span className="text-gray-400">{showNotes ? "▼" : "▶"}</span>
           </button>
           {showNotes && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {form.notlar.map((note, index) => (
-                <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)} placeholder="Not ekle..." className="input h-16 resize-none text-xs" />
-              ))}
+            <div className={notModu === "sabit" ? "" : "grid grid-cols-3 gap-2 mt-2"}>
+              {notModu === "sabit" ? (
+                <textarea value={form.notlar[0] || sabitNot} onChange={(e) => {
+                  const newNotes = [e.target.value];
+                  setForm((prev) => ({ ...prev, notlar: newNotes }));
+                }} placeholder="Not..." className="input h-16 resize-none text-xs mt-2" />
+              ) : (
+                form.notlar.map((note, index) => (
+                  <textarea key={index} value={note} onChange={(e) => handleNoteChange(index, e.target.value)} placeholder="Not ekle..." className="input h-16 resize-none text-xs" />
+                ))
+              )}
             </div>
           )}
         </div>
