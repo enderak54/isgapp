@@ -33,7 +33,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
