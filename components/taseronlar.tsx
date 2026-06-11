@@ -98,6 +98,11 @@ export default function Taseronlar() {
   const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<string[]>([]);
   const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
 
+  // Yeni personel hızlı ekleme
+  const [showNewPerson, setShowNewPerson] = useState(false);
+  const [newPersonForm, setNewPersonForm] = useState({ ad: "", soyad: "", kimlik_no: "", telefon: "", meslek_kodu: "" });
+  const [newPersonSaving, setNewPersonSaving] = useState(false);
+
   const COLUMNS = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon", "gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme", "myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
 
   const COL_LABELS: Record<string, string> = {
@@ -310,6 +315,24 @@ export default function Taseronlar() {
     finally { setTaseronZorunluSaving(false); }
   };
 
+  const handleNewPersonSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTaseron || !newPersonForm.ad.trim() || !newPersonForm.soyad.trim()) return;
+    setNewPersonSaving(true);
+    try {
+      const payload = sanitizeForm({
+        ...newPersonForm, taseron_id: selectedTaseron.id, arsivde: false,
+      });
+      const { data, error } = await supabase.from("personel").insert(payload).select();
+      if (error) throw error;
+      await logAudit("personel", "INSERT", data?.[0]?.id || null, null, payload);
+      setShowNewPerson(false);
+      setNewPersonForm({ ad: "", soyad: "", kimlik_no: "", telefon: "", meslek_kodu: "" });
+      openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
+    finally { setNewPersonSaving(false); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
@@ -474,6 +497,9 @@ export default function Taseronlar() {
             </button>
             <button onClick={() => setShowZorunluModal(true)} className="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
               <CheckSquare className="w-3.5 h-3.5" /> Zorunlu Alanlar
+            </button>
+            <button onClick={() => setShowNewPerson(true)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Yeni Personel
             </button>
             <button onClick={openLinkPersonel} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Personel Bağla
@@ -675,6 +701,33 @@ export default function Taseronlar() {
                 <Save className="w-4 h-4" />{taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Yeni Personel Hızlı Ekleme Modal */}
+      {showNewPerson && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Yeni Personel — {selectedTaseron?.firma_adi}</h3>
+              <button onClick={() => setShowNewPerson(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleNewPersonSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <input required placeholder="Ad" value={newPersonForm.ad} onChange={e => setNewPersonForm({ ...newPersonForm, ad: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+                <input required placeholder="Soyad" value={newPersonForm.soyad} onChange={e => setNewPersonForm({ ...newPersonForm, soyad: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+              </div>
+              <input placeholder="TC Kimlik No" value={newPersonForm.kimlik_no} onChange={e => setNewPersonForm({ ...newPersonForm, kimlik_no: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+              <input placeholder="Telefon" value={newPersonForm.telefon} onChange={e => setNewPersonForm({ ...newPersonForm, telefon: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+              <input placeholder="Meslek Kodu / Görev" value={newPersonForm.meslek_kodu} onChange={e => setNewPersonForm({ ...newPersonForm, meslek_kodu: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowNewPerson(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
+                <button type="submit" disabled={newPersonSaving} className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1">
+                  <Save className="w-4 h-4" />{newPersonSaving ? "Ekleniyor..." : "Ekle"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
