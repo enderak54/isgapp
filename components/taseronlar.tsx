@@ -6,7 +6,7 @@ import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import Link from "next/link";
-import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users } from "lucide-react";
+import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare } from "lucide-react";
 
 function kalanGunHesapla(tarih: string): { text: string; bgCls: string; textCls: string } {
   if (!tarih) return { text: "-", bgCls: "bg-gray-50", textCls: "text-gray-400" };
@@ -37,6 +37,22 @@ function getTodayStr(): string {
   const yyyy = d.getFullYear();
   return `${dd}.${mm}.${yyyy}`;
 }
+
+const PERSONEL_ZORUNLU_ALANLAR = [
+  { key: "kimlikNo", label: "TC Kimlik No" },
+  { key: "ad", label: "Ad" },
+  { key: "soyad", label: "Soyad" },
+  { key: "isgEgitimTarihi", label: "İSG Eğitim Tarihi (tarih + süre)" },
+  { key: "yuksekteCalisma", label: "Yüksekte Çalışma (tarih + süre)" },
+  { key: "myk", label: "MYK (en az bir eğitim kaydı)" },
+  { key: "sertifika", label: "Sertifika (tarih + süre)" },
+  { key: "operatorBelgesi", label: "Operatör Belgesi (tarih + süre)" },
+  { key: "kkd", label: "KKD (tarih + süre)" },
+  { key: "oryantasyon", label: "Oryantasyon (tarih + süre)" },
+  { key: "saglikRaporuTarihi", label: "Sağlık Raporu (tarih + süre)" },
+  { key: "adliSicil", label: "Adli Sicil (belge)" },
+  { key: "gorevlendirme", label: "Görevlendirme (belge)" },
+];
 
 export default function Taseronlar() {
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
@@ -76,6 +92,11 @@ export default function Taseronlar() {
     yuksekteTarih: "", saglikTarih: "", isgTarih: "",
   });
   const [editSaving, setEditSaving] = useState(false);
+
+  // Per-taşeron zorunlu alanlar
+  const [showZorunluModal, setShowZorunluModal] = useState(false);
+  const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<string[]>([]);
+  const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
 
   const COLUMNS = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon", "gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme", "myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
 
@@ -196,10 +217,15 @@ export default function Taseronlar() {
       }
     }
     supabase.from("taseron_sorumlulari").select("ad_soyad, telefon, email, pozisyon").eq("taseron_id", t.id).then(({ data }) => { if (data) setSorumlular(data); });
+    if (t.personel_zorunlu_alanlar && Array.isArray(t.personel_zorunlu_alanlar)) {
+      setTaseronZorunluAlanlar(t.personel_zorunlu_alanlar);
+    } else {
+      setTaseronZorunluAlanlar([]);
+    }
     setEmpLoading(false);
   };
 
-  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); };
+  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); setTaseronZorunluAlanlar([]); setShowZorunluModal(false); };
 
   const openEditPersonel = (emp: any) => {
     const mykler = empMykMap[emp.id] || [];
@@ -269,6 +295,23 @@ export default function Taseronlar() {
 
   const removeMykFromEdit = (idx: number) => {
     setEditForm(prev => ({ ...prev, mykEgitimler: prev.mykEgitimler.filter((_, i) => i !== idx) }));
+  };
+
+  const toggleTaseronZorunlu = (alanKey: string) => {
+    setTaseronZorunluAlanlar(prev => prev.includes(alanKey) ? prev.filter(k => k !== alanKey) : [...prev, alanKey]);
+  };
+
+  const saveTaseronZorunlu = async () => {
+    if (!selectedTaseron) return;
+    setTaseronZorunluSaving(true);
+    try {
+      const val = taseronZorunluAlanlar.length > 0 ? taseronZorunluAlanlar : null;
+      await supabase.from("taseronlar").update({ personel_zorunlu_alanlar: val }).eq("id", selectedTaseron.id);
+      await logAudit("taseronlar", "UPDATE", selectedTaseron.id, null, { personel_zorunlu_alanlar: val });
+      setSelectedTaseron({ ...selectedTaseron, personel_zorunlu_alanlar: val });
+      setShowZorunluModal(false);
+    } catch (e: any) { alert(e.message); }
+    finally { setTaseronZorunluSaving(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -429,6 +472,9 @@ export default function Taseronlar() {
             <p className="text-xs text-gray-500">{selectedTaseron.yetkili} • {selectedTaseron.telefon} • {selectedTaseron.email}</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowZorunluModal(true)} className="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
+              <CheckSquare className="w-3.5 h-3.5" /> Zorunlu Alanlar
+            </button>
             <button onClick={openLinkPersonel} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Personel Bağla
             </button>
@@ -601,6 +647,33 @@ export default function Taseronlar() {
                   <Save className="w-4 h-4" />{editSaving ? "Kaydediliyor..." : "Kaydet"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-Taşeron Zorunlu Alanlar Modal */}
+      {showZorunluModal && selectedTaseron && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Zorunlu Alanlar — {selectedTaseron.firma_adi}</h3>
+              <button onClick={() => setShowZorunluModal(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Bu taşerona bağlı personel için zorunlu alanları seçin. Boş bırakılırsa genel ayarlar kullanılır.</p>
+            <div className="space-y-1 max-h-96 overflow-y-auto">
+              {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
+                <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={taseronZorunluAlanlar.includes(alan.key)} onChange={() => toggleTaseronZorunlu(alan.key)} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">{alan.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+              <button onClick={() => setShowZorunluModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
+              <button onClick={saveTaseronZorunlu} disabled={taseronZorunluSaving} className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1">
+                <Save className="w-4 h-4" />{taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
             </div>
           </div>
         </div>
