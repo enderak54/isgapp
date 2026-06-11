@@ -18,8 +18,8 @@ function kalanGunHesapla(tarih: string): { text: string; bgCls: string; textCls:
   return { text: `${diff}`, bgCls: "bg-yellow-100", textCls: "text-yellow-700" };
 }
 
-function durumRenk(deger: string, tip: string): { bg: string; text: string } {
-  const yesil = ["AKTİF", "VAR", "KULLANABİLİR", "KULLANABİLİR"];
+function durumRenk(deger: string): { bg: string; text: string } {
+  const yesil = ["AKTİF", "VAR", "KULLANABİLİR"];
   const kirmizi = ["PASİF", "YOK", "KULLANAMAZ"];
   const mavi = ["BİLİNMİYOR", "ELİMİZDE YOK"];
   const turuncu = ["DİPLOMA"];
@@ -58,12 +58,24 @@ export default function Taseronlar() {
   const [empDocsMap, setEmpDocsMap] = useState<Record<string, Record<string, any>>>({});
   const [empLoading, setEmpLoading] = useState(false);
 
-  // Add employee
   const [showAddEmp, setShowAddEmp] = useState(false);
   const [allPersonel, setAllPersonel] = useState<any[]>([]);
   const [personelSearch, setPersonelSearch] = useState("");
   const [selectedPersonelIds, setSelectedPersonelIds] = useState<Set<string>>(new Set());
   const [linkSaving, setLinkSaving] = useState(false);
+
+  const [mykEgitimListesi, setMykEgitimListesi] = useState<any[]>([]);
+  const [mykSecim, setMykSecim] = useState("");
+  const [mykSecimTarih, setMykSecimTarih] = useState("");
+  const [mykSecimSure, setMykSecimSure] = useState("");
+
+  // Edit modal
+  const [editingPerson, setEditingPerson] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
+    yuksekteTarih: "", saglikTarih: "", isgTarih: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
 
   const COLUMNS = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon", "gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme", "myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
 
@@ -79,10 +91,6 @@ export default function Taseronlar() {
     saglik_kalan: "SAĞLIK RAPORU YENİLEME KALAN", isg_egitim_kalan: "İSG EĞİTİMİ YENİLEME KALAN",
   };
 
-  const GROUP1 = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon"];
-  const GROUP2 = ["gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme"];
-  const RENK_KALAN = ["myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
-
   const fetchTaseronlar = async () => {
     const { data } = await supabase.from("taseronlar").select("*, santiyeler(ad)").order("firma_adi");
     if (data) setTaseronlar(data);
@@ -96,8 +104,50 @@ export default function Taseronlar() {
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
 
+  useEffect(() => {
+    if (mykEgitimListesi.length === 0) {
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad").then(({ data }) => { if (data) setMykEgitimListesi(data); });
+    }
+  }, [mykEgitimListesi.length]);
+
   const toggleLock = (id: string) => {
     setLocked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+
+  const loadEmployeeData = async (ids: string[]) => {
+    const [belgeResult, mykResult, egitimResult] = await Promise.all([
+      supabase.from("personel_belgeleri").select("*").in("personel_id", ids).order("eklenme_tarihi", { ascending: false }),
+      supabase.from("personel_myk_egitimleri").select("*").in("personel_id", ids),
+      supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true),
+    ]);
+    const allDocs = belgeResult.data || [];
+    const mykKayitlari = mykResult.data || [];
+    const egitimMap = new Map((egitimResult.data || []).map(e => [e.id, e.ad]));
+
+    const mykMap: Record<string, any[]> = {};
+    for (const m of mykKayitlari) {
+      if (!mykMap[m.personel_id]) mykMap[m.personel_id] = [];
+      const egitimAd = egitimMap.get(m.myk_egitim_id) || "MYK";
+      let expiry = null;
+      if (m.alis_tarihi && m.gecerlilik_suresi) {
+        const d = new Date(m.alis_tarihi);
+        d.setFullYear(d.getFullYear() + m.gecerlilik_suresi);
+        expiry = d.toISOString().split("T")[0];
+      }
+      mykMap[m.personel_id].push({ ...m, egitimAd, expiry, alisTarih: m.alis_tarihi });
+    }
+    setEmpMykMap(mykMap);
+
+    const docMap: Record<string, Record<string, any>> = {};
+    for (const e of employees.length > 0 ? employees.filter(emp => ids.includes(emp.id)) : []) {
+      const latest: Record<string, any> = {};
+      const empDocs = allDocs.filter(d => d.personel_id === e.id);
+      for (const d of empDocs) {
+        if (!latest[d.belge_tipi]) latest[d.belge_tipi] = d;
+      }
+      docMap[e.id] = latest;
+    }
+    if (Object.keys(docMap).length > 0) setEmpDocsMap(docMap);
   };
 
   const openCompany = async (t: any) => {
@@ -149,7 +199,77 @@ export default function Taseronlar() {
     setEmpLoading(false);
   };
 
-  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); };
+  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); };
+
+  const openEditPersonel = (emp: any) => {
+    const mykler = empMykMap[emp.id] || [];
+    const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
+    const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
+    const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
+    setEditForm({
+      hat: emp.hat || "", meslek_kodu: emp.meslek_kodu || "",
+      mykEgitimler: mykler.map((m: any) => ({ id: m.id, myk_egitim_id: m.myk_egitim_id, alis_tarihi: m.alisTarih || "", gecerlilik_suresi: m.gecerlilik_suresi ? String(m.gecerlilik_suresi) : "" })),
+      yuksekteTarih: docYuksekte?.son_gecerlilik_tarihi || "",
+      saglikTarih: docSaglik?.son_gecerlilik_tarihi || "",
+      isgTarih: docIsg?.son_gecerlilik_tarihi || "",
+    });
+    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
+    setEditingPerson(emp);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingPerson) return;
+    setEditSaving(true);
+    try {
+      await supabase.from("personel").update({ hat: editForm.hat || null, meslek_kodu: editForm.meslek_kodu || null }).eq("id", editingPerson.id);
+      await logAudit("personel", "UPDATE", editingPerson.id, null, { hat: editForm.hat, meslek_kodu: editForm.meslek_kodu });
+      await supabase.from("personel_myk_egitimleri").delete().eq("personel_id", editingPerson.id);
+      if (editForm.mykEgitimler.length > 0) {
+        const inserts = editForm.mykEgitimler.map((m: any) => ({
+          personel_id: editingPerson.id, myk_egitim_id: m.myk_egitim_id,
+          alis_tarihi: m.alis_tarihi || null, gecerlilik_suresi: m.gecerlilik_suresi ? parseInt(m.gecerlilik_suresi) : null,
+        }));
+        const { error } = await supabase.from("personel_myk_egitimleri").insert(inserts);
+        if (error) throw error;
+      }
+
+      const docUpdates: { tip: string; tarih: string }[] = [
+        { tip: "yuksekte_calisma", tarih: editForm.yuksekteTarih },
+        { tip: "saglik_raporu", tarih: editForm.saglikTarih },
+        { tip: "isg_egitim", tarih: editForm.isgTarih },
+      ];
+      for (const du of docUpdates) {
+        const existing = empDocsMap[editingPerson.id]?.[du.tip] || null;
+        if (existing) {
+          if (du.tarih) {
+            await supabase.from("personel_belgeleri").update({ son_gecerlilik_tarihi: du.tarih }).eq("id", existing.id);
+          } else {
+            await supabase.from("personel_belgeleri").delete().eq("id", existing.id);
+          }
+        } else if (du.tarih) {
+          await supabase.from("personel_belgeleri").insert({
+            personel_id: editingPerson.id, belge_tipi: du.tip, dosya_url: null, dosya_adi: du.tip,
+            onay_durumu: "onaylandi", son_gecerlilik_tarihi: du.tarih,
+          });
+        }
+      }
+      setEditingPerson(null);
+      if (selectedTaseron) openCompany(selectedTaseron);
+    } catch (e: any) { alert(e.message); }
+    finally { setEditSaving(false); }
+  };
+
+  const addMykToEdit = () => {
+    if (!mykSecim) return;
+    setEditForm(prev => ({
+      ...prev, mykEgitimler: [...prev.mykEgitimler, { myk_egitim_id: mykSecim, alis_tarihi: mykSecimTarih, gecerlilik_suresi: mykSecimSure }],
+    }));
+    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
+  };
+
+  const removeMykFromEdit = (idx: number) => {
+    setEditForm(prev => ({ ...prev, mykEgitimler: prev.mykEgitimler.filter((_, i) => i !== idx) }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,7 +450,6 @@ export default function Taseronlar() {
         ) : (
           <table className="w-full min-w-[2000px] text-xs border-collapse">
             <thead>
-              {/* Row 1: Main group headers */}
               <tr className="bg-gray-800 text-white">
                 <th colSpan={7} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">{selectedTaseron.firma_adi.toUpperCase()} ŞANTİYESİ GÜN İNŞAAT</th>
                 <th colSpan={10} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">İNOVASYON ORTAK SAĞLIK VE GÜVENLİK BİRİMİ<br/>İNOVASYON İSG BELGE TAKİP ÇİZELGESİ FORMU</th>
@@ -338,8 +457,6 @@ export default function Taseronlar() {
                 <th colSpan={3} className="px-2 py-1.5 text-center text-[9px] font-medium border border-gray-700">TARİH RENK ANLAMLARI<br/>+91 Gün ve Üzeri Yeşil | Yenileme Tarihi Geçmiş Gün Sayısı Kırmızı</th>
                 <th colSpan={1} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">EXPORT TARİHİ<br/>{getTodayStr()}</th>
               </tr>
-
-              {/* Row 2: Sub group descriptions */}
               <tr className="bg-gray-700 text-gray-200">
                 <th colSpan={1} className="px-1 py-1 text-[9px] font-medium border border-gray-600">Sıra</th>
                 <th colSpan={6} className="px-1 py-1 text-[9px] font-medium border border-gray-600">FİRMA UNVANI</th>
@@ -348,8 +465,6 @@ export default function Taseronlar() {
                 <th colSpan={3} className="px-1 py-1 text-[9px] font-medium border border-gray-600">KALAN GÜN HESABI</th>
                 <th colSpan={1} className="px-1 py-1 text-[9px] font-medium border border-gray-600">TARİH</th>
               </tr>
-
-              {/* Row 3: Column headers */}
               <tr className="bg-gray-100">
                 {COLUMNS.map(col => (
                   <th key={col} className="px-1.5 py-1 text-[9px] font-semibold text-gray-700 border border-gray-300 whitespace-nowrap text-center">{COL_LABELS[col]}</th>
@@ -360,65 +475,48 @@ export default function Taseronlar() {
               {employees.map((emp, idx) => {
                 const mykKayit = empMykMap[emp.id]?.[0] || null;
                 const mykAd = mykKayit?.egitimAd || "-";
-                const mykAlmaTarih = mykKayit?.alisTarih || null;
                 const mykBitisTarih = mykKayit?.expiry || null;
                 const mykVar = mykKayit !== null;
                 const mykDurumDeger = mykVar ? "VAR" : "YOK";
                 const mykDiploma = mykKayit?.egitimAd?.toLowerCase().includes("lisans") || mykKayit?.egitimAd?.toLowerCase().includes("önlisans") || mykKayit?.egitimAd?.toLowerCase().includes("lise") ? "DİPLOMA" : null;
                 const mykIzmeDeger = mykDiploma || mykDurumDeger;
-                const mykIzmeRenk = durumRenk(mykIzmeDeger, "myk");
-
                 const sigDurum = emp.sgk_tarihi ? "AKTİF" : "PASİF";
-                const sigRenk = durumRenk(sigDurum, "sigorta");
-
                 const docKkd = empDocsMap[emp.id]?.["kkd"] || null;
                 const isgZimmetDeger = docKkd ? "VAR" : "YOK";
-                const isgZimmetRenk = durumRenk(isgZimmetDeger, "zimmet");
-
                 const docTalimat = empDocsMap[emp.id]?.["talimat"] || null;
                 const talimatDeger = docTalimat ? "VAR" : "YOK";
-                const talimatRenk = durumRenk(talimatDeger, "talimat");
-
                 const docIsMakinesi = empDocsMap[emp.id]?.["operator_belgesi"] || null;
                 const isMakDeger = docIsMakinesi ? "KULLANABİLİR" : "KULLANAMAZ";
-                const isMakRenk = durumRenk(isMakDeger, "makine");
-
                 const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
                 const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
                 const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
-
                 const yuksekteTarih = docYuksekte?.son_gecerlilik_tarihi || null;
                 const saglikTarih = docSaglik?.son_gecerlilik_tarihi || null;
                 const isgTarih = docIsg?.son_gecerlilik_tarihi || null;
 
-                const mykKalan = kalanGunHesapla(mykBitisTarih);
-                const yuksekteKalan = kalanGunHesapla(yuksekteTarih);
-                const saglikKalan = kalanGunHesapla(saglikTarih);
-                const isgKalan = kalanGunHesapla(isgTarih);
-
                 return (
-                  <tr key={emp.id} className="hover:bg-blue-50/40">
+                  <tr key={emp.id} className="hover:bg-blue-50/40 cursor-pointer" onClick={() => openEditPersonel(emp)}>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{idx + 1}</td>
                     <td className="px-1.5 py-1 text-left text-gray-800 font-medium border border-gray-200 whitespace-nowrap">{emp.ad} {emp.soyad}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${sigRenk.bg} ${sigRenk.text}`}>{sigDurum}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(sigDurum).bg} ${durumRenk(sigDurum).text}`}>{sigDurum}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.hat || emp.ekip_adi || emp.meslek_kodu || "-"}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(emp.ise_giris_tarihi)}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.kimlik_no || "-"}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.telefon || "-"}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.meslek_kodu || "-"}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${mykIzmeRenk.bg} ${mykIzmeRenk.text}`}>{mykIzmeDeger}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(mykIzmeDeger).bg} ${durumRenk(mykIzmeDeger).text}`}>{mykIzmeDeger}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{mykAd}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(mykBitisTarih)}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${isMakRenk.bg} ${isMakRenk.text}`}>{isMakDeger}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${isgZimmetRenk.bg} ${isgZimmetRenk.text}`}>{isgZimmetDeger}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${talimatRenk.bg} ${talimatRenk.text}`}>{talimatDeger}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(isMakDeger).bg} ${durumRenk(isMakDeger).text}`}>{isMakDeger}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(isgZimmetDeger).bg} ${durumRenk(isgZimmetDeger).text}`}>{isgZimmetDeger}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(talimatDeger).bg} ${durumRenk(talimatDeger).text}`}>{talimatDeger}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(yuksekteTarih)}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(saglikTarih)}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(isgTarih)}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${mykKalan.bgCls} ${mykKalan.textCls}`}>{mykKalan.text}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${yuksekteKalan.bgCls} ${yuksekteKalan.textCls}`}>{yuksekteKalan.text}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${saglikKalan.bgCls} ${saglikKalan.textCls}`}>{saglikKalan.text}</td>
-                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${isgKalan.bgCls} ${isgKalan.textCls}`}>{isgKalan.text}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(mykBitisTarih).bgCls} ${kalanGunHesapla(mykBitisTarih).textCls}`}>{kalanGunHesapla(mykBitisTarih).text}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(yuksekteTarih).bgCls} ${kalanGunHesapla(yuksekteTarih).textCls}`}>{kalanGunHesapla(yuksekteTarih).text}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(saglikTarih).bgCls} ${kalanGunHesapla(saglikTarih).textCls}`}>{kalanGunHesapla(saglikTarih).text}</td>
+                    <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(isgTarih).bgCls} ${kalanGunHesapla(isgTarih).textCls}`}>{kalanGunHesapla(isgTarih).text}</td>
                   </tr>
                 );
               })}
@@ -426,6 +524,87 @@ export default function Taseronlar() {
           </table>
         )}
       </div>
+
+      {/* Edit Personel Modal */}
+      {editingPerson && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{editingPerson.ad} {editingPerson.soyad}</h3>
+              <button onClick={() => setEditingPerson(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Personel Bilgileri</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-gray-500">GÖREVİ/ALANI</label>
+                    <input value={editForm.hat} onChange={e => setEditForm({ ...editForm, hat: e.target.value })} className="w-full p-1.5 border rounded text-xs" placeholder="hat / alan" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500">GÖREV</label>
+                    <input value={editForm.meslek_kodu} onChange={e => setEditForm({ ...editForm, meslek_kodu: e.target.value })} className="w-full p-1.5 border rounded text-xs" placeholder="meslek kodu" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">MYK Eğitimleri</h4>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <select value={mykSecim} onChange={e => setMykSecim(e.target.value)} className="flex-1 p-1.5 border rounded text-xs">
+                    <option value="">Eğitim seçiniz</option>
+                    {mykEgitimListesi.map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                  </select>
+                  <input type="date" value={mykSecimTarih} onChange={e => setMykSecimTarih(e.target.value)} className="w-[130px] p-1.5 border rounded text-xs" title="Alma Tarihi" />
+                  <select value={mykSecimSure} onChange={e => setMykSecimSure(e.target.value)} className="w-[70px] p-1.5 border rounded text-xs">
+                    <option value="">Yıl</option>{[1,2,3,4,5].map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button onClick={addMykToEdit} disabled={!mykSecim} className="bg-blue-600 text-white px-2 py-1.5 rounded text-xs disabled:opacity-50">Ekle</button>
+                </div>
+                {editForm.mykEgitimler.length === 0 ? <p className="text-xs text-gray-400">Henüz MYK eğitimi eklenmemiş</p> : (
+                  <div className="space-y-1">
+                    {editForm.mykEgitimler.map((m, i) => {
+                      const eg = mykEgitimListesi.find(e => e.id === m.myk_egitim_id);
+                      return (
+                        <div key={i} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded">
+                          <span className="text-xs">{eg?.ad || m.myk_egitim_id} {m.alis_tarihi && `(${displayDate(m.alis_tarihi)})`} {m.gecerlilik_suresi && `${m.gecerlilik_suresi}y`}</span>
+                          <button onClick={() => removeMykFromEdit(i)} className="text-red-500 hover:text-red-700 text-xs">Sil</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Belge Geçerlilik Tarihleri</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] text-gray-500">Yüksekte Çalışma</label>
+                    <input type="date" value={editForm.yuksekteTarih} onChange={e => setEditForm({ ...editForm, yuksekteTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500">Sağlık Raporu</label>
+                    <input type="date" value={editForm.saglikTarih} onChange={e => setEditForm({ ...editForm, saglikTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500">İSG Eğitimi</label>
+                    <input type="date" value={editForm.isgTarih} onChange={e => setEditForm({ ...editForm, isgTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-3 border-t">
+                <button onClick={() => setEditingPerson(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">İptal</button>
+                <button onClick={handleEditSave} disabled={editSaving} className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-1">
+                  <Save className="w-4 h-4" />{editSaving ? "Kaydediliyor..." : "Kaydet"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Link Existing Personnel Modal */}
       {showAddEmp && (
