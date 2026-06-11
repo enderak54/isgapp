@@ -228,19 +228,15 @@ export default function Taseronlar() {
   const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); setTaseronZorunluAlanlar([]); setShowZorunluModal(false); };
 
   const openEditPersonel = (emp: any) => {
-    const mykler = empMykMap[emp.id] || [];
-    const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
-    const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
-    const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
+    setEditingPerson(emp);
     setEditForm({
       hat: emp.hat || "", meslek_kodu: emp.meslek_kodu || "",
-      mykEgitimler: mykler.map((m: any) => ({ id: m.id, myk_egitim_id: m.myk_egitim_id, alis_tarihi: m.alisTarih || "", gecerlilik_suresi: m.gecerlilik_suresi ? String(m.gecerlilik_suresi) : "" })),
-      yuksekteTarih: docYuksekte?.son_gecerlilik_tarihi || "",
-      saglikTarih: docSaglik?.son_gecerlilik_tarihi || "",
-      isgTarih: docIsg?.son_gecerlilik_tarihi || "",
+      mykEgitimler: (empMykMap[emp.id] || []).map((m: any) => ({ id: m.id, myk_egitim_id: m.myk_egitim_id, alis_tarihi: m.alisTarih || "", gecerlilik_suresi: m.gecerlilik_suresi ? String(m.gecerlilik_suresi) : "" })),
+      yuksekteTarih: empDocsMap[emp.id]?.["yuksekte_calisma"]?.son_gecerlilik_tarihi || "",
+      saglikTarih: empDocsMap[emp.id]?.["saglik_raporu"]?.son_gecerlilik_tarihi || "",
+      isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
     });
     setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
-    setEditingPerson(emp);
   };
 
   const handleEditSave = async () => {
@@ -329,6 +325,7 @@ export default function Taseronlar() {
       }
       setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
       setSorumlular([]);
+      closeCompany();
       fetchTaseronlar();
     } catch (e: any) { alert(e.message); }
   };
@@ -472,6 +469,9 @@ export default function Taseronlar() {
             <p className="text-xs text-gray-500">{selectedTaseron.yetkili} • {selectedTaseron.telefon} • {selectedTaseron.email}</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => { setShowForm(true); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" }); setSorumlular([]); }} className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Yeni Firma
+            </button>
             <button onClick={() => setShowZorunluModal(true)} className="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded flex items-center gap-1">
               <CheckSquare className="w-3.5 h-3.5" /> Zorunlu Alanlar
             </button>
@@ -675,6 +675,35 @@ export default function Taseronlar() {
                 <Save className="w-4 h-4" />{taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Yeni Firma Modal (detail view) */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{editing ? "Firma Düzenle" : "Yeni Firma"}</h3>
+              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input required placeholder="Firma Adı" value={form.firma_adi} onChange={(e) => setForm({ ...form, firma_adi: e.target.value })} className="w-full p-2 border rounded-lg" />
+              <input placeholder="Yetkili" value={form.yetkili} onChange={(e) => setForm({ ...form, yetkili: e.target.value })} className="w-full p-2 border rounded-lg" />
+              <input placeholder="Telefon" value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} className="w-full p-2 border rounded-lg" />
+              <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full p-2 border rounded-lg" />
+              <input placeholder="Vergi No" value={form.vergi_no} onChange={(e) => setForm({ ...form, vergi_no: e.target.value })} className="w-full p-2 border rounded-lg" />
+              <select value={form.santiye_id} onChange={(e) => setForm({ ...form, santiye_id: e.target.value })} className="w-full p-2 border rounded-lg">
+                <option value="">Şantiye Seçin</option>
+                {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+              </select>
+              <textarea placeholder="Adres" value={form.adres} onChange={(e) => setForm({ ...form, adres: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
+              <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="w-full p-2 border rounded-lg">
+                <option value="aktif">Aktif</option>
+                <option value="pasif">Pasif</option>
+              </select>
+              <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"><Save className="w-5 h-5" /> Kaydet</button>
+            </form>
           </div>
         </div>
       )}
