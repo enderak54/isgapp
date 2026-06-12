@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logAudit } from "@/lib/audit";
 
 const TURKISH_LABELS: Record<string, string> = {
   personel: "Personel",
@@ -121,15 +122,16 @@ export async function POST(request: NextRequest) {
     dosyalar: fileRefs.length > 0 ? fileRefs : undefined,
   };
 
-  const { error: logError } = await supabase.from("yedekleme_log").insert({
+  const { data: logData, error: logError } = await supabase.from("yedekleme_log").insert({
     mod,
     tablo_sayisi: Object.keys(backup).length,
     kayit_sayisi: result.metadata.toplam_kayit,
     dosya_sayisi: fileRefs.length,
     dosya_boyutu_bytes: new Blob([JSON.stringify(result)]).size,
     hata: errors.length > 0 ? errors.join("; ") : null,
-  });
+  }).select();
   if (logError) console.error("Backup log error:", logError);
+  else if (logData?.[0]) await logAudit("yedekleme_log", "INSERT", logData[0].id, null, logData[0]);
 
   return NextResponse.json(result);
 }

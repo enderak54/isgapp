@@ -296,7 +296,7 @@ export default function PersonnelForm() {
         d.setFullYear(d.getFullYear() + parseInt(form.gorevlendirmeSure));
         sonGecerlilik = d.toISOString().split("T")[0];
       }
-      await supabase.from("personel_belgeleri").insert({
+      const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
         personel_id: personelId,
         belge_tipi: BELGE_TIPLERI[pf.field],
         dosya_url: urlData.publicUrl,
@@ -304,7 +304,8 @@ export default function PersonnelForm() {
         dosya_uzantisi: fileExt,
         dosya_boyut: pf.file.size,
         son_gecerlilik_tarihi: sonGecerlilik,
-      });
+      }).select();
+      if (belgeData?.[0]) await logAudit("personel_belgeleri", "INSERT", belgeData[0].id, null, belgeData[0]);
     }
     setPendingFiles([]);
   };
@@ -317,13 +318,15 @@ export default function PersonnelForm() {
       alis_tarihi: k.alis_tarihi || null,
       gecerlilik_suresi: k.gecerlilik_suresi ? parseInt(k.gecerlilik_suresi) : null,
     }));
-    await supabase.from("personel_myk_egitimleri").insert(inserts);
+    const { data: mykData } = await supabase.from("personel_myk_egitimleri").insert(inserts).select();
+    if (mykData?.length) for (const row of mykData) await logAudit("personel_myk_egitimleri", "INSERT", row.id, null, row);
   };
 
   const savePersonelSantiyeler = async (personelId: string) => {
     if (selectedSantiyeler.length === 0) return;
     const inserts = selectedSantiyeler.map(santiye_id => ({ personel_id: personelId, santiye_id }));
-    await supabase.from("personel_santiyeler").insert(inserts);
+    const { data: santiyeData } = await supabase.from("personel_santiyeler").insert(inserts).select();
+    if (santiyeData?.length) for (const row of santiyeData) await logAudit("personel_santiyeler", "INSERT", row.id, null, row);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

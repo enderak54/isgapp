@@ -128,7 +128,9 @@ export default function SahaSorumlulari() {
     if (!confirm("Bu ekibi silmek istediğinize emin misiniz?")) return;
     setEditStatus(null);
     try {
+      const { data: affected } = await supabase.from("personel").select("id").eq("ekip_id", id);
       await supabase.from("personel").update({ ekip_id: null }).eq("ekip_id", id);
+      if (affected?.length) for (const row of affected) await logAudit("personel", "UPDATE", row.id, { ekip_id: id }, { ekip_id: null });
       await supabase.from("ekipler").delete().eq("id", id);
       await logAudit("ekipler", "DELETE", id, null, null);
       setEditStatus({ type: "success", message: "Ekip silindi" });

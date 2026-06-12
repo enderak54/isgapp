@@ -278,10 +278,13 @@ export default function PersonnelList() {
 
   const savePersonelSantiyeler = async () => {
     if (!editingPerson) return;
+    const { data: oldSantiyeler } = await supabase.from("personel_santiyeler").select("*").eq("personel_id", editingPerson.id);
     await supabase.from("personel_santiyeler").delete().eq("personel_id", editingPerson.id);
+    if (oldSantiyeler?.length) for (const row of oldSantiyeler) await logAudit("personel_santiyeler", "DELETE", row.id, row, null);
     if (selectedSantiyeler.length > 0) {
       const inserts = selectedSantiyeler.map(santiye_id => ({ personel_id: editingPerson.id, santiye_id }));
-      await supabase.from("personel_santiyeler").insert(inserts);
+      const { data: santiyeData } = await supabase.from("personel_santiyeler").insert(inserts).select();
+      if (santiyeData?.length) for (const row of santiyeData) await logAudit("personel_santiyeler", "INSERT", row.id, null, row);
     }
   };
 
@@ -346,14 +349,15 @@ export default function PersonnelList() {
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
-      await supabase.from("personel_belgeleri").insert({
+      const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
         personel_id: editingPerson.id,
         belge_tipi: BELGE_TIPLERI[pf.field],
         dosya_url: urlData.publicUrl,
         dosya_adi: pf.file.name,
         dosya_uzantisi: fileExt,
         dosya_boyut: pf.file.size,
-      });
+      }).select();
+      if (belgeData?.[0]) await logAudit("personel_belgeleri", "INSERT", belgeData[0].id, null, belgeData[0]);
     }
     setPendingFiles([]);
     fetchEditBelgeler(editingPerson.id);
@@ -361,7 +365,9 @@ export default function PersonnelList() {
 
   const saveEditMykEgitimler = async () => {
     if (!editingPerson) return;
+    const { data: oldMyk } = await supabase.from("personel_myk_egitimleri").select("*").eq("personel_id", editingPerson.id);
     await supabase.from("personel_myk_egitimleri").delete().eq("personel_id", editingPerson.id);
+    if (oldMyk?.length) for (const row of oldMyk) await logAudit("personel_myk_egitimleri", "DELETE", row.id, row, null);
     if (mykKayitlar.length > 0) {
       const inserts = mykKayitlar.map(k => ({
         personel_id: editingPerson.id,
@@ -369,7 +375,8 @@ export default function PersonnelList() {
         alis_tarihi: k.alis_tarihi || null,
         gecerlilik_suresi: k.gecerlilik_suresi ? parseInt(k.gecerlilik_suresi) : null,
       }));
-      await supabase.from("personel_myk_egitimleri").insert(inserts);
+      const { data: mykData } = await supabase.from("personel_myk_egitimleri").insert(inserts).select();
+      if (mykData?.length) for (const row of mykData) await logAudit("personel_myk_egitimleri", "INSERT", row.id, null, row);
     }
   };
 
@@ -673,7 +680,7 @@ export default function PersonnelList() {
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
                           <>
-                            <button onClick={async () => { await supabase.from("personel").update({ arsivde: false, ayrilis_tarihi: null, ayrilis_nedeni: null }).eq("id", p.id); fetchPersonnel(); }} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1 border border-green-200">
+                            <button onClick={async () => { const { error } = await supabase.from("personel").update({ arsivde: false, ayrilis_tarihi: null, ayrilis_nedeni: null }).eq("id", p.id).select(); if (!error) await logAudit("personel", "UPDATE", p.id, { arsivde: true }, { arsivde: false }); fetchPersonnel(); }} className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition flex items-center gap-1 border border-green-200">
                               <Archive className="w-3.5 h-3.5" /> Geri Al
                             </button>
                             <div className="flex items-center gap-0.5">

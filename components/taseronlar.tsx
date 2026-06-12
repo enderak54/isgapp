@@ -89,7 +89,7 @@ export default function Taseronlar() {
   const [editingPerson, setEditingPerson] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
-    yuksekteTarih: "", saglikTarih: "", isgTarih: "",
+    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "",
   });
   const [editSaving, setEditSaving] = useState(false);
 
@@ -103,7 +103,7 @@ export default function Taseronlar() {
   const [newPersonForm, setNewPersonForm] = useState({ ad: "", soyad: "", kimlik_no: "", telefon: "", meslek_kodu: "" });
   const [newPersonSaving, setNewPersonSaving] = useState(false);
 
-  const COLUMNS = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon", "gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme", "myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
+  const COLUMNS = ["sayi", "adi_soyadi", "sigorta", "gorev_alani", "ise_giris", "tc_kimlik", "telefon", "gorev", "myk_izme", "myk_icerik", "myk_yenileme", "is_makinesi", "isg_zimmet", "talimat", "yuksekte_yenileme", "saglik_yenileme", "isg_egitim_yenileme", "gorevlendirme", "myk_kalan", "yuksekte_kalan", "saglik_kalan", "isg_egitim_kalan"];
 
   const COL_LABELS: Record<string, string> = {
     sayi: "SAYI", adi_soyadi: "ADI SOYADI", sigorta: "SİGORTA DURUMU", gorev_alani: "GÖREVİ/ALANI",
@@ -112,7 +112,7 @@ export default function Taseronlar() {
     is_makinesi: "İŞ MAKİNESİ KULLANIM DURUMU", isg_zimmet: "İSG ZİMMET", talimat: "TALİMAT",
     yuksekte_yenileme: "YÜKSEKTE ÇALIŞMA YENİLEME TARİHİ",
     saglik_yenileme: "SAĞLIK RAPORU YENİLEME TARİHİ",
-    isg_egitim_yenileme: "İSG EĞİTİMİ YENİLEME TARİHİ",
+    isg_egitim_yenileme: "İSG EĞİTİMİ YENİLEME TARİHİ", gorevlendirme: "GÖREVLENDİRME",
     myk_kalan: "MYK YENİLEME KALAN", yuksekte_kalan: "YÜKSEKTE ÇALIŞMA YENİLEME KALAN",
     saglik_kalan: "SAĞLIK RAPORU YENİLEME KALAN", isg_egitim_kalan: "İSG EĞİTİMİ YENİLEME KALAN",
   };
@@ -240,6 +240,7 @@ export default function Taseronlar() {
       yuksekteTarih: empDocsMap[emp.id]?.["yuksekte_calisma"]?.son_gecerlilik_tarihi || "",
       saglikTarih: empDocsMap[emp.id]?.["saglik_raporu"]?.son_gecerlilik_tarihi || "",
       isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
+      gorevlendirmeTarih: empDocsMap[emp.id]?.["gorevlendirme"]?.son_gecerlilik_tarihi || "",
     });
     setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
   };
@@ -250,34 +251,41 @@ export default function Taseronlar() {
     try {
       await supabase.from("personel").update({ hat: editForm.hat || null, meslek_kodu: editForm.meslek_kodu || null }).eq("id", editingPerson.id);
       await logAudit("personel", "UPDATE", editingPerson.id, null, { hat: editForm.hat, meslek_kodu: editForm.meslek_kodu });
+      const { data: oldMyk } = await supabase.from("personel_myk_egitimleri").select("*").eq("personel_id", editingPerson.id);
       await supabase.from("personel_myk_egitimleri").delete().eq("personel_id", editingPerson.id);
+      if (oldMyk?.length) for (const row of oldMyk) await logAudit("personel_myk_egitimleri", "DELETE", row.id, row, null);
       if (editForm.mykEgitimler.length > 0) {
         const inserts = editForm.mykEgitimler.map((m: any) => ({
           personel_id: editingPerson.id, myk_egitim_id: m.myk_egitim_id,
           alis_tarihi: m.alis_tarihi || null, gecerlilik_suresi: m.gecerlilik_suresi ? parseInt(m.gecerlilik_suresi) : null,
         }));
-        const { error } = await supabase.from("personel_myk_egitimleri").insert(inserts);
+        const { data: mykData, error } = await supabase.from("personel_myk_egitimleri").insert(inserts).select();
         if (error) throw error;
+        if (mykData?.length) for (const row of mykData) await logAudit("personel_myk_egitimleri", "INSERT", row.id, null, row);
       }
 
       const docUpdates: { tip: string; tarih: string }[] = [
         { tip: "yuksekte_calisma", tarih: editForm.yuksekteTarih },
         { tip: "saglik_raporu", tarih: editForm.saglikTarih },
         { tip: "isg_egitim", tarih: editForm.isgTarih },
+        { tip: "gorevlendirme", tarih: editForm.gorevlendirmeTarih },
       ];
       for (const du of docUpdates) {
         const existing = empDocsMap[editingPerson.id]?.[du.tip] || null;
         if (existing) {
           if (du.tarih) {
-            await supabase.from("personel_belgeleri").update({ son_gecerlilik_tarihi: du.tarih }).eq("id", existing.id);
+            const { data: updDoc } = await supabase.from("personel_belgeleri").update({ son_gecerlilik_tarihi: du.tarih }).eq("id", existing.id).select();
+            if (updDoc?.[0]) await logAudit("personel_belgeleri", "UPDATE", updDoc[0].id, existing, updDoc[0]);
           } else {
             await supabase.from("personel_belgeleri").delete().eq("id", existing.id);
+            await logAudit("personel_belgeleri", "DELETE", existing.id, existing, null);
           }
         } else if (du.tarih) {
-          await supabase.from("personel_belgeleri").insert({
+          const { data: newBelge } = await supabase.from("personel_belgeleri").insert({
             personel_id: editingPerson.id, belge_tipi: du.tip, dosya_url: null, dosya_adi: du.tip,
             onay_durumu: "onaylandi", son_gecerlilik_tarihi: du.tarih,
-          });
+          }).select();
+          if (newBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", newBelge[0].id, null, newBelge[0]);
         }
       }
       setEditingPerson(null);
@@ -338,13 +346,18 @@ export default function Taseronlar() {
     const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
     try {
       if (editing) {
+        const oldVals = { ...editing };
         const { error } = await supabase.from("taseronlar").update(payload).eq("id", editing.id);
         if (error) throw error;
+        await logAudit("taseronlar", "UPDATE", editing.id, oldVals, payload);
         await saveSorumlular(editing.id);
       } else {
         const { data, error } = await supabase.from("taseronlar").insert(payload).select();
         if (error) throw error;
-        if (data?.[0]) await saveSorumlular(data[0].id);
+        if (data?.[0]) {
+          await logAudit("taseronlar", "INSERT", data[0].id, null, payload);
+          await saveSorumlular(data[0].id);
+        }
       }
       setShowForm(false); setEditing(null); setForm({ firma_adi: "", yetkili: "", telefon: "", email: "", adres: "", vergi_no: "", santiye_id: "", durum: "aktif", notlar: "" });
       setSorumlular([]);
@@ -354,7 +367,9 @@ export default function Taseronlar() {
   };
 
   const saveSorumlular = async (taseronId: string) => {
+    const { data: oldSorumlular } = await supabase.from("taseron_sorumlulari").select("*").eq("taseron_id", taseronId);
     await supabase.from("taseron_sorumlulari").delete().eq("taseron_id", taseronId);
+    if (oldSorumlular?.length) for (const row of oldSorumlular) await logAudit("taseron_sorumlulari", "DELETE", row.id, row, null);
     const valid = sorumlular.filter(s => s.ad_soyad.trim());
     if (valid.length === 0) return;
     const inserts = valid.map(s => ({ taseron_id: taseronId, ...s }));
@@ -522,20 +537,12 @@ export default function Taseronlar() {
         ) : (
           <table className="w-full min-w-[2000px] text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-800 text-white">
-                <th colSpan={7} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">{selectedTaseron.firma_adi.toUpperCase()} ŞANTİYESİ GÜN İNŞAAT</th>
-                <th colSpan={10} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">İNOVASYON ORTAK SAĞLIK VE GÜVENLİK BİRİMİ<br/>İNOVASYON İSG BELGE TAKİP ÇİZELGESİ FORMU</th>
-                <th colSpan={1} className="px-2 py-1.5 text-center text-[9px] font-medium border border-gray-700">DİĞER<br/>Renk Anlamları<br/>(Bilinmiyor/ Belge Verilmedi - Mavi | Diploma - Turuncu)</th>
-                <th colSpan={3} className="px-2 py-1.5 text-center text-[9px] font-medium border border-gray-700">TARİH RENK ANLAMLARI<br/>+91 Gün ve Üzeri Yeşil | Yenileme Tarihi Geçmiş Gün Sayısı Kırmızı</th>
-                <th colSpan={1} className="px-2 py-1.5 text-center text-[10px] font-bold border border-gray-700">EXPORT TARİHİ<br/>{getTodayStr()}</th>
-              </tr>
               <tr className="bg-gray-700 text-gray-200">
                 <th colSpan={1} className="px-1 py-1 text-[9px] font-medium border border-gray-600">Sıra</th>
                 <th colSpan={6} className="px-1 py-1 text-[9px] font-medium border border-gray-600">FİRMA UNVANI</th>
-                <th colSpan={10} className="px-1 py-1 text-[9px] font-medium border border-gray-600">YETKİNLİK / BELGELENDİRME</th>
+                <th colSpan={11} className="px-1 py-1 text-[9px] font-medium border border-gray-600">YETKİNLİK / BELGELENDİRME</th>
                 <th colSpan={1} className="px-1 py-1 text-[9px] font-medium border border-gray-600">RENK</th>
                 <th colSpan={3} className="px-1 py-1 text-[9px] font-medium border border-gray-600">KALAN GÜN HESABI</th>
-                <th colSpan={1} className="px-1 py-1 text-[9px] font-medium border border-gray-600">TARİH</th>
               </tr>
               <tr className="bg-gray-100">
                 {COLUMNS.map(col => (
@@ -562,9 +569,11 @@ export default function Taseronlar() {
                 const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
                 const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
                 const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
+                const docGorevlendirme = empDocsMap[emp.id]?.["gorevlendirme"] || null;
                 const yuksekteTarih = docYuksekte?.son_gecerlilik_tarihi || null;
                 const saglikTarih = docSaglik?.son_gecerlilik_tarihi || null;
                 const isgTarih = docIsg?.son_gecerlilik_tarihi || null;
+                const gorevlendirmeTarih = docGorevlendirme?.son_gecerlilik_tarihi || null;
 
                 return (
                   <tr key={emp.id} className="hover:bg-blue-50/40 cursor-pointer" onClick={() => openEditPersonel(emp)}>
@@ -585,6 +594,7 @@ export default function Taseronlar() {
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(yuksekteTarih)}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(saglikTarih)}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(isgTarih)}</td>
+                    <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(gorevlendirmeTarih)}</td>
                     <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(mykBitisTarih).bgCls} ${kalanGunHesapla(mykBitisTarih).textCls}`}>{kalanGunHesapla(mykBitisTarih).text}</td>
                     <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(yuksekteTarih).bgCls} ${kalanGunHesapla(yuksekteTarih).textCls}`}>{kalanGunHesapla(yuksekteTarih).text}</td>
                     <td className={`px-1.5 py-1 text-center border border-gray-200 ${kalanGunHesapla(saglikTarih).bgCls} ${kalanGunHesapla(saglikTarih).textCls}`}>{kalanGunHesapla(saglikTarih).text}</td>
@@ -651,7 +661,7 @@ export default function Taseronlar() {
 
               <div className="border-t pt-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Belge Geçerlilik Tarihleri</h4>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <div>
                     <label className="text-[10px] text-gray-500">Yüksekte Çalışma</label>
                     <input type="date" value={editForm.yuksekteTarih} onChange={e => setEditForm({ ...editForm, yuksekteTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
@@ -663,6 +673,10 @@ export default function Taseronlar() {
                   <div>
                     <label className="text-[10px] text-gray-500">İSG Eğitimi</label>
                     <input type="date" value={editForm.isgTarih} onChange={e => setEditForm({ ...editForm, isgTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500">Görevlendirme</label>
+                    <input type="date" value={editForm.gorevlendirmeTarih} onChange={e => setEditForm({ ...editForm, gorevlendirmeTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
                   </div>
                 </div>
               </div>

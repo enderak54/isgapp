@@ -59,10 +59,12 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     applyAndPersist(t);
     try {
       const { supabase } = await import("@/lib/supabase");
+      const { logAudit } = await import("@/lib/audit");
       await supabase.from("ayarlar").upsert(
         { key: "theme", value: JSON.stringify(t), type: "theme" },
         { onConflict: "key" }
       );
+      await logAudit("ayarlar", "UPDATE", "theme", null, t);
     } catch {}
   }, []);
 

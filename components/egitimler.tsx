@@ -163,7 +163,9 @@ export default function Egitimler() {
         const { error } = await supabase.from("egitim_kayitlari").update(payload).eq("id", editing.id);
         if (error) throw error;
         await logAudit("egitim_kayitlari", "UPDATE", editing.id, editing, payload);
+        const { data: eskiKats } = await supabase.from("egitim_katilimcilar").select("*").eq("egitim_kaydi_id", editing.id);
         await supabase.from("egitim_katilimcilar").delete().eq("egitim_kaydi_id", editing.id);
+        if (eskiKats?.length) for (const row of eskiKats) await logAudit("egitim_katilimcilar", "DELETE", row.id, row, null);
         kayitId = editing.id;
       } else {
         const { data, error } = await supabase.from("egitim_kayitlari").insert(payload).select();
@@ -174,16 +176,18 @@ export default function Egitimler() {
       }
 
       for (const pid of form.katilimcilar) {
-        await supabase.from("egitim_katilimcilar").insert({
+        const { data: kat } = await supabase.from("egitim_katilimcilar").insert({
           egitim_kaydi_id: kayitId, personel_id: pid, katilimci_manuel: null,
-        });
+        }).select();
+        if (kat?.[0]) await logAudit("egitim_katilimcilar", "INSERT", kat[0].id, null, kat[0]);
       }
       if (form.katilimci_manuel) {
         const manuelIsimler = form.katilimci_manuel.split(",").map(s => s.trim()).filter(Boolean);
         for (const isim of manuelIsimler) {
-          await supabase.from("egitim_katilimcilar").insert({
+          const { data: kat } = await supabase.from("egitim_katilimcilar").insert({
             egitim_kaydi_id: kayitId, personel_id: null, katilimci_manuel: isim,
-          });
+          }).select();
+          if (kat?.[0]) await logAudit("egitim_katilimcilar", "INSERT", kat[0].id, null, kat[0]);
         }
       }
 
@@ -220,7 +224,9 @@ export default function Egitimler() {
     if (!confirm("Bu eğitimi silmek istediğinize emin misiniz?")) return;
     try {
       const item = kayitlar.find(k => k.id === id);
+      const { data: oldKats } = await supabase.from("egitim_katilimcilar").select("*").eq("egitim_kaydi_id", id);
       await supabase.from("egitim_katilimcilar").delete().eq("egitim_kaydi_id", id);
+      if (oldKats?.length) for (const row of oldKats) await logAudit("egitim_katilimcilar", "DELETE", row.id, row, null);
       await supabase.from("egitim_kayitlari").delete().eq("id", id);
       if (item) await logAudit("egitim_kayitlari", "DELETE", id, item, null);
       setEditStatus({ type: "success", message: "Eğitim silindi" });
@@ -472,12 +478,14 @@ export default function Egitimler() {
               <EgitanimBolumu
                 baslik="Eğitim Tanımları"
                 items={tanimlar}
-                onEkle={async (ad) => {
-                  const { data } = await supabase.from("egitim_tanimlari").insert({ ad }).select();
-                  if (data) { setTanimlar(prev => [...prev, data[0]]); }
+              onEkle={async (ad) => {
+                const { data } = await supabase.from("egitim_tanimlari").insert({ ad }).select();
+                  if (data) { setTanimlar(prev => [...prev, data[0]]); await logAudit("egitim_tanimlari", "INSERT", data[0].id, null, data[0]); }
                 }}
                 onSil={async (id) => {
+                  const { data: old } = await supabase.from("egitim_tanimlari").select("*").eq("id", id).single();
                   await supabase.from("egitim_tanimlari").delete().eq("id", id);
+                  if (old) await logAudit("egitim_tanimlari", "DELETE", id, old, null);
                   setTanimlar(prev => prev.filter(t => t.id !== id));
                 }}
               />
@@ -485,24 +493,28 @@ export default function Egitimler() {
               <EgitanimBolumu
                 baslik="Eğitmen Tanımları"
                 items={egitmenler}
-                onEkle={async (ad) => {
-                  const { data } = await supabase.from("egitmen_tanimlari").insert({ ad }).select();
-                  if (data) { setEgitmenler(prev => [...prev, data[0]]); }
+              onEkle={async (ad) => {
+                const { data } = await supabase.from("egitmen_tanimlari").insert({ ad }).select();
+                  if (data) { setEgitmenler(prev => [...prev, data[0]]); await logAudit("egitmen_tanimlari", "INSERT", data[0].id, null, data[0]); }
                 }}
                 onSil={async (id) => {
+                  const { data: old } = await supabase.from("egitmen_tanimlari").select("*").eq("id", id).single();
                   await supabase.from("egitmen_tanimlari").delete().eq("id", id);
+                  if (old) await logAudit("egitmen_tanimlari", "DELETE", id, old, null);
                   setEgitmenler(prev => prev.filter(e => e.id !== id));
                 }}
               />
               <EgitanimBolumu
                 baslik="Yer Tanımları"
                 items={yerTanimlari}
-                onEkle={async (ad) => {
-                  const { data } = await supabase.from("egitim_yer_tanimlari").insert({ ad }).select();
-                  if (data) { setYerTanimlari(prev => [...prev, data[0]]); }
+              onEkle={async (ad) => {
+                const { data } = await supabase.from("egitim_yer_tanimlari").insert({ ad }).select();
+                  if (data) { setYerTanimlari(prev => [...prev, data[0]]); await logAudit("egitim_yer_tanimlari", "INSERT", data[0].id, null, data[0]); }
                 }}
                 onSil={async (id) => {
+                  const { data: old } = await supabase.from("egitim_yer_tanimlari").select("*").eq("id", id).single();
                   await supabase.from("egitim_yer_tanimlari").delete().eq("id", id);
+                  if (old) await logAudit("egitim_yer_tanimlari", "DELETE", id, old, null);
                   setYerTanimlari(prev => prev.filter(t => t.id !== id));
                 }}
               />

@@ -8,6 +8,7 @@ import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 import { useTheme } from "@/components/theme-provider";
+import CollapsibleCard from "@/components/settings/CollapsibleCard";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -633,595 +634,378 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="card p-6">
-          <button
-            onClick={() => setShowModules(!showModules)}
-            className="w-full flex items-center justify-between mb-4"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Modül Ayarları</h3>
-              <p className="text-sm text-gray-500">Hangi modüller aktif olsun</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showModules && (
-                <button onClick={(e) => { e.stopPropagation(); saveSettings(); }} disabled={saving} className="btn btn-primary text-sm">
-                  {saving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showModules ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showModules && (
-            <div className="space-y-3">
-              {modules.map((mod) => (
-                <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-800">{mod.label}</p>
-                    <p className="text-sm text-gray-500">{mod.description}</p>
-                  </div>
-                  <button
-                    onClick={() => toggleModule(mod.key)}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${mod.enabled ? "bg-green-500" : "bg-gray-300"}`}
-                  >
-                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? "left-7" : "left-1"}`} />
-                  </button>
-                </div>
-              ))}
-              <div className="flex justify-end pt-2">
-                <button onClick={saveSettings} disabled={saving} className="btn btn-primary text-sm">
-                  {saving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button
-            onClick={() => setShowTheme(!showTheme)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Tema</h3>
-              <p className="text-sm text-gray-500">Görünüm ve renk ayarları</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showTheme && (
-                <button onClick={(e) => { e.stopPropagation(); saveTheme(); }} disabled={themeSaving} className="btn btn-primary text-sm">
-                  {themeSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showTheme ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showTheme && (
-            <div className="space-y-4 mt-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  {theme.mode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
-                  <div>
-                    <p className="font-medium text-gray-800">Tema Modu</p>
-                    <p className="text-sm text-gray-500">{theme.mode === "dark" ? "Koyu tema" : "Acik tema"}</p>
-                  </div>
+        <CollapsibleCard title="Modül Ayarları" description="Hangi modüller aktif olsun" isOpen={showModules} onToggle={() => setShowModules(!showModules)} onSave={saveSettings} saving={saving}>
+          <div className="space-y-3">
+            {modules.map((mod) => (
+              <div key={mod.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-800">{mod.label}</p>
+                  <p className="text-sm text-gray-500">{mod.description}</p>
                 </div>
                 <button
-                  onClick={() => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" })}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${theme.mode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
+                  onClick={() => toggleModule(mod.key)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${mod.enabled ? "bg-green-500" : "bg-gray-300"}`}
                 >
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${theme.mode === "dark" ? "left-7" : "left-1"}`} />
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? "left-7" : "left-1"}`} />
                 </button>
               </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3 mb-3">
-                  <Palette className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-800">Renk</p>
-                    <p className="text-sm text-gray-500">Vurgu rengini seç</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {colorOptions.map((c) => (
-                    <button
-                      key={c.key || "default"}
-                      onClick={() => setTheme({ ...theme, color: c.key })}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${theme.color === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
-                      style={{ backgroundColor: c.bg }}
-                      title={c.label}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800 mb-2">Yazi Tipi</p>
-                <select
-                  value={theme.font}
-                  onChange={(e) => setTheme({ ...theme, font: e.target.value })}
-                  className="input"
-                >
-                  {fontOptions.map((f) => (
-                    <option key={f.key || "default"} value={f.key}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800 mb-2">Yazi Boyutu</p>
-                <div className="flex gap-2">
-                  {sizeOptions.map((s) => (
-                    <button
-                      key={s.key}
-                      onClick={() => setTheme({ ...theme, size: s.key })}
-                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                        theme.size === s.key
-                          ? "bg-gray-800 text-white"
-                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            ))}
+            <div className="flex justify-end pt-2">
+              <button onClick={saveSettings} disabled={saving} className="btn btn-primary text-sm">
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        </CollapsibleCard>
 
-        <div className="card p-6 mt-6">
-          <button
-            onClick={() => setShowUyari(!showUyari)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Uyarı Süreleri</h3>
-              <p className="text-sm text-gray-500">Her ISG eğitimi için bitiş uyarı süresi (gün)</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showUyari && (
-                <button onClick={(e) => { e.stopPropagation(); saveUyari(); }} disabled={uyariSaving} className="btn btn-primary text-sm">
-                  {uyariSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showUyari ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showUyari && (
-            <div className="space-y-3 mt-4">
-              {EGITIM_FIELDS.map((field) => (
-                <div key={field.ayarKey} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-800">{field.label}</p>
-                      <p className="text-xs text-gray-400">{field.ayarKey}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={1} max={365} value={uyariAyarlari[field.ayarKey] || "7"} onChange={(e) => setUyariAyarlari((prev) => ({ ...prev, [field.ayarKey]: e.target.value }))} className="input text-xs text-center" style={{ width: "4rem" }} />
-                    <span className="text-xs text-gray-500">gün</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowMenu(!showMenu)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Menü Düzenle</h3>
-              <p className="text-sm text-gray-500">Sol menü öğelerini sürükleyip sıralayın</p>
-            </div>
-            {showMenu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-          </button>
-          {showMenu && (
-            <div className="mt-4">
-              <div className="space-y-1">
-                {menuItems.map((item, idx) => (
-                  <div key={item.key}
-                    draggable
-                    onDragStart={() => setDragIdx(idx)}
-                    onDragOver={(e) => { e.preventDefault(); if (dragIdx === null || dragIdx === idx) return; const items = [...menuItems]; const [moved] = items.splice(dragIdx, 1); items.splice(idx, 0, moved); setMenuItems(items); setDragIdx(idx); }}
-                    onDragEnd={() => setDragIdx(null)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-colors ${item.grup === "main" ? "bg-white border-gray-200" : "bg-gray-50 border-gray-100"} ${dragIdx === idx ? "opacity-50" : ""}`}
-                  >
-                    <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                    <span className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wider text-gray-400 flex-shrink-0">{item.grup === "main" ? "Ana" : "Ek"}</span>
-                    <span className="text-sm text-gray-700 flex-1">{item.label}</span>
-                    <span className="text-[10px] text-gray-300 font-mono">{item.key}</span>
-                  </div>
-                ))}
-              </div>
-              {menuItems.length === 0 && <p className="text-center py-6 text-gray-400">Menü bilgisi yüklenmedi</p>}
-              <div className="flex justify-end mt-4">
-                <button onClick={saveMenuOrder} disabled={menuSaving} className="btn btn-primary text-sm flex items-center gap-2">
-                  <Save className="w-4 h-4" /> {menuSaving ? "Kaydediliyor..." : "Sırayı Kaydet"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowAI(!showAI)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Yapay Zeka Entegrasyonları</h3>
-              <p className="text-sm text-gray-500">Projeye katkı sağlayan YZ sistemleri</p>
-            </div>
-            {showAI ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-          </button>
-          {showAI && (
-            <div className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {aiEntries.map((ai: any, idx: number) => (
-                  <div key={idx} className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 bg-white">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center flex-shrink-0 border border-blue-100">
-                      {idx % 2 === 0 ? <Brain className="w-5 h-5 text-indigo-500" /> : <Cpu className="w-5 h-5 text-blue-500" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-gray-800 text-sm">{ai.name}</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-mono">{ai.model}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{ai.role}</p>
-                      {ai.url && (
-                        <a href={ai.url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1.5">
-                          <ExternalLink className="w-3 h-3" /> {new URL(ai.url).hostname}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {aiEntries.length === 0 && <p className="text-center py-6 text-gray-400">AI kaydı bulunamadı</p>}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowEncryption(!showEncryption)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Alan Bazinda Sifreleme</h3>
-              <p className="text-sm text-gray-500">Hassas veri alanlari icin AES-256-GCM sifreleme</p>
-            </div>
-            {showEncryption ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-          </button>
-          {showEncryption && (
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">Alan Bazinda Sifreleme</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Aktif edildiginde TC Kimlik No, telefon gibi hassas alanlar sifrelenir</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={encryptionEnabled} onChange={(e) => setEncryptionEnabled(e.target.checked)} className="sr-only peer" />
-                  <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 peer-focus:ring-2 peer-focus:ring-indigo-300 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                </label>
-              </div>
-              {encryptionEnabled && (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                  <p className="text-xs text-amber-700">
-                    <strong>Uyari:</strong> Sifreleme aktif edildiginde, sifrelenmis alanlarda arama ve siralama fonksiyonlari calismaz.
-                    Anahtar kaybi durumunda veriler kurtarilamaz. Uretim ortamina gecmeden once yedekleme yapin.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowBackup(!showBackup)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Yedekleme</h3>
-              <p className="text-sm text-gray-500">Veritabani ve dosya yedekleme</p>
-            </div>
-            {showBackup ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-          </button>
-          {showBackup && (
-            <div className="mt-4">
-              <div className="flex gap-3 mb-4">
-                <button onClick={() => { setBackupMode("full"); setBackupTables({}); }}
-                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "full" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
-                  <HardDrive className="w-5 h-5 text-blue-500 mb-1" />
-                  <p className="font-medium text-gray-800 text-sm">Tam Yedekleme</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Tüm tablolar + dosyalar</p>
-                </button>
-                <button onClick={() => setBackupMode("partial")}
-                  className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "partial" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
-                  <Database className="w-5 h-5 text-green-500 mb-1" />
-                  <p className="font-medium text-gray-800 text-sm">Kısmi Yedekleme</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Seçili tablo ve alanlar</p>
-                </button>
-              </div>
-
-              {backupMode === "partial" && (
-                <div className="mb-4 space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-3">
-                  {(["kritik", "modul", "diger"] as const).map(grup => (
-                    <div key={grup}>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 mt-2 first:mt-0">
-                        {grup === "kritik" ? "Ana Tablolar" : grup === "modul" ? "ISO 45001 Modülleri" : "Diğer"}
-                      </p>
-                      {ALL_TABLES.filter(t => t.grup === grup).map(t => (
-                        <label key={t.key} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 cursor-pointer">
-                          <input type="checkbox" checked={backupTables[t.key] ?? true} onChange={e => setBackupTables(p => ({ ...p, [t.key]: e.target.checked }))} className="rounded border-gray-300" />
-                          <span className="text-sm text-gray-700">{t.label}</span>
-                          <span className="text-[10px] text-gray-300 font-mono ml-auto">{t.key}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {backupMode === "full" && (
-                <label className="flex items-center gap-2 mb-4 px-1">
-                  <input type="checkbox" checked={backupIncludeFiles} onChange={e => setBackupIncludeFiles(e.target.checked)} className="rounded border-gray-300" />
-                  <span className="text-sm text-gray-700">Dosya referanslarını (imzalı URL'ler) dahil et</span>
-                </label>
-              )}
-
+        <CollapsibleCard title="Tema" description="Görünüm ve renk ayarları" isOpen={showTheme} onToggle={() => setShowTheme(!showTheme)} onSave={saveTheme} saving={themeSaving}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <button onClick={startBackup} disabled={backupLoading} className="btn btn-primary text-sm flex items-center gap-2">
-                  {backupLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {backupLoading ? "Yedekleniyor..." : backupMode === "full" ? "Tam Yedekleme Al" : "Seçili Tabloları Yedekle"}
-                </button>
+                {theme.mode === "dark" ? <Moon className="w-5 h-5 text-gray-600" /> : <Sun className="w-5 h-5 text-gray-600" />}
+                <div>
+                  <p className="font-medium text-gray-800">Tema Modu</p>
+                  <p className="text-sm text-gray-500">{theme.mode === "dark" ? "Koyu tema" : "Acik tema"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" })}
+                className={`relative w-12 h-6 rounded-full transition-colors ${theme.mode === "dark" ? "bg-gray-700" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${theme.mode === "dark" ? "left-7" : "left-1"}`} />
+              </button>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <Palette className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-800">Renk</p>
+                  <p className="text-sm text-gray-500">Vurgu rengini seç</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {colorOptions.map((c) => (
+                  <button
+                    key={c.key || "default"}
+                    onClick={() => setTheme({ ...theme, color: c.key })}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${theme.color === c.key ? "border-gray-800 scale-110" : "border-transparent"}`}
+                    style={{ backgroundColor: c.bg }}
+                    title={c.label}
+                  />
+                ))}
               </div>
             </div>
-          )}
-        </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="font-medium text-gray-800 mb-2">Yazi Tipi</p>
+              <select value={theme.font} onChange={(e) => setTheme({ ...theme, font: e.target.value })} className="input">
+                {fontOptions.map((f) => (
+                  <option key={f.key || "default"} value={f.key}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="font-medium text-gray-800 mb-2">Yazi Boyutu</p>
+              <div className="flex gap-2">
+                {sizeOptions.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setTheme({ ...theme, size: s.key })}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                      theme.size === s.key ? "bg-gray-800 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >{s.label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CollapsibleCard>
 
-        <div className="card p-6 mt-6">
-          <button
-            onClick={() => setShowMykZorunlu(!showMykZorunlu)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">MYK Zorunlu Meslekler</h3>
-              <p className="text-sm text-gray-500">Personel kaydında üstte gösterilecek zorunlu MYK mesleklerini seçin</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showMykZorunlu && (
-                <button onClick={(e) => { e.stopPropagation(); saveMykZorunlu(); }} disabled={mykZorunluSaving} className="btn btn-primary text-sm">
-                  {mykZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showMykZorunlu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showMykZorunlu && (
-            <div className="mt-4 space-y-1 max-h-72 overflow-y-auto">
-              {mykEgitimListesi.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-6">MYK eğitim listesi yüklenmedi</p>
-              ) : (
-                mykEgitimListesi.map((eg) => (
-                  <label key={eg.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" checked={mykZorunluIds.includes(eg.id)} onChange={() => toggleMykZorunlu(eg.id)} className="rounded border-gray-300" />
-                    <span className="text-sm text-gray-700">{eg.ad}</span>
-                  </label>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-          <button
-            onClick={() => setShowZorunluAlanlar(!showZorunluAlanlar)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Personel Kayıt Zorunlu Alanlar</h3>
-              <p className="text-sm text-gray-500">Personel kayıt formunda hangi alanların zorunlu olduğunu seçin</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showZorunluAlanlar && (
-                <button onClick={(e) => { e.stopPropagation(); saveZorunluAlanlar(); }} disabled={zorunluAlanlarSaving} className="btn btn-primary text-sm">
-                  {zorunluAlanlarSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showZorunluAlanlar ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showZorunluAlanlar && (
-            <div className="mt-4 space-y-1">
-              <div className="flex items-center justify-between py-2 px-2 mb-2 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Sadece zorunlu alanları göster</p>
-                  <p className="text-xs text-gray-400">Personel kayıt formunda zorunlu olmayan alanlar gizlenir</p>
+        <CollapsibleCard title="Uyarı Süreleri" description="Her ISG eğitimi için bitiş uyarı süresi (gün)" isOpen={showUyari} onToggle={() => setShowUyari(!showUyari)} onSave={saveUyari} saving={uyariSaving}>
+          <div className="space-y-3">
+            {EGITIM_FIELDS.map((field) => (
+              <div key={field.ayarKey} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-800">{field.label}</p>
+                    <p className="text-xs text-gray-400">{field.ayarKey}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={async () => {
-                    const val = !sadeceZorunlu;
-                    setSadeceZorunlu(val);
-                    await supabase.from("ayarlar").upsert({ key: "personel_sadece_zorunlu", value: JSON.stringify(val), type: "personel", description: "Personel kaydında sadece zorunlu alanları göster" }, { onConflict: "key" });
-                    await logAudit("ayarlar", "UPDATE", "personel_sadece_zorunlu", null, { deger: val });
-                  }}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${sadeceZorunlu ? "bg-blue-600" : "bg-gray-300"}`}
+                <div className="flex items-center gap-2">
+                  <input type="number" min={1} max={365} value={uyariAyarlari[field.ayarKey] || "7"} onChange={(e) => setUyariAyarlari((prev) => ({ ...prev, [field.ayarKey]: e.target.value }))} className="input text-xs text-center" style={{ width: "4rem" }} />
+                  <span className="text-xs text-gray-500">gün</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Menü Düzenle" description="Sol menü öğelerini sürükleyip sıralayın" isOpen={showMenu} onToggle={() => setShowMenu(!showMenu)}>
+          <div>
+            <div className="space-y-1">
+              {menuItems.map((item, idx) => (
+                <div key={item.key}
+                  draggable
+                  onDragStart={() => setDragIdx(idx)}
+                  onDragOver={(e) => { e.preventDefault(); if (dragIdx === null || dragIdx === idx) return; const items = [...menuItems]; const [moved] = items.splice(dragIdx, 1); items.splice(idx, 0, moved); setMenuItems(items); setDragIdx(idx); }}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-colors ${item.grup === "main" ? "bg-white border-gray-200" : "bg-gray-50 border-gray-100"} ${dragIdx === idx ? "opacity-50" : ""}`}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${sadeceZorunlu ? "translate-x-5" : ""}`} />
-                </button>
-              </div>
-              {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
-                <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
-                  <input type="checkbox" checked={zorunluAlanlar.includes(alan.key)} onChange={() => toggleZorunluAlan(alan.key)} className="rounded border-gray-300" />
-                  <span className="text-sm text-gray-700">{alan.label}</span>
-                </label>
+                  <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  <span className="text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wider text-gray-400 flex-shrink-0">{item.grup === "main" ? "Ana" : "Ek"}</span>
+                  <span className="text-sm text-gray-700 flex-1">{item.label}</span>
+                  <span className="text-[10px] text-gray-300 font-mono">{item.key}</span>
+                </div>
               ))}
-              <div className="flex justify-end pt-2">
-                <button onClick={saveZorunluAlanlar} disabled={zorunluAlanlarSaving} className="btn btn-primary text-sm">
-                  {zorunluAlanlarSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+            {menuItems.length === 0 && <p className="text-center py-6 text-gray-400">Menü bilgisi yüklenmedi</p>}
+            <div className="flex justify-end mt-4">
+              <button onClick={saveMenuOrder} disabled={menuSaving} className="btn btn-primary text-sm flex items-center gap-2">
+                <Save className="w-4 h-4" /> {menuSaving ? "Kaydediliyor..." : "Sırayı Kaydet"}
+              </button>
+            </div>
+          </div>
+        </CollapsibleCard>
 
-        {/* Taşeron Personeli Zorunlu Alanlar */}
-        <div className="card p-6 mt-6">
-          <button
-            onClick={() => setShowTaseronZorunlu(!showTaseronZorunlu)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Taşeron Personeli Zorunlu Alanlar</h3>
-              <p className="text-sm text-gray-500">Taşerona bağlı personel için geçerli zorunlu alanlar</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showTaseronZorunlu && (
-                <button onClick={(e) => { e.stopPropagation(); saveTaseronPersonelZorunlu(); }} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
-                  {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showTaseronZorunlu ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showTaseronZorunlu && (
-            <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-3">Taşeron seçili personelde bu alanlar zorunlu olur. Boş bırakılırsa genel ayarlar kullanılır.</p>
-              <div className="space-y-1">
-                {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
-                  <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" checked={taseronPersonelZorunlu.includes(alan.key)} onChange={() => toggleTaseronPersonelZorunlu(alan.key)} className="rounded border-gray-300" />
-                    <span className="text-sm text-gray-700">{alan.label}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex justify-end pt-2">
-                <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
-                  {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Personel Not Ayarları */}
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowNotAyarlari(!showNotAyarlari)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Personel Not Ayarları</h3>
-              <p className="text-sm text-gray-500">Personel formundaki not alanının davranışını belirleyin</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showNotAyarlari && (
-                <button onClick={(e) => { e.stopPropagation(); saveNotAyarlari(); }} disabled={notSaving} className="btn btn-primary text-sm">
-                  {notSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showNotAyarlari ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showNotAyarlari && (
-            <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
-                  <input type="radio" name="notModu" checked={notModu === "per_personnel"} onChange={() => setNotModu("per_personnel")} className="accent-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Personele Özel</p>
-                    <p className="text-xs text-gray-400">Her personel için ayrı not girilebilir (mevcut davranış)</p>
+        <CollapsibleCard title="Yapay Zeka Entegrasyonları" description="Projeye katkı sağlayan YZ sistemleri" isOpen={showAI} onToggle={() => setShowAI(!showAI)}>
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {aiEntries.map((ai: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 bg-white">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center flex-shrink-0 border border-blue-100">
+                    {idx % 2 === 0 ? <Brain className="w-5 h-5 text-indigo-500" /> : <Cpu className="w-5 h-5 text-blue-500" />}
                   </div>
-                </label>
-                <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
-                  <input type="radio" name="notModu" checked={notModu === "sabit"} onChange={() => setNotModu("sabit")} className="accent-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Sabit Not</p>
-                    <p className="text-xs text-gray-400">Tüm personel kayıtlarında aynı not içeriği kullanılır</p>
-                  </div>
-                </label>
-              </div>
-
-              {notModu === "sabit" && (
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">Sabit Not İçeriği</label>
-                  <textarea value={sabitNot} onChange={(e) => setSabitNot(e.target.value)} className="input h-24 resize-none" placeholder="Tüm personel kayıtlarında gösterilecek not içeriği..." />
-                  <p className="text-xs text-gray-400 mt-1">Personel eklerken bu not otomatik doldurulur, istenirse değiştirilebilir.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Hat Listesi */}
-        <div className="card p-6 mt-6">
-          <button onClick={() => setShowHatList(!showHatList)} className="w-full flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-lg font-semibold text-gray-800">Hat Listesi</h3>
-              <p className="text-sm text-gray-500">Telefon operatörleri (personel formunda seçim listesi)</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {showHatList && (
-                <button onClick={(e) => { e.stopPropagation(); saveHatList(); }} disabled={hatListSaving} className="btn btn-primary text-sm">
-                  {hatListSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              )}
-              {showHatList ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </div>
-          </button>
-
-          {showHatList && (
-            <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-3">Yeni operatör eklemek için aşağıya yazıp "Ekle" butonuna tıklayın.</p>
-              <div className="space-y-2">
-                {hatList.map((h, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700 flex-1">{h}</span>
-                    <button onClick={() => setHatList(prev => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 p-1"><X className="w-4 h-4" /></button>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 pt-2 border-t">
-                  <input value={hatNew} onChange={e => setHatNew(e.target.value)} className="input flex-1 text-sm" placeholder="Yeni operatör adı" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } } }} />
-                  <button onClick={() => { if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } }} disabled={!hatNew.trim()} className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"><Plus className="w-4 h-4" /> Ekle</button>
-                </div>
-              </div>
-              <div className="flex justify-end pt-3">
-                <button onClick={saveHatList} disabled={hatListSaving} className="btn btn-primary text-sm">
-                  {hatListSaving ? "Kaydediliyor..." : "Kaydet"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card p-6 mt-6">
-            <button onClick={() => setShowVersion(!showVersion)} className="w-full flex items-center justify-between">
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-gray-800">Sürüm Takip</h3>
-                <p className="text-sm text-gray-500">GitHub commit geçmişi</p>
-              </div>
-              {showVersion ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            </button>
-            {showVersion && (
-              <div className="space-y-1 max-h-80 overflow-y-auto mt-4">
-                <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 px-2">
-                  <GitBranch className="w-3.5 h-3.5" />
-                  <span>enderak54/isgapp — son {commits.length} commit</span>
-                </div>
-                {commitsLoading ? (
-                  <p className="text-xs text-gray-400 text-center py-6">Yükleniyor...</p>
-                ) : commits.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-6">Commit bilgisi alınamadı</p>
-                ) : (
-                  commits.map((c: any) => (
-                    <div key={c.sha} className="flex items-start gap-2 py-2 px-2 rounded hover:bg-gray-50 text-xs">
-                      <span className="font-mono text-gray-400 flex-shrink-0 w-16">{c.sha.substring(0, 7)}</span>
-                      <span className="text-gray-700 flex-1 min-w-0">{c.commit.message.split("\n")[0]}</span>
-                      <span className="text-gray-400 flex-shrink-0 whitespace-nowrap">{new Date(c.commit.author.date).toLocaleDateString("tr-TR")}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-800 text-sm">{ai.name}</p>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-mono">{ai.model}</span>
                     </div>
-                  ))
-                )}
+                    <p className="text-xs text-gray-500 mt-1">{ai.role}</p>
+                    {ai.url && (
+                      <a href={ai.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1.5">
+                        <ExternalLink className="w-3 h-3" /> {new URL(ai.url).hostname}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {aiEntries.length === 0 && <p className="text-center py-6 text-gray-400">AI kaydı bulunamadı</p>}
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Alan Bazinda Sifreleme" description="Hassas veri alanlari icin AES-256-GCM sifreleme" isOpen={showEncryption} onToggle={() => setShowEncryption(!showEncryption)}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Alan Bazinda Sifreleme</p>
+                <p className="text-xs text-gray-500 mt-0.5">Aktif edildiginde TC Kimlik No, telefon gibi hassas alanlar sifrelenir</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={encryptionEnabled} onChange={(e) => setEncryptionEnabled(e.target.checked)} className="sr-only peer" />
+                <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-indigo-600 peer-focus:ring-2 peer-focus:ring-indigo-300 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+              </label>
+            </div>
+            {encryptionEnabled && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-xs text-amber-700">
+                  <strong>Uyari:</strong> Sifreleme aktif edildiginde, sifrelenmis alanlarda arama ve siralama fonksiyonlari calismaz.
+                  Anahtar kaybi durumunda veriler kurtarilamaz. Uretim ortamina gecmeden once yedekleme yapin.
+                </p>
               </div>
             )}
           </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Yedekleme" description="Veritabani ve dosya yedekleme" isOpen={showBackup} onToggle={() => setShowBackup(!showBackup)}>
+          <div>
+            <div className="flex gap-3 mb-4">
+              <button onClick={() => { setBackupMode("full"); setBackupTables({}); }}
+                className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "full" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                <HardDrive className="w-5 h-5 text-blue-500 mb-1" />
+                <p className="font-medium text-gray-800 text-sm">Tam Yedekleme</p>
+                <p className="text-xs text-gray-500 mt-0.5">Tüm tablolar + dosyalar</p>
+              </button>
+              <button onClick={() => setBackupMode("partial")}
+                className={`flex-1 p-4 rounded-xl border-2 text-left transition-colors ${backupMode === "partial" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                <Database className="w-5 h-5 text-green-500 mb-1" />
+                <p className="font-medium text-gray-800 text-sm">Kısmi Yedekleme</p>
+                <p className="text-xs text-gray-500 mt-0.5">Seçili tablo ve alanlar</p>
+              </button>
+            </div>
+
+            {backupMode === "partial" && (
+              <div className="mb-4 space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                {(["kritik", "modul", "diger"] as const).map(grup => (
+                  <div key={grup}>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 mt-2 first:mt-0">
+                      {grup === "kritik" ? "Ana Tablolar" : grup === "modul" ? "ISO 45001 Modülleri" : "Diğer"}
+                    </p>
+                    {ALL_TABLES.filter(t => t.grup === grup).map(t => (
+                      <label key={t.key} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" checked={backupTables[t.key] ?? true} onChange={e => setBackupTables(p => ({ ...p, [t.key]: e.target.checked }))} className="rounded border-gray-300" />
+                        <span className="text-sm text-gray-700">{t.label}</span>
+                        <span className="text-[10px] text-gray-300 font-mono ml-auto">{t.key}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {backupMode === "full" && (
+              <label className="flex items-center gap-2 mb-4 px-1">
+                <input type="checkbox" checked={backupIncludeFiles} onChange={e => setBackupIncludeFiles(e.target.checked)} className="rounded border-gray-300" />
+                <span className="text-sm text-gray-700">Dosya referanslarını (imzalı URL'ler) dahil et</span>
+              </label>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button onClick={startBackup} disabled={backupLoading} className="btn btn-primary text-sm flex items-center gap-2">
+                {backupLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {backupLoading ? "Yedekleniyor..." : backupMode === "full" ? "Tam Yedekleme Al" : "Seçili Tabloları Yedekle"}
+              </button>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="MYK Zorunlu Meslekler" description="Personel kaydında üstte gösterilecek zorunlu MYK mesleklerini seçin" isOpen={showMykZorunlu} onToggle={() => setShowMykZorunlu(!showMykZorunlu)} onSave={saveMykZorunlu} saving={mykZorunluSaving}>
+          <div className="space-y-1 max-h-72 overflow-y-auto">
+            {mykEgitimListesi.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">MYK eğitim listesi yüklenmedi</p>
+            ) : (
+              mykEgitimListesi.map((eg) => (
+                <label key={eg.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={mykZorunluIds.includes(eg.id)} onChange={() => toggleMykZorunlu(eg.id)} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">{eg.ad}</span>
+                </label>
+              ))
+            )}
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Personel Kayıt Zorunlu Alanlar" description="Personel kayıt formunda hangi alanların zorunlu olduğunu seçin" isOpen={showZorunluAlanlar} onToggle={() => setShowZorunluAlanlar(!showZorunluAlanlar)} onSave={saveZorunluAlanlar} saving={zorunluAlanlarSaving}>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between py-2 px-2 mb-2 bg-gray-50 rounded">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Sadece zorunlu alanları göster</p>
+                <p className="text-xs text-gray-400">Personel kayıt formunda zorunlu olmayan alanlar gizlenir</p>
+              </div>
+              <button
+                onClick={async () => {
+                  const val = !sadeceZorunlu;
+                  setSadeceZorunlu(val);
+                  await supabase.from("ayarlar").upsert({ key: "personel_sadece_zorunlu", value: JSON.stringify(val), type: "personel", description: "Personel kaydında sadece zorunlu alanları göster" }, { onConflict: "key" });
+                  await logAudit("ayarlar", "UPDATE", "personel_sadece_zorunlu", null, { deger: val });
+                }}
+                className={`relative w-10 h-5 rounded-full transition-colors ${sadeceZorunlu ? "bg-blue-600" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${sadeceZorunlu ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
+            {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
+              <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                <input type="checkbox" checked={zorunluAlanlar.includes(alan.key)} onChange={() => toggleZorunluAlan(alan.key)} className="rounded border-gray-300" />
+                <span className="text-sm text-gray-700">{alan.label}</span>
+              </label>
+            ))}
+            <div className="flex justify-end pt-2">
+              <button onClick={saveZorunluAlanlar} disabled={zorunluAlanlarSaving} className="btn btn-primary text-sm">
+                {zorunluAlanlarSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Taşeron Personeli Zorunlu Alanlar" description="Taşerona bağlı personel için geçerli zorunlu alanlar" isOpen={showTaseronZorunlu} onToggle={() => setShowTaseronZorunlu(!showTaseronZorunlu)} onSave={saveTaseronPersonelZorunlu} saving={taseronZorunluSaving}>
+          <div>
+            <p className="text-xs text-gray-500 mb-3">Taşeron seçili personelde bu alanlar zorunlu olur. Boş bırakılırsa genel ayarlar kullanılır.</p>
+            <div className="space-y-1">
+              {PERSONEL_ZORUNLU_ALANLAR.map((alan) => (
+                <label key={alan.key} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={taseronPersonelZorunlu.includes(alan.key)} onChange={() => toggleTaseronPersonelZorunlu(alan.key)} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">{alan.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={saveTaseronPersonelZorunlu} disabled={taseronZorunluSaving} className="btn btn-primary text-sm">
+                {taseronZorunluSaving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Personel Not Ayarları" description="Personel formundaki not alanının davranışını belirleyin" isOpen={showNotAyarlari} onToggle={() => setShowNotAyarlari(!showNotAyarlari)} onSave={saveNotAyarlari} saving={notSaving}>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
+                <input type="radio" name="notModu" checked={notModu === "per_personnel"} onChange={() => setNotModu("per_personnel")} className="accent-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Personele Özel</p>
+                  <p className="text-xs text-gray-400">Her personel için ayrı not girilebilir (mevcut davranış)</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
+                <input type="radio" name="notModu" checked={notModu === "sabit"} onChange={() => setNotModu("sabit")} className="accent-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Sabit Not</p>
+                  <p className="text-xs text-gray-400">Tüm personel kayıtlarında aynı not içeriği kullanılır</p>
+                </div>
+              </label>
+            </div>
+            {notModu === "sabit" && (
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">Sabit Not İçeriği</label>
+                <textarea value={sabitNot} onChange={(e) => setSabitNot(e.target.value)} className="input h-24 resize-none" placeholder="Tüm personel kayıtlarında gösterilecek not içeriği..." />
+                <p className="text-xs text-gray-400 mt-1">Personel eklerken bu not otomatik doldurulur, istenirse değiştirilebilir.</p>
+              </div>
+            )}
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Hat Listesi" description="Telefon operatörleri (personel formunda seçim listesi)" isOpen={showHatList} onToggle={() => setShowHatList(!showHatList)} onSave={saveHatList} saving={hatListSaving}>
+          <div>
+            <p className="text-xs text-gray-500 mb-3">Yeni operatör eklemek için aşağıya yazıp "Ekle" butonuna tıklayın.</p>
+            <div className="space-y-2">
+              {hatList.map((h, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700 flex-1">{h}</span>
+                  <button onClick={() => setHatList(prev => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 p-1"><X className="w-4 h-4" /></button>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <input value={hatNew} onChange={e => setHatNew(e.target.value)} className="input flex-1 text-sm" placeholder="Yeni operatör adı" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } } }} />
+                <button onClick={() => { if (hatNew.trim() && !hatList.includes(hatNew.trim())) { setHatList(prev => [...prev, hatNew.trim()]); setHatNew(""); } }} disabled={!hatNew.trim()} className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"><Plus className="w-4 h-4" /> Ekle</button>
+              </div>
+            </div>
+            <div className="flex justify-end pt-3">
+              <button onClick={saveHatList} disabled={hatListSaving} className="btn btn-primary text-sm">{hatListSaving ? "Kaydediliyor..." : "Kaydet"}</button>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Sürüm Takip" description="GitHub commit geçmişi" isOpen={showVersion} onToggle={() => setShowVersion(!showVersion)}>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 px-2">
+              <GitBranch className="w-3.5 h-3.5" />
+              <span>enderak54/isgapp — son {commits.length} commit</span>
+            </div>
+            {commitsLoading ? (
+              <p className="text-xs text-gray-400 text-center py-6">Yükleniyor...</p>
+            ) : commits.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">Commit bilgisi alınamadı</p>
+            ) : (
+              commits.map((c: any) => (
+                <div key={c.sha} className="flex items-start gap-2 py-2 px-2 rounded hover:bg-gray-50 text-xs">
+                  <span className="font-mono text-gray-400 flex-shrink-0 w-16">{c.sha.substring(0, 7)}</span>
+                  <span className="text-gray-700 flex-1 min-w-0">{c.commit.message.split("\n")[0]}</span>
+                  <span className="text-gray-400 flex-shrink-0 whitespace-nowrap">{new Date(c.commit.author.date).toLocaleDateString("tr-TR")}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </CollapsibleCard>
 
         {showAddVersion && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddVersion(false)}>
