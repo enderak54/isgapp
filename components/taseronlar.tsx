@@ -90,7 +90,7 @@ export default function Taseronlar() {
   const [editingPerson, setEditingPerson] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
-    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "", operatorBelgesiTarih: "",
+    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "", operatorBelgesiTarih: "", kkdTarih: "",
   });
   const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
   const [editSaving, setEditSaving] = useState(false);
@@ -111,7 +111,7 @@ export default function Taseronlar() {
     sayi: "SAYI", adi_soyadi: "ADI SOYADI", sigorta: "SİGORTA DURUMU", gorev_alani: "GÖREVİ/ALANI",
     ise_giris: "İŞE GİRİŞ", tc_kimlik: "T.C. KİMLİK", telefon: "TELEFON", gorev: "GÖREV",
     myk_izme: "MYK İZME", myk_icerik: "MYK/DİPLOMA İÇERİĞİ", myk_yenileme: "MYK YENİLEME TARİHİ",
-    is_makinesi: "İŞ MAKİNESİ KULLANIM DURUMU", isg_zimmet: "İSG ZİMMET", talimat: "TALİMAT",
+    is_makinesi: "İŞ MAKİNESİ KULLANIM DURUMU", isg_zimmet: "KKD ZİMMET", talimat: "TALİMAT",
     yuksekte_yenileme: "YÜKSEKTE ÇALIŞMA YENİLEME TARİHİ",
     saglik_yenileme: "SAĞLIK RAPORU YENİLEME TARİHİ",
     isg_egitim_yenileme: "İSG EĞİTİMİ YENİLEME TARİHİ", gorevlendirme: "GÖREVLENDİRME",
@@ -244,6 +244,7 @@ export default function Taseronlar() {
       isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
       gorevlendirmeTarih: empDocsMap[emp.id]?.["gorevlendirme"]?.son_gecerlilik_tarihi || "",
       operatorBelgesiTarih: empDocsMap[emp.id]?.["operator_belgesi"]?.son_gecerlilik_tarihi || "",
+      kkdTarih: empDocsMap[emp.id]?.["kkd"]?.son_gecerlilik_tarihi || "",
     });
     setFileUploads({}); setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
   };
@@ -273,6 +274,7 @@ export default function Taseronlar() {
         { tip: "isg_egitim", tarih: editForm.isgTarih },
         { tip: "gorevlendirme", tarih: editForm.gorevlendirmeTarih },
         { tip: "operator_belgesi", tarih: editForm.operatorBelgesiTarih },
+        { tip: "kkd", tarih: editForm.kkdTarih },
       ];
       for (const du of docUpdates) {
         let dosyaUrl: string | null = null;
@@ -696,6 +698,7 @@ export default function Taseronlar() {
                     { key: "isg_egitim", label: "İSG Eğitimi", tarih: editForm.isgTarih, setTarih: (v: string) => setEditForm({ ...editForm, isgTarih: v }) },
                     { key: "gorevlendirme", label: "Görevlendirme", tarih: editForm.gorevlendirmeTarih, setTarih: (v: string) => setEditForm({ ...editForm, gorevlendirmeTarih: v }) },
                     { key: "operator_belgesi", label: "İş Makinesi / Operatör", tarih: editForm.operatorBelgesiTarih, setTarih: (v: string) => setEditForm({ ...editForm, operatorBelgesiTarih: v }) },
+                    { key: "kkd", label: "KKD Zimmet", tarih: editForm.kkdTarih, setTarih: (v: string) => setEditForm({ ...editForm, kkdTarih: v }) },
                   ].map(({ key, label, tarih, setTarih }) => (
                     <div key={key} className="flex items-end gap-2">
                       <div className="flex-1">
