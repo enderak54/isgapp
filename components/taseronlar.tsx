@@ -90,8 +90,12 @@ export default function Taseronlar() {
   const [editingPerson, setEditingPerson] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
-    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "", operatorBelgesiTarih: "", kkdTarih: "",
+    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "", kkdTarih: "",
+    operatorSertifikalar: [] as Array<{id?: string; tip: string; tarih: string; dosyaAdi?: string}>,
   });
+  const [opTip, setOpTip] = useState("");
+  const [opTarih, setOpTarih] = useState("");
+  const OP_SERTIFIKA_TIPLERI = ["Forklift", "Manlift", "Tavan Vinci", "Mobil Vinç", "Ekskavatör", "Köprülü Vinç", "Mekanize Kazı", "Kırma Eleme Tesisi", "Diğer"];
   const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
   const [editSaving, setEditSaving] = useState(false);
 
@@ -234,8 +238,10 @@ export default function Taseronlar() {
 
   const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); setTaseronZorunluAlanlar([]); setShowZorunluModal(false); };
 
-  const openEditPersonel = (emp: any) => {
+  const openEditPersonel = async (emp: any) => {
     setEditingPerson(emp);
+    setOpTip(""); setOpTarih("");
+    const { data: opDocs } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", emp.id).eq("belge_tipi", "operator_belgesi");
     setEditForm({
       hat: emp.hat || "", meslek_kodu: emp.meslek_kodu || "",
       mykEgitimler: (empMykMap[emp.id] || []).map((m: any) => ({ id: m.id, myk_egitim_id: m.myk_egitim_id, alis_tarihi: m.alisTarih || "", gecerlilik_suresi: m.gecerlilik_suresi ? String(m.gecerlilik_suresi) : "" })),
@@ -243,8 +249,8 @@ export default function Taseronlar() {
       saglikTarih: empDocsMap[emp.id]?.["saglik_raporu"]?.son_gecerlilik_tarihi || "",
       isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
       gorevlendirmeTarih: empDocsMap[emp.id]?.["gorevlendirme"]?.son_gecerlilik_tarihi || "",
-      operatorBelgesiTarih: empDocsMap[emp.id]?.["operator_belgesi"]?.son_gecerlilik_tarihi || "",
       kkdTarih: empDocsMap[emp.id]?.["kkd"]?.son_gecerlilik_tarihi || "",
+      operatorSertifikalar: (opDocs || []).map(d => ({ id: d.id, tip: d.dosya_adi || "Diğer", tarih: d.son_gecerlilik_tarihi || "", dosyaAdi: d.dosya_adi })),
     });
     setFileUploads({}); setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
   };
@@ -273,7 +279,6 @@ export default function Taseronlar() {
         { tip: "saglik_raporu", tarih: editForm.saglikTarih },
         { tip: "isg_egitim", tarih: editForm.isgTarih },
         { tip: "gorevlendirme", tarih: editForm.gorevlendirmeTarih },
-        { tip: "operator_belgesi", tarih: editForm.operatorBelgesiTarih },
         { tip: "kkd", tarih: editForm.kkdTarih },
       ];
       for (const du of docUpdates) {
@@ -316,6 +321,32 @@ export default function Taseronlar() {
           if (newBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", newBelge[0].id, null, newBelge[0]);
         }
       }
+      // Operator sertifikaları (delete + insert)
+      const { data: oldOpDocs } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", editingPerson.id).eq("belge_tipi", "operator_belgesi");
+      await supabase.from("personel_belgeleri").delete().eq("personel_id", editingPerson.id).eq("belge_tipi", "operator_belgesi");
+      if (oldOpDocs?.length) for (const row of oldOpDocs) await logAudit("personel_belgeleri", "DELETE", row.id, row, null);
+      for (let i = 0; i < editForm.operatorSertifikalar.length; i++) {
+        const s = editForm.operatorSertifikalar[i];
+        let dosyaUrl: string | null = null;
+        let dosyaUzantisi: string | null = null;
+        let dosyaBoyut: number | null = null;
+        const file = fileUploads[`operator_${i}`];
+        if (file) {
+          const ext = file.name.split(".").pop() || "";
+          const fileName = `${editingPerson.id}/${Date.now()}_${file.name}`;
+          const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+            dosyaUrl = urlData.publicUrl; dosyaUzantisi = ext; dosyaBoyut = file.size;
+          }
+        }
+        const { data: opBelge } = await supabase.from("personel_belgeleri").insert({
+          personel_id: editingPerson.id, belge_tipi: "operator_belgesi",
+          dosya_url: dosyaUrl, dosya_adi: s.tip, dosya_uzantisi: dosyaUzantisi, dosya_boyut: dosyaBoyut,
+          onay_durumu: "onaylandi", son_gecerlilik_tarihi: s.tarih || null,
+        }).select();
+        if (opBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", opBelge[0].id, null, opBelge[0]);
+      }
       setFileUploads({});
       setEditingPerson(null);
       if (selectedTaseron) openCompany(selectedTaseron);
@@ -333,6 +364,15 @@ export default function Taseronlar() {
 
   const removeMykFromEdit = (idx: number) => {
     setEditForm(prev => ({ ...prev, mykEgitimler: prev.mykEgitimler.filter((_, i) => i !== idx) }));
+  };
+
+  const addOperatorCert = () => {
+    if (!opTip) return;
+    setEditForm(prev => ({ ...prev, operatorSertifikalar: [...prev.operatorSertifikalar, { tip: opTip, tarih: opTarih }] }));
+    setOpTip(""); setOpTarih("");
+  };
+  const removeOperatorCert = (idx: number) => {
+    setEditForm(prev => ({ ...prev, operatorSertifikalar: prev.operatorSertifikalar.filter((_, i) => i !== idx) }));
   };
 
   const toggleTaseronZorunlu = (alanKey: string) => {
@@ -690,6 +730,37 @@ export default function Taseronlar() {
               </div>
 
               <div className="border-t pt-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Operatör Sertifikaları (Forklift, Manlift, Vinç vb.)</h4>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <select value={opTip} onChange={e => setOpTip(e.target.value)} className="flex-1 p-1.5 border rounded text-xs">
+                    <option value="">Ekipman seçiniz</option>
+                    {OP_SERTIFIKA_TIPLERI.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input type="date" value={opTarih} onChange={e => setOpTarih(e.target.value)} className="w-[130px] p-1.5 border rounded text-xs" title="Geçerlilik Tarihi" />
+                  <button onClick={addOperatorCert} disabled={!opTip} className="bg-blue-600 text-white px-2 py-1.5 rounded text-xs disabled:opacity-50">Ekle</button>
+                </div>
+                {editForm.operatorSertifikalar.length === 0 ? <p className="text-xs text-gray-400">Henüz sertifika eklenmemiş</p> : (
+                  <div className="space-y-1">
+                    {editForm.operatorSertifikalar.map((s, i) => (
+                      <div key={i} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded">
+                        <span className="text-xs"><strong>{s.tip}</strong> {s.tarih && `(${displayDate(s.tarih)})`}</span>
+                        <div className="flex items-center gap-1">
+                          <div className="relative">
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[`operator_${i}`]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [`operator_${i}`]: f })); } }} />
+                            <div className="flex items-center gap-1 p-1 border rounded text-xs bg-gray-50 min-w-[80px]">
+                              <Upload className="w-3 h-3 text-gray-400" />
+                              <span className="truncate text-gray-500 max-w-[60px]">{fileUploads[`operator_${i}`]?.name || "Dosya"}</span>
+                            </div>
+                          </div>
+                          <button onClick={() => removeOperatorCert(i)} className="text-red-500 hover:text-red-700 text-xs">Sil</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Belge Geçerlilik Tarihleri</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
@@ -697,7 +768,6 @@ export default function Taseronlar() {
                     { key: "saglik_raporu", label: "Sağlık Raporu", tarih: editForm.saglikTarih, setTarih: (v: string) => setEditForm({ ...editForm, saglikTarih: v }) },
                     { key: "isg_egitim", label: "İSG Eğitimi", tarih: editForm.isgTarih, setTarih: (v: string) => setEditForm({ ...editForm, isgTarih: v }) },
                     { key: "gorevlendirme", label: "Görevlendirme", tarih: editForm.gorevlendirmeTarih, setTarih: (v: string) => setEditForm({ ...editForm, gorevlendirmeTarih: v }) },
-                    { key: "operator_belgesi", label: "İş Makinesi / Operatör", tarih: editForm.operatorBelgesiTarih, setTarih: (v: string) => setEditForm({ ...editForm, operatorBelgesiTarih: v }) },
                     { key: "kkd", label: "KKD Zimmet", tarih: editForm.kkdTarih, setTarih: (v: string) => setEditForm({ ...editForm, kkdTarih: v }) },
                   ].map(({ key, label, tarih, setTarih }) => (
                     <div key={key} className="flex items-end gap-2">
