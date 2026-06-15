@@ -73,6 +73,7 @@ export default function Taseronlar() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [empMykMap, setEmpMykMap] = useState<Record<string, any[]>>({});
   const [empDocsMap, setEmpDocsMap] = useState<Record<string, Record<string, any>>>({});
+  const [empOperatorMap, setEmpOperatorMap] = useState<Record<string, any[]>>({});
   const [empLoading, setEmpLoading] = useState(false);
 
   const [showAddEmp, setShowAddEmp] = useState(false);
@@ -171,6 +172,7 @@ export default function Taseronlar() {
     setEmpMykMap(mykMap);
 
     const docMap: Record<string, Record<string, any>> = {};
+    const opMap: Record<string, any[]> = {};
     for (const e of employees.length > 0 ? employees.filter(emp => ids.includes(emp.id)) : []) {
       const latest: Record<string, any> = {};
       const empDocs = allDocs.filter(d => d.personel_id === e.id);
@@ -178,8 +180,10 @@ export default function Taseronlar() {
         if (!latest[d.belge_tipi]) latest[d.belge_tipi] = d;
       }
       docMap[e.id] = latest;
+      opMap[e.id] = allDocs.filter(d => d.personel_id === e.id && d.belge_tipi === "operator_belgesi");
     }
     if (Object.keys(docMap).length > 0) setEmpDocsMap(docMap);
+    if (Object.keys(opMap).length > 0) setEmpOperatorMap(opMap);
   };
 
   const openCompany = async (t: any) => {
@@ -216,6 +220,7 @@ export default function Taseronlar() {
         setEmpMykMap(mykMap);
 
         const docMap: Record<string, Record<string, any>> = {};
+        const opMap: Record<string, any[]> = {};
         for (const e of emp) {
           const latest: Record<string, any> = {};
           const empDocs = allDocs.filter(d => d.personel_id === e.id);
@@ -223,8 +228,10 @@ export default function Taseronlar() {
             if (!latest[d.belge_tipi]) latest[d.belge_tipi] = d;
           }
           docMap[e.id] = latest;
+          opMap[e.id] = allDocs.filter(d => d.personel_id === e.id && d.belge_tipi === "operator_belgesi");
         }
         setEmpDocsMap(docMap);
+        setEmpOperatorMap(opMap);
       }
     }
     supabase.from("taseron_sorumlulari").select("ad_soyad, telefon, email, pozisyon").eq("taseron_id", t.id).then(({ data }) => { if (data) setSorumlular(data); });
@@ -236,7 +243,7 @@ export default function Taseronlar() {
     setEmpLoading(false);
   };
 
-  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setSorumlular([]); setEditingPerson(null); setTaseronZorunluAlanlar([]); setShowZorunluModal(false); };
+  const closeCompany = () => { setSelectedTaseron(null); setEmployees([]); setEmpMykMap({}); setEmpDocsMap({}); setEmpOperatorMap({}); setSorumlular([]); setEditingPerson(null); setTaseronZorunluAlanlar([]); setShowZorunluModal(false); };
 
   const openEditPersonel = async (emp: any) => {
     setEditingPerson(emp);
@@ -633,9 +640,10 @@ export default function Taseronlar() {
                 const isgZimmetDeger = docKkd ? "VAR" : "YOK";
                 const docTalimat = empDocsMap[emp.id]?.["talimat"] || null;
                 const talimatDeger = docTalimat ? "VAR" : "YOK";
-                const docIsMakinesi = empDocsMap[emp.id]?.["operator_belgesi"] || null;
-                const mykIsMakineVar = (empMykMap[emp.id] || []).some((m: any) => (m.egitimAd || "").toLowerCase().includes("operatör") || (m.egitimAd || "").toLowerCase().includes("iş makinesi") || (m.egitimAd || "").toLowerCase().includes("iş makineleri"));
-                const isMakDeger = docIsMakinesi || mykIsMakineVar ? "KULLANABİLİR" : "KULLANAMAZ";
+                const operatorDocs = empOperatorMap[emp.id] || [];
+                const opEquipmentNames = operatorDocs.map((d: any) => d.dosya_adi).filter(Boolean);
+                const mykOpNames = (empMykMap[emp.id] || []).filter((m: any) => (m.egitimAd || "").toLowerCase().includes("operatör") || (m.egitimAd || "").toLowerCase().includes("iş makinesi") || (m.egitimAd || "").toLowerCase().includes("iş makineleri")).map((m: any) => m.egitimAd);
+                const isMakDeger = operatorDocs.length > 0 || mykOpNames.length > 0 ? [...new Set([...opEquipmentNames, ...mykOpNames])].join(", ") : "KULLANAMAZ";
                 const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
                 const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
                 const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
