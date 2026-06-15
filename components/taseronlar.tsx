@@ -90,7 +90,7 @@ export default function Taseronlar() {
   const [editingPerson, setEditingPerson] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
-    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "",
+    yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "", operatorBelgesiTarih: "",
   });
   const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
   const [editSaving, setEditSaving] = useState(false);
@@ -243,6 +243,7 @@ export default function Taseronlar() {
       saglikTarih: empDocsMap[emp.id]?.["saglik_raporu"]?.son_gecerlilik_tarihi || "",
       isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
       gorevlendirmeTarih: empDocsMap[emp.id]?.["gorevlendirme"]?.son_gecerlilik_tarihi || "",
+      operatorBelgesiTarih: empDocsMap[emp.id]?.["operator_belgesi"]?.son_gecerlilik_tarihi || "",
     });
     setFileUploads({}); setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
   };
@@ -271,6 +272,7 @@ export default function Taseronlar() {
         { tip: "saglik_raporu", tarih: editForm.saglikTarih },
         { tip: "isg_egitim", tarih: editForm.isgTarih },
         { tip: "gorevlendirme", tarih: editForm.gorevlendirmeTarih },
+        { tip: "operator_belgesi", tarih: editForm.operatorBelgesiTarih },
       ];
       for (const du of docUpdates) {
         let dosyaUrl: string | null = null;
@@ -590,7 +592,8 @@ export default function Taseronlar() {
                 const docTalimat = empDocsMap[emp.id]?.["talimat"] || null;
                 const talimatDeger = docTalimat ? "VAR" : "YOK";
                 const docIsMakinesi = empDocsMap[emp.id]?.["operator_belgesi"] || null;
-                const isMakDeger = docIsMakinesi ? "KULLANABİLİR" : "KULLANAMAZ";
+                const mykIsMakineVar = (empMykMap[emp.id] || []).some((m: any) => (m.egitimAd || "").toLowerCase().includes("operatör") || (m.egitimAd || "").toLowerCase().includes("iş makinesi") || (m.egitimAd || "").toLowerCase().includes("iş makineleri"));
+                const isMakDeger = docIsMakinesi || mykIsMakineVar ? "KULLANABİLİR" : "KULLANAMAZ";
                 const docYuksekte = empDocsMap[emp.id]?.["yuksekte_calisma"] || null;
                 const docSaglik = empDocsMap[emp.id]?.["saglik_raporu"] || null;
                 const docIsg = empDocsMap[emp.id]?.["isg_egitim"] || null;
@@ -692,6 +695,7 @@ export default function Taseronlar() {
                     { key: "saglik_raporu", label: "Sağlık Raporu", tarih: editForm.saglikTarih, setTarih: (v: string) => setEditForm({ ...editForm, saglikTarih: v }) },
                     { key: "isg_egitim", label: "İSG Eğitimi", tarih: editForm.isgTarih, setTarih: (v: string) => setEditForm({ ...editForm, isgTarih: v }) },
                     { key: "gorevlendirme", label: "Görevlendirme", tarih: editForm.gorevlendirmeTarih, setTarih: (v: string) => setEditForm({ ...editForm, gorevlendirmeTarih: v }) },
+                    { key: "operator_belgesi", label: "İş Makinesi / Operatör", tarih: editForm.operatorBelgesiTarih, setTarih: (v: string) => setEditForm({ ...editForm, operatorBelgesiTarih: v }) },
                   ].map(({ key, label, tarih, setTarih }) => (
                     <div key={key} className="flex items-end gap-2">
                       <div className="flex-1">
