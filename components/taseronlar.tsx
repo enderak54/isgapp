@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
+import { validateFile } from "@/lib/file-validation";
 import Link from "next/link";
-import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare } from "lucide-react";
+import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare, Upload } from "lucide-react";
 
 function kalanGunHesapla(tarih: string): { text: string; bgCls: string; textCls: string } {
   if (!tarih) return { text: "-", bgCls: "bg-gray-50", textCls: "text-gray-400" };
@@ -91,6 +92,7 @@ export default function Taseronlar() {
     hat: "", meslek_kodu: "", mykEgitimler: [] as any[],
     yuksekteTarih: "", saglikTarih: "", isgTarih: "", gorevlendirmeTarih: "",
   });
+  const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
   const [editSaving, setEditSaving] = useState(false);
 
   // Per-taşeron zorunlu alanlar
@@ -242,7 +244,7 @@ export default function Taseronlar() {
       isgTarih: empDocsMap[emp.id]?.["isg_egitim"]?.son_gecerlilik_tarihi || "",
       gorevlendirmeTarih: empDocsMap[emp.id]?.["gorevlendirme"]?.son_gecerlilik_tarihi || "",
     });
-    setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
+    setFileUploads({}); setMykSecim(""); setMykSecimTarih(""); setMykSecimSure("");
   };
 
   const handleEditSave = async () => {
@@ -271,23 +273,46 @@ export default function Taseronlar() {
         { tip: "gorevlendirme", tarih: editForm.gorevlendirmeTarih },
       ];
       for (const du of docUpdates) {
+        let dosyaUrl: string | null = null;
+        let dosyaAdi: string | null = null;
+        let dosyaUzantisi: string | null = null;
+        let dosyaBoyut: number | null = null;
+        const file = fileUploads[du.tip];
+        if (file) {
+          const ext = file.name.split(".").pop() || "";
+          const fileName = `${editingPerson.id}/${Date.now()}_${file.name}`;
+          const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+            dosyaUrl = urlData.publicUrl;
+            dosyaAdi = file.name;
+            dosyaUzantisi = ext;
+            dosyaBoyut = file.size;
+          }
+        }
         const existing = empDocsMap[editingPerson.id]?.[du.tip] || null;
         if (existing) {
-          if (du.tarih) {
-            const { data: updDoc } = await supabase.from("personel_belgeleri").update({ son_gecerlilik_tarihi: du.tarih }).eq("id", existing.id).select();
+          const updateFields: Record<string, any> = {};
+          if (du.tarih) updateFields.son_gecerlilik_tarihi = du.tarih;
+          if (dosyaUrl) { updateFields.dosya_url = dosyaUrl; updateFields.dosya_adi = dosyaAdi; updateFields.dosya_uzantisi = dosyaUzantisi; updateFields.dosya_boyut = dosyaBoyut; }
+          if (Object.keys(updateFields).length > 0) {
+            const { data: updDoc } = await supabase.from("personel_belgeleri").update(updateFields).eq("id", existing.id).select();
             if (updDoc?.[0]) await logAudit("personel_belgeleri", "UPDATE", updDoc[0].id, existing, updDoc[0]);
-          } else {
+          } else if (!du.tarih && !dosyaUrl) {
             await supabase.from("personel_belgeleri").delete().eq("id", existing.id);
             await logAudit("personel_belgeleri", "DELETE", existing.id, existing, null);
           }
-        } else if (du.tarih) {
+        } else if (du.tarih || dosyaUrl) {
           const { data: newBelge } = await supabase.from("personel_belgeleri").insert({
-            personel_id: editingPerson.id, belge_tipi: du.tip, dosya_url: null, dosya_adi: du.tip,
-            onay_durumu: "onaylandi", son_gecerlilik_tarihi: du.tarih,
+            personel_id: editingPerson.id, belge_tipi: du.tip,
+            dosya_url: dosyaUrl, dosya_adi: dosyaAdi || du.tip,
+            dosya_uzantisi: dosyaUzantisi, dosya_boyut: dosyaBoyut,
+            onay_durumu: "onaylandi", son_gecerlilik_tarihi: du.tarih || null,
           }).select();
           if (newBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", newBelge[0].id, null, newBelge[0]);
         }
       }
+      setFileUploads({});
       setEditingPerson(null);
       if (selectedTaseron) openCompany(selectedTaseron);
     } catch (e: any) { alert(e.message); }
@@ -661,23 +686,30 @@ export default function Taseronlar() {
 
               <div className="border-t pt-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Belge Geçerlilik Tarihleri</h4>
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <label className="text-[10px] text-gray-500">Yüksekte Çalışma</label>
-                    <input type="date" value={editForm.yuksekteTarih} onChange={e => setEditForm({ ...editForm, yuksekteTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-500">Sağlık Raporu</label>
-                    <input type="date" value={editForm.saglikTarih} onChange={e => setEditForm({ ...editForm, saglikTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-500">İSG Eğitimi</label>
-                    <input type="date" value={editForm.isgTarih} onChange={e => setEditForm({ ...editForm, isgTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-500">Görevlendirme</label>
-                    <input type="date" value={editForm.gorevlendirmeTarih} onChange={e => setEditForm({ ...editForm, gorevlendirmeTarih: e.target.value })} className="w-full p-1.5 border rounded text-xs" />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { key: "yuksekte_calisma", label: "Yüksekte Çalışma", tarih: editForm.yuksekteTarih, setTarih: (v: string) => setEditForm({ ...editForm, yuksekteTarih: v }) },
+                    { key: "saglik_raporu", label: "Sağlık Raporu", tarih: editForm.saglikTarih, setTarih: (v: string) => setEditForm({ ...editForm, saglikTarih: v }) },
+                    { key: "isg_egitim", label: "İSG Eğitimi", tarih: editForm.isgTarih, setTarih: (v: string) => setEditForm({ ...editForm, isgTarih: v }) },
+                    { key: "gorevlendirme", label: "Görevlendirme", tarih: editForm.gorevlendirmeTarih, setTarih: (v: string) => setEditForm({ ...editForm, gorevlendirmeTarih: v }) },
+                  ].map(({ key, label, tarih, setTarih }) => (
+                    <div key={key} className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-gray-500">{label}</label>
+                        <input type="date" value={tarih} onChange={e => setTarih(e.target.value)} className="w-full p-1.5 border rounded text-xs" />
+                      </div>
+                      <div className="flex-shrink-0">
+                        <label className="text-[10px] text-gray-500 block">Dosya</label>
+                        <div className="relative">
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[key]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [key]: f })); } }} />
+                          <div className="flex items-center gap-1 p-1.5 border rounded text-xs bg-gray-50 min-w-[100px]">
+                            <Upload className="w-3 h-3 text-gray-400" />
+                            <span className="truncate text-gray-500 max-w-[80px]">{fileUploads[key]?.name || "Seç"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
