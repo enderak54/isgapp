@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive, Settings as SettingsIcon } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon } from "lucide-react";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
@@ -108,6 +108,8 @@ export default function PersonnelList() {
     adres: false, acil_durum_irtibat: false, acil_durum_telefon: false,
   });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [showRaporModal, setShowRaporModal] = useState(false);
+  const [raporLoading, setRaporLoading] = useState(false);
 
   const fetchEkipler = async () => {
     const { data } = await supabase.from("ekipler").select("id, ad").eq("aktif", true).order("ad");
@@ -521,6 +523,150 @@ export default function PersonnelList() {
     }
   };
 
+  const raporGoster = async (tip: string) => {
+    setRaporLoading(true);
+    let rows: any[] = [];
+    let baslik = "";
+    try {
+      const { data: tumPersonel } = await supabase.from("personel").select("*, taseronlar(firma_adi)").eq("arsivde", false).order("ad");
+      const pData = tumPersonel || [];
+      if (tip === "tum_liste") {
+        baslik = "TÜM PERSONEL LİSTESİ";
+        rows = pData;
+      } else if (tip === "taseron_liste") {
+        baslik = "TAŞERON PERSONEL LİSTESİ";
+        const { data: taseronlarData } = await supabase.from("taseronlar").select("id, firma_adi").order("firma_adi");
+        const tasMap = new Map((taseronlarData || []).map(t => [t.id, t.firma_adi]));
+        const grouped: Record<string, any[]> = {};
+        for (const p of pData) {
+          if (p.taseron_id) {
+            const firm = tasMap.get(p.taseron_id) || "Bilinmeyen";
+            if (!grouped[firm]) grouped[firm] = [];
+            grouped[firm].push(p);
+          }
+        }
+        for (const [firma, personList] of Object.entries(grouped)) {
+          rows.push({ __group: true, firma_adi: firma });
+          for (const p of personList) rows.push(p);
+        }
+        if (Object.keys(grouped).length === 0) rows = pData;
+      } else if (tip === "myk_yaklasan") {
+        baslik = "MYK TARİHİ YAKLAŞANLAR LİSTESİ";
+        const { data: mykKayit } = await supabase.from("personel_myk_egitimleri").select("*, personel:personel_id(id, ad, soyad, kimlik_no, taseronlar(firma_adi))");
+        const now = new Date();
+        const ninetyDays = new Date(); ninetyDays.setDate(ninetyDays.getDate() + 90);
+        for (const m of mykKayit || []) {
+          if (m.alis_tarihi && m.gecerlilik_suresi) {
+            const bitis = new Date(m.alis_tarihi); bitis.setFullYear(bitis.getFullYear() + m.gecerlilik_suresi);
+            if (bitis > now && bitis <= ninetyDays) {
+              rows.push({ ...m.personel, myk_bitis: bitis.toISOString().split("T")[0], myk_kalan: Math.ceil((bitis.getTime() - now.getTime()) / 86400000) });
+            }
+          }
+        }
+      } else if (tip === "myk_gecen") {
+        baslik = "MYK TARİHİ GEÇENLER LİSTESİ";
+        const { data: mykKayit } = await supabase.from("personel_myk_egitimleri").select("*, personel:personel_id(id, ad, soyad, kimlik_no, taseronlar(firma_adi))");
+        const now = new Date();
+        for (const m of mykKayit || []) {
+          if (m.alis_tarihi && m.gecerlilik_suresi) {
+            const bitis = new Date(m.alis_tarihi); bitis.setFullYear(bitis.getFullYear() + m.gecerlilik_suresi);
+            if (bitis < now) {
+              rows.push({ ...m.personel, myk_bitis: bitis.toISOString().split("T")[0], myk_kalan: Math.ceil((bitis.getTime() - now.getTime()) / 86400000) });
+            }
+          }
+        }
+      } else if (tip === "egitime_gore") {
+        baslik = "EĞİTİME GÖRE LİSTE";
+        const { data: egitimKayitlari } = await supabase.from("egitim_kayitlari").select("id, egitim_adi_manuel, tanim_id").order("created_at", { ascending: false });
+        const { data: egitimTanimlari } = await supabase.from("egitim_tanimlari").select("id, ad");
+        const tanimAdMap = new Map((egitimTanimlari || []).map(t => [t.id, t.ad]));
+        const egitimAdMap = new Map();
+        for (const ek of egitimKayitlari || []) {
+          const ad = tanimAdMap.get(ek.tanim_id) || ek.egitim_adi_manuel || "İsimsiz";
+          if (!egitimAdMap.has(ad)) egitimAdMap.set(ad, { ad, count: 0, katilimcilar: new Set() });
+        }
+        const { data: katilimcilar } = await supabase.from("egitim_katilimcilar").select("egitim_kaydi_id, personel_id");
+        const { data: katPersonel } = await supabase.from("personel").select("id, ad, soyad").eq("arsivde", false);
+        const personelMapById = new Map((katPersonel || []).map(p => [p.id, p]));
+        for (const kat of katilimcilar || []) {
+          const ek = egitimKayitlari?.find(e => e.id === kat.egitim_kaydi_id);
+          if (!ek) continue;
+          const ad = tanimAdMap.get(ek.tanim_id) || ek.egitim_adi_manuel || "İsimsiz";
+          const entry = egitimAdMap.get(ad);
+          const person = personelMapById.get(kat.personel_id);
+          if (entry && person) {
+            entry.count++;
+            entry.katilimcilar.add(`${person.ad} ${person.soyad}`);
+          }
+        }
+        for (const [ad, entry] of egitimAdMap) {
+          rows.push({ __group: true, egitim_adi: ad, katilimci_sayisi: entry.count });
+          for (const katilimci of entry.katilimcilar) rows.push({ __katilimci: true, katilimci_adi: katilimci });
+        }
+      } else if (tip === "egitimsizler") {
+        baslik = "EĞİTİM ALMAYAN PERSONEL LİSTESİ";
+        const { data: katilimcilar } = await supabase.from("egitim_katilimcilar").select("personel_id").not("personel_id", "is", null);
+        const katilanIds = new Set((katilimcilar || []).map(k => k.personel_id));
+        rows = pData.filter(p => !katilanIds.has(p.id));
+      }
+      setRaporLoading(false);
+      setShowRaporModal(false);
+
+      // Open print window
+      const win = window.open("", "_blank");
+      if (!win) { alert("Pop-up engellenmiş olabilir. Lütfen pop-up'lara izin verin."); return; }
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${baslik}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { font-size: 18px; margin-bottom: 20px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+        th { background: #f0f0f0; font-weight: bold; }
+        .group { background: #e8f0fe; font-weight: bold; }
+        .katilimci { padding-left: 24px !important; color: #555; }
+        @media print { body { padding: 10px; } }
+      </style></head><body>
+      <h1>${baslik}</h1>
+      <table><thead><tr>`);
+      // Determine columns
+      if (tip === "myk_yaklasan" || tip === "myk_gecen") {
+        win.document.write("<th>Ad Soyad</th><th>TC Kimlik</th><th>MYK Bitiş</th><th>Kalan Gün</th>");
+      } else if (tip === "egitime_gore") {
+        win.document.write("<th>Eğitim Adı</th><th>Katılımcı Sayısı</th><th>Katılımcı</th>");
+      } else if (tip === "egitimsizler") {
+        win.document.write("<th>Ad Soyad</th><th>TC Kimlik</th><th>Telefon</th><th>Şantiye</th>");
+      } else {
+        win.document.write("<th>Ad Soyad</th><th>TC Kimlik</th><th>Telefon</th><th>Şantiye</th><th>Taşeron</th><th>İşe Giriş</th>");
+      }
+      win.document.write("</tr></thead><tbody>");
+      for (const r of rows) {
+        if (r.__group) {
+          const groupLabel = r.firma_adi || r.egitim_adi || "";
+          win.document.write(`<tr class="group"><td colspan="10">${groupLabel}${r.katilimci_sayisi ? ` (${r.katilimci_sayisi} katılımcı)` : ""}</td></tr>`);
+        } else if (r.__katilimci) {
+          win.document.write(`<tr><td class="katilimci" colspan="3">${r.katilimci_adi}</td></tr>`);
+        } else {
+          const adSoyad = `${r.ad || ""} ${r.soyad || ""}`.trim();
+          const tc = r.kimlik_no || "-";
+          if (tip === "myk_yaklasan" || tip === "myk_gecen") {
+            win.document.write(`<tr><td>${adSoyad}</td><td>${tc}</td><td>${r.myk_bitis || "-"}</td><td>${r.myk_kalan || "-"}</td></tr>`);
+          } else if (tip === "egitimsizler") {
+            win.document.write(`<tr><td>${adSoyad}</td><td>${tc}</td><td>${r.telefon || "-"}</td><td>${r.santiye_adi || "-"}</td></tr>`);
+          } else {
+            win.document.write(`<tr><td>${adSoyad}</td><td>${maskTC(tc)}</td><td>${r.telefon || "-"}</td><td>${r.santiye_adi || "-"}</td><td>${r.taseronlar?.firma_adi || "-"}</td><td>${displayDate(r.ise_giris_tarihi)}</td></tr>`);
+          }
+        }
+      }
+      win.document.write("</tbody></table></body></html>");
+      win.document.close();
+      win.print();
+    } catch (e: any) {
+      setRaporLoading(false);
+      alert("Rapor oluşturulurken hata: " + e.message);
+    }
+  };
+
   return (
     <div className="flex-1 p-8 app-bg min-h-screen">
       <div className="flex justify-between items-center mb-8">
@@ -533,6 +679,9 @@ export default function PersonnelList() {
             <button onClick={() => arsivDegistir(false)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${!arsivGoster ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Aktif</button>
             <button onClick={() => arsivDegistir(true)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${arsivGoster ? "bg-amber-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Arşiv</button>
           </div>
+          <button onClick={() => setShowRaporModal(true)} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <FileDoc className="w-4 h-4" /> Rapor
+          </button>
           <Link href="/" className="btn btn-primary">
           <UserPlus className="w-4 h-4" />
           Yeni Personel
@@ -1191,6 +1340,47 @@ export default function PersonnelList() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rapor Modalı */}
+      {showRaporModal && (
+        <div className="modal-overlay" onClick={() => setShowRaporModal(false)}>
+          <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Rapor Seçenekleri</h3>
+              <button onClick={() => setShowRaporModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="modal-body">
+              <div className="space-y-2">
+                <button onClick={() => raporGoster("tum_liste")} disabled={raporLoading} className="w-full py-3 px-4 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <FileDoc className="w-5 h-5" />
+                  <div><div className="font-semibold">Tüm Personel Listesi</div><div className="text-xs text-blue-500">Tüm aktif personel listesi</div></div>
+                </button>
+                <button onClick={() => raporGoster("taseron_liste")} disabled={raporLoading} className="w-full py-3 px-4 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <Building2 className="w-5 h-5" />
+                  <div><div className="font-semibold">Taşeron Personel Listesi</div><div className="text-xs text-indigo-500">Taşerona göre gruplanmış liste</div></div>
+                </button>
+                <button onClick={() => raporGoster("myk_yaklasan")} disabled={raporLoading} className="w-full py-3 px-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <Calendar className="w-5 h-5" />
+                  <div><div className="font-semibold">MYK Tarihi Yaklaşanlar</div><div className="text-xs text-amber-500">90 gün içinde MYK bitişi olanlar</div></div>
+                </button>
+                <button onClick={() => raporGoster("myk_gecen")} disabled={raporLoading} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <AlertCircle className="w-5 h-5" />
+                  <div><div className="font-semibold">MYK Tarihi Geçenler</div><div className="text-xs text-red-500">MYK bitiş tarihi geçmiş olanlar</div></div>
+                </button>
+                <button onClick={() => raporGoster("egitime_gore")} disabled={raporLoading} className="w-full py-3 px-4 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <BookOpen className="w-5 h-5" />
+                  <div><div className="font-semibold">Eğitime Göre Liste</div><div className="text-xs text-purple-500">Eğitim bazında katılımcı listesi</div></div>
+                </button>
+                <button onClick={() => raporGoster("egitimsizler")} disabled={raporLoading} className="w-full py-3 px-4 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
+                  <X className="w-5 h-5" />
+                  <div><div className="font-semibold">Eğitim Almayanlar</div><div className="text-xs text-gray-500">Hiç eğitime katılmamış personel</div></div>
+                </button>
+              </div>
+              {raporLoading && <p className="text-xs text-gray-400 text-center mt-3">Rapor hazırlanıyor...</p>}
             </div>
           </div>
         </div>
