@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon } from "lucide-react";
+import * as XLSX from "xlsx";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
@@ -520,6 +521,94 @@ export default function PersonnelList() {
       console.error("Arşiv değiştirme hatası:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const raporExcel = async (tip: string) => {
+    setRaporLoading(true);
+    let rows: any[] = [];
+    let baslik = "";
+    let columns: { header: string; key: string }[] = [];
+    try {
+      const { data: tumPersonel } = await supabase.from("personel").select("*, taseronlar(firma_adi)").eq("arsivde", false).order("ad");
+      const pData = tumPersonel || [];
+      if (tip === "tum_liste") {
+        baslik = "Tum_Personel_Listesi";
+        columns = [{ header: "Ad Soyad", key: "adSoyad" }, { header: "TC Kimlik", key: "tc" }, { header: "Telefon", key: "telefon" }, { header: "Şantiye", key: "santiye" }, { header: "Taşeron", key: "taseron" }, { header: "İşe Giriş", key: "iseGiris" }];
+        for (const p of pData) rows.push({ adSoyad: `${p.ad || ""} ${p.soyad || ""}`.trim(), tc: p.kimlik_no || "", telefon: p.telefon || "", santiye: p.santiye_adi || "", taseron: p.taseronlar?.firma_adi || "", iseGiris: displayDate(p.ise_giris_tarihi) });
+      } else if (tip === "taseron_liste") {
+        baslik = "Taseron_Personel_Listesi";
+        columns = [{ header: "Taşeron", key: "taseron" }, { header: "Ad Soyad", key: "adSoyad" }, { header: "TC Kimlik", key: "tc" }, { header: "Telefon", key: "telefon" }, { header: "Şantiye", key: "santiye" }, { header: "İşe Giriş", key: "iseGiris" }];
+        const { data: taseronlarData } = await supabase.from("taseronlar").select("id, firma_adi").order("firma_adi");
+        const tasMap = new Map((taseronlarData || []).map(t => [t.id, t.firma_adi]));
+        const grouped: Record<string, any[]> = {};
+        for (const p of pData) {
+          if (p.taseron_id) {
+            const firm = tasMap.get(p.taseron_id) || "Bilinmeyen";
+            if (!grouped[firm]) grouped[firm] = [];
+            grouped[firm].push(p);
+          }
+        }
+        for (const [firma, personList] of Object.entries(grouped)) {
+          rows.push({ taseron: firma, adSoyad: "", tc: "", telefon: "", santiye: "", iseGiris: "" });
+          for (const p of personList) rows.push({ taseron: "", adSoyad: `${p.ad || ""} ${p.soyad || ""}`.trim(), tc: p.kimlik_no || "", telefon: p.telefon || "", santiye: p.santiye_adi || "", iseGiris: displayDate(p.ise_giris_tarihi) });
+        }
+      } else if (tip === "myk_yaklasan" || tip === "myk_gecen") {
+        baslik = tip === "myk_yaklasan" ? "MYK_Yaklasanlar" : "MYK_Gecenler";
+        columns = [{ header: "Ad Soyad", key: "adSoyad" }, { header: "TC Kimlik", key: "tc" }, { header: "MYK Bitiş", key: "bitis" }, { header: "Kalan Gün", key: "kalan" }];
+        const { data: mykKayit } = await supabase.from("personel_myk_egitimleri").select("*, personel:personel_id(id, ad, soyad, kimlik_no)");
+        const now = new Date();
+        for (const m of mykKayit || []) {
+          if (m.alis_tarihi && m.gecerlilik_suresi && m.personel) {
+            const bitis = new Date(m.alis_tarihi); bitis.setFullYear(bitis.getFullYear() + m.gecerlilik_suresi);
+            const diff = Math.ceil((bitis.getTime() - now.getTime()) / 86400000);
+            const match = tip === "myk_yaklasan" ? (diff > 0 && diff <= 90) : (diff < 0);
+            if (match) rows.push({ adSoyad: `${m.personel.ad || ""} ${m.personel.soyad || ""}`.trim(), tc: m.personel.kimlik_no || "", bitis: bitis.toISOString().split("T")[0], kalan: String(diff) });
+          }
+        }
+      } else if (tip === "egitime_gore") {
+        baslik = "Egitime_Gore_Liste";
+        columns = [{ header: "Eğitim Adı", key: "egitim" }, { header: "Katılımcı", key: "katilimci" }];
+        const { data: egitimKayitlari } = await supabase.from("egitim_kayitlari").select("id, egitim_adi_manuel, tanim_id").order("created_at", { ascending: false });
+        const { data: egitimTanimlari } = await supabase.from("egitim_tanimlari").select("id, ad");
+        const tanimAdMap = new Map((egitimTanimlari || []).map(t => [t.id, t.ad]));
+        const { data: katilimcilar } = await supabase.from("egitim_katilimcilar").select("egitim_kaydi_id, personel_id");
+        const { data: katPersonel } = await supabase.from("personel").select("id, ad, soyad").eq("arsivde", false);
+        const personelMap = new Map((katPersonel || []).map(p => [p.id, `${p.ad} ${p.soyad}`]));
+        for (const ek of egitimKayitlari || []) {
+          const ad = tanimAdMap.get(ek.tanim_id) || ek.egitim_adi_manuel || "İsimsiz";
+          const kats = (katilimcilar || []).filter(k => k.egitim_kaydi_id === ek.id);
+          if (kats.length === 0) rows.push({ egitim: ad, katilimci: "(katılımcı yok)" });
+          for (const kat of kats) {
+            rows.push({ egitim: ad, katilimci: personelMap.get(kat.personel_id) || "(silinmiş)" });
+          }
+        }
+      } else if (tip === "egitimsizler") {
+        baslik = "Egitim_Almayanlar";
+        columns = [{ header: "Ad Soyad", key: "adSoyad" }, { header: "TC Kimlik", key: "tc" }, { header: "Telefon", key: "telefon" }, { header: "Şantiye", key: "santiye" }];
+        const { data: katilimcilar } = await supabase.from("egitim_katilimcilar").select("personel_id").not("personel_id", "is", null);
+        const katilanIds = new Set((katilimcilar || []).map(k => k.personel_id));
+        for (const p of pData.filter(p => !katilanIds.has(p.id))) {
+          rows.push({ adSoyad: `${p.ad || ""} ${p.soyad || ""}`.trim(), tc: p.kimlik_no || "", telefon: p.telefon || "", santiye: p.santiye_adi || "" });
+        }
+      }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.sheet_add_aoa(ws, [columns.map(c => c.header)], { origin: "A1" });
+      const colKeys = columns.map(c => c.key);
+      const dataRows = rows.map(r => {
+        const obj: Record<string, any> = {};
+        colKeys.forEach(k => obj[k] = r[k] || "");
+        return obj;
+      });
+      const ws2 = XLSX.utils.json_to_sheet(dataRows, { header: colKeys });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws2, "Rapor");
+      XLSX.writeFile(wb, `${baslik}_${new Date().toISOString().split("T")[0]}.xlsx`);
+      setRaporLoading(false);
+      setShowRaporModal(false);
+    } catch (e: any) {
+      setRaporLoading(false);
+      alert("Excel oluşturulurken hata: " + e.message);
     }
   };
 
@@ -1371,8 +1460,9 @@ export default function PersonnelList() {
                         <div><div className="font-semibold">{label}</div><div className={`text-xs text-${renk}-500`}>{desc}</div></div>
                       </div>
                       <div className="flex gap-1.5 flex-shrink-0 ml-2">
-                        <button onClick={() => raporGoster(tip, "portrait")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Dikey">D</button>
-                        <button onClick={() => raporGoster(tip, "landscape")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Yatay">Y</button>
+                        <button onClick={() => raporGoster(tip, "portrait")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Dikey (PDF/Print)">D</button>
+                        <button onClick={() => raporGoster(tip, "landscape")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Yatay (PDF/Print)">Y</button>
+                        <button onClick={() => raporExcel(tip)} disabled={raporLoading} className="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-medium hover:bg-green-100 disabled:opacity-40" title="Excel">XL</button>
                       </div>
                     </div>
                   </div>
