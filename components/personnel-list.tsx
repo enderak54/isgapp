@@ -523,7 +523,7 @@ export default function PersonnelList() {
     }
   };
 
-  const raporGoster = async (tip: string) => {
+  const raporGoster = async (tip: string, yon: "portrait" | "landscape" = "portrait") => {
     setRaporLoading(true);
     let rows: any[] = [];
     let baslik = "";
@@ -625,7 +625,7 @@ export default function PersonnelList() {
         th { background: #f0f0f0; font-weight: bold; }
         .group { background: #e8f0fe; font-weight: bold; }
         .katilimci { padding-left: 24px !important; color: #555; }
-        @media print { body { padding: 10px; } }
+        @media print { body { padding: 10px; } @page { size: ${yon === "landscape" ? "landscape" : "portrait"}; } }
       </style></head><body>
       <h1>${baslik}</h1>
       <table><thead><tr>`);
@@ -1354,31 +1354,29 @@ export default function PersonnelList() {
               <button onClick={() => setShowRaporModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="modal-body">
+              <p className="text-xs text-gray-400 mb-3">Raporu almak için yön seçin:</p>
               <div className="space-y-2">
-                <button onClick={() => raporGoster("tum_liste")} disabled={raporLoading} className="w-full py-3 px-4 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <FileDoc className="w-5 h-5" />
-                  <div><div className="font-semibold">Tüm Personel Listesi</div><div className="text-xs text-blue-500">Tüm aktif personel listesi</div></div>
-                </button>
-                <button onClick={() => raporGoster("taseron_liste")} disabled={raporLoading} className="w-full py-3 px-4 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <Building2 className="w-5 h-5" />
-                  <div><div className="font-semibold">Taşeron Personel Listesi</div><div className="text-xs text-indigo-500">Taşerona göre gruplanmış liste</div></div>
-                </button>
-                <button onClick={() => raporGoster("myk_yaklasan")} disabled={raporLoading} className="w-full py-3 px-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <Calendar className="w-5 h-5" />
-                  <div><div className="font-semibold">MYK Tarihi Yaklaşanlar</div><div className="text-xs text-amber-500">90 gün içinde MYK bitişi olanlar</div></div>
-                </button>
-                <button onClick={() => raporGoster("myk_gecen")} disabled={raporLoading} className="w-full py-3 px-4 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <AlertCircle className="w-5 h-5" />
-                  <div><div className="font-semibold">MYK Tarihi Geçenler</div><div className="text-xs text-red-500">MYK bitiş tarihi geçmiş olanlar</div></div>
-                </button>
-                <button onClick={() => raporGoster("egitime_gore")} disabled={raporLoading} className="w-full py-3 px-4 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <BookOpen className="w-5 h-5" />
-                  <div><div className="font-semibold">Eğitime Göre Liste</div><div className="text-xs text-purple-500">Eğitim bazında katılımcı listesi</div></div>
-                </button>
-                <button onClick={() => raporGoster("egitimsizler")} disabled={raporLoading} className="w-full py-3 px-4 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-left flex items-center gap-3 disabled:opacity-50">
-                  <X className="w-5 h-5" />
-                  <div><div className="font-semibold">Eğitim Almayanlar</div><div className="text-xs text-gray-500">Hiç eğitime katılmamış personel</div></div>
-                </button>
+                {[
+                  { tip: "tum_liste", renk: "blue", icon: FileDoc, label: "Tüm Personel Listesi", desc: "Tüm aktif personel listesi" },
+                  { tip: "taseron_liste", renk: "indigo", icon: Building2, label: "Taşeron Personel Listesi", desc: "Taşerona göre gruplanmış liste" },
+                  { tip: "myk_yaklasan", renk: "amber", icon: Calendar, label: "MYK Tarihi Yaklaşanlar", desc: "90 gün içinde MYK bitişi olanlar" },
+                  { tip: "myk_gecen", renk: "red", icon: AlertCircle, label: "MYK Tarihi Geçenler", desc: "MYK bitiş tarihi geçmiş olanlar" },
+                  { tip: "egitime_gore", renk: "purple", icon: BookOpen, label: "Eğitime Göre Liste", desc: "Eğitim bazında katılımcı listesi" },
+                  { tip: "egitimsizler", renk: "gray", icon: X, label: "Eğitim Almayanlar", desc: "Hiç eğitime katılmamış personel" },
+                ].map(({ tip, renk, icon: Icon, label, desc }) => (
+                  <div key={tip} className={`w-full py-3 px-4 bg-${renk}-50 text-${renk}-700 border border-${renk}-200 rounded-lg text-sm`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <div><div className="font-semibold">{label}</div><div className={`text-xs text-${renk}-500`}>{desc}</div></div>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0 ml-2">
+                        <button onClick={() => raporGoster(tip, "portrait")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Dikey">D</button>
+                        <button onClick={() => raporGoster(tip, "landscape")} disabled={raporLoading} className="px-2.5 py-1 bg-white border border-gray-200 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-40" title="Yatay">Y</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
               {raporLoading && <p className="text-xs text-gray-400 text-center mt-3">Rapor hazırlanıyor...</p>}
             </div>
