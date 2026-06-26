@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile } from "@/lib/file-validation";
+import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
 
 const emptyForm = {
@@ -55,6 +55,8 @@ export default function Egitimler() {
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview?: string }[]>([]);
   const [egitimDosyalari, setEgitimDosyalari] = useState<Record<string, any[]>>({});
   const [uploadDragOver, setUploadDragOver] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const revokePendingPreviews = () => { pendingFiles.forEach(pf => { if (pf.preview) URL.revokeObjectURL(pf.preview); }); setPendingFiles([]); };
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -205,10 +207,11 @@ export default function Egitimler() {
         }
       }
 
+      const upErrors: string[] = [];
       for (const pf of pendingFiles) {
-        const fileName = `${kayitId}/${Date.now()}_${pf.file.name}`;
+        const fileName = `${kayitId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
         const { error: upErr } = await supabase.storage.from("egitim-dosyalari").upload(fileName, pf.file);
-        if (upErr) { console.error("Upload error:", upErr); continue; }
+        if (upErr) { upErrors.push(`${pf.file.name}: ${upErr.message}`); continue; }
         const { data: urlData } = supabase.storage.from("egitim-dosyalari").getPublicUrl(fileName);
         const ext = pf.file.name.split(".").pop() || "";
         const { data: dosyaData } = await supabase.from("egitim_dosyalari").insert({
@@ -217,9 +220,11 @@ export default function Egitimler() {
         }).select();
         if (dosyaData?.[0]) await logAudit("egitim_dosyalari", "INSERT", dosyaData[0].id, null, dosyaData[0]);
       }
+      if (upErrors.length > 0) upErrors.forEach(m => console.error("Upload error:", m));
 
-      setShowForm(false); setEditing(null); setForm(emptyForm); setPendingFiles([]);
-      setEditStatus({ type: "success", message: editing ? "Eğitim güncellendi" : "Eğitim eklendi" });
+      setShowForm(false); setEditing(null); setForm(emptyForm); revokePendingPreviews();
+      const msg = editing ? "Eğitim güncellendi" : "Eğitim eklendi";
+      setEditStatus({ type: upErrors.length > 0 ? "error" : "success", message: upErrors.length > 0 ? `${msg} (${upErrors.length} dosya yüklenemedi: ${upErrors.join("; ")})` : msg });
       fetchAll();
     } catch (e: any) {
       setEditStatus({ type: "error", message: e.message || "Kayıt başarısız" });
@@ -233,7 +238,7 @@ export default function Egitimler() {
 
   const handleEdit = async (k: any) => {
     setEditing(k);
-    setPendingFiles([]);
+    if (pendingFiles.length) { pendingFiles.forEach(pf => { if (pf.preview) URL.revokeObjectURL(pf.preview); }); setPendingFiles([]); }
     const { data: katData } = await supabase
       .from("egitim_katilimcilar")
       .select("id, personel_id, katilimci_manuel, personel:personel_id(id, ad, soyad)")
@@ -309,7 +314,7 @@ export default function Egitimler() {
             <button onClick={() => { setShowTanitim(true); }} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
               <Settings className="w-4 h-4" /> Tanımlar
             </button>
-            <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setEditStatus(null); setPendingFiles([]); }} className="btn btn-primary flex items-center gap-2">
+            <button onClick={() => { if (pendingFiles.length) { pendingFiles.forEach(pf => { if (pf.preview) URL.revokeObjectURL(pf.preview); }); }; setShowForm(true); setEditing(null); setForm(emptyForm); setEditStatus(null); setPendingFiles([]); setUploadStatus(null); }} className="btn btn-primary flex items-center gap-2">
               <Plus className="w-4 h-4" /> Yeni Eğitim
             </button>
           </div>
@@ -516,15 +521,16 @@ export default function Egitimler() {
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Eğitim Evrakları</h4>
                 <div
                   className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${uploadDragOver ? "border-purple-400 bg-purple-50" : "border-gray-300 hover:border-gray-400"}`}
-                  onDragOver={e => { e.preventDefault(); setUploadDragOver(true); }}
-                  onDragLeave={() => setUploadDragOver(false)}
-                  onDrop={e => { e.preventDefault(); setUploadDragOver(false); const files = Array.from(e.dataTransfer.files); const valid = files.filter(f => validateFile(f).valid); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); }}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setUploadDragOver(true); }}
+                  onDragLeave={e => { e.preventDefault(); setUploadDragOver(false); }}
+                  onDrop={e => { e.preventDefault(); setUploadDragOver(false); const files = Array.from(e.dataTransfer.files); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); }}
                 >
                   <Upload className="w-8 h-8 text-gray-300 mx-auto mb-1" />
                   <p className="text-xs text-gray-500">Resim veya PDF sürükleyin veya tıklayın</p>
-                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx" className="hidden" id="egitim-dosya-input" onChange={e => { const files = Array.from(e.target.files || []); const valid = files.filter(f => validateFile(f).valid); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); e.target.value = ""; }} />
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt" className="hidden" id="egitim-dosya-input" onChange={e => { const files = Array.from(e.target.files || []); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); e.target.value = ""; }} />
                   <button type="button" onClick={() => document.getElementById("egitim-dosya-input")?.click()} className="text-xs text-purple-600 hover:underline mt-1">Dosya Seç</button>
                 </div>
+                {uploadStatus && <p className="text-xs text-red-500 mt-1">{uploadStatus}</p>}
                 {pendingFiles.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {pendingFiles.map((pf, i) => (
@@ -533,7 +539,7 @@ export default function Egitimler() {
                           {pf.preview ? <img src={pf.preview} className="w-8 h-8 object-cover rounded" /> : <Paperclip className="w-4 h-4 text-purple-400" />}
                           <span className="truncate max-w-[200px]">{pf.file.name}</span>
                         </div>
-                        <button onClick={() => { if (pf.preview) URL.revokeObjectURL(pf.preview); setPendingFiles(prev => prev.filter((_, j) => j !== i)); }} className="text-red-500 hover:text-red-700"><X className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { if (pf.preview) URL.revokeObjectURL(pf.preview); setPendingFiles(prev => prev.filter((_, j) => j !== i)); setUploadStatus(null); }} className="text-red-500 hover:text-red-700"><X className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
                   </div>
@@ -560,7 +566,7 @@ export default function Egitimler() {
                 )}
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <button onClick={() => { setShowForm(false); setPendingFiles([]); }} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
+                <button onClick={() => { if (pendingFiles.length) { pendingFiles.forEach(pf => { if (pf.preview) URL.revokeObjectURL(pf.preview); }); }; setShowForm(false); setPendingFiles([]); }} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
                 <button onClick={handleSubmit} className="btn btn-primary">{editing ? "Güncelle" : "Kaydet"}</button>
               </div>
             </div>
