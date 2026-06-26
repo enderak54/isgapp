@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import { validateFile, sanitizeFileName } from "@/lib/file-validation";
-import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
+import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
 
 const emptyForm = {
   tanim_id: "", egitim_adi_manuel: "", egitmen_id: "", egitmen_manuel: "",
@@ -49,7 +49,6 @@ export default function Egitimler() {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [katilimcilarDetay, setKatilimcilarDetay] = useState<Record<string, any[]>>({});
   const [silmeKilitli, setSilmeKilitli] = useState(true);
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview?: string }[]>([]);
@@ -60,36 +59,17 @@ export default function Egitimler() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  useEffect(() => {
-    if (!filtrePersonelId) return;
-    const missingIds = kayitlar.filter(k => !katilimcilarDetay[k.id]).map(k => k.id);
-    if (missingIds.length === 0) return;
-    (async () => {
-      const { data } = await supabase
-        .from("egitim_katilimcilar")
-        .select("id, egitim_kaydi_id, personel_id, katilimci_manuel, personel:personel_id(id, ad, soyad)")
-        .in("egitim_kaydi_id", missingIds);
-      if (data) {
-        const grouped: Record<string, any[]> = {};
-        data.forEach(d => {
-          if (!grouped[d.egitim_kaydi_id]) grouped[d.egitim_kaydi_id] = [];
-          grouped[d.egitim_kaydi_id].push(d);
-        });
-        setKatilimcilarDetay(prev => ({ ...prev, ...grouped }));
-      }
-    })();
-  }, [filtrePersonelId, kayitlar, katilimcilarDetay]);
-
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [kayitRes, tanimRes, egitmenRes, yerRes, personelRes, dosyaRes] = await Promise.all([
+      const [kayitRes, tanimRes, egitmenRes, yerRes, personelRes, dosyaRes, katRes] = await Promise.all([
         supabase.from("egitim_kayitlari").select("*").order("tarih", { ascending: false }),
         supabase.from("egitim_tanimlari").select("*").order("ad"),
         supabase.from("egitmen_tanimlari").select("*").order("ad"),
         supabase.from("egitim_yer_tanimlari").select("*").order("ad"),
         supabase.from("personel").select("id, ad, soyad, kimlik_no").eq("arsivde", false).order("ad"),
         supabase.from("egitim_dosyalari").select("id, egitim_kaydi_id, dosya_adi").is("silinme_tarihi", null),
+        supabase.from("egitim_katilimcilar").select("id, egitim_kaydi_id, personel_id, katilimci_manuel, personel:personel_id(id, ad, soyad)"),
       ]);
       if (kayitRes.data) setKayitlar(kayitRes.data);
       if (tanimRes.data) setTanimlar(tanimRes.data);
@@ -104,25 +84,18 @@ export default function Egitimler() {
         }
         setEgitimDosyalari(grouped);
       }
+      if (katRes.data) {
+        const grouped: Record<string, any[]> = {};
+        for (const d of katRes.data) {
+          if (!grouped[d.egitim_kaydi_id]) grouped[d.egitim_kaydi_id] = [];
+          grouped[d.egitim_kaydi_id].push(d);
+        }
+        setKatilimcilarDetay(grouped);
+      }
     } catch (e: any) {
       setEditStatus({ type: "error", message: "Veriler yüklenirken hata" });
     }
     setLoading(false);
-  };
-
-  const fetchKatilimcilar = useCallback(async (egitimKaydiId: string) => {
-    const { data } = await supabase
-      .from("egitim_katilimcilar")
-      .select("id, personel_id, katilimci_manuel, personel:personel_id(id, ad, soyad)")
-      .eq("egitim_kaydi_id", egitimKaydiId);
-    if (data) setKatilimcilarDetay(prev => ({ ...prev, [egitimKaydiId]: data }));
-  }, []);
-
-  const toggleExpand = (id: string) => {
-    if (expandedId === id) { setExpandedId(null); return; }
-    setExpandedId(id);
-    if (!katilimcilarDetay[id]) fetchKatilimcilar(id);
-    if (!egitimDosyalari[id]) fetchEgitimDosyalari(id);
   };
 
   const getEgitimAdi = (k: any) => {
@@ -381,8 +354,8 @@ export default function Egitimler() {
         {/* Training List */}
         <div className="space-y-3">
           {filteredKayitlar.map(k => (
-            <div key={k.id} className="card overflow-hidden">
-              <div className="p-4 flex flex-wrap items-start justify-between gap-3 cursor-pointer" onClick={() => toggleExpand(k.id)}>
+            <div key={k.id} className="card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                     <BookOpen className="w-5 h-5 text-purple-500" />
@@ -394,51 +367,45 @@ export default function Egitimler() {
                       {k.sure && <span>Süre: {k.sure}</span>}
                       <span className="flex items-center gap-1"><UserCheck className="w-3 h-3" />{getEgitmenAdi(k)}</span>
                       {k.yer && <span>Yer: {k.yer}</span>}
-                      {egitimDosyalari[k.id]?.length > 0 && <span className="flex items-center gap-1 text-purple-500"><Paperclip className="w-3 h-3" />{egitimDosyalari[k.id].length}</span>}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => handleEdit(k)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><Edit className="w-4 h-4" /></button>
                   {!silmeKilitli && <button onClick={() => handleDelete(k.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>}
-                  {expandedId === k.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </div>
               </div>
-              {expandedId === k.id && (
-                <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/50">
-                  {katilimcilarDetay[k.id] ? (
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 mb-2">Katılımcılar ({katilimcilarDetay[k.id].length})</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {katilimcilarDetay[k.id].map(kat => (
-                          <span key={kat.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded-full text-xs border border-gray-200">
-                            <UserPlus className="w-3 h-3 text-gray-400" />
-                            {kat.personel ? `${kat.personel.ad} ${kat.personel.soyad}` : kat.katilimci_manuel}
-                          </span>
-                        ))}
-                        {katilimcilarDetay[k.id].length === 0 && <p className="text-xs text-gray-400">Katılımcı yok</p>}
-                      </div>
+              <div className="border-t border-gray-100 pt-3 space-y-3">
+                {katilimcilarDetay[k.id] && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">Katılımcılar ({katilimcilarDetay[k.id].length})</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {katilimcilarDetay[k.id].map(kat => (
+                        <span key={kat.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded-full text-xs border border-gray-200">
+                          <UserPlus className="w-3 h-3 text-gray-400" />
+                          {kat.personel ? `${kat.personel.ad} ${kat.personel.soyad}` : kat.katilimci_manuel}
+                        </span>
+                      ))}
+                      {katilimcilarDetay[k.id].length === 0 && <p className="text-xs text-gray-400">Katılımcı yok</p>}
                     </div>
-                  ) : (
-                    <p className="text-xs text-gray-400">Yükleniyor...</p>
-                  )}
-                    {k.notlar && <p className="text-xs text-gray-500 mt-3 border-t border-gray-200 pt-3">{k.notlar}</p>}
-                    {egitimDosyalari[k.id] && egitimDosyalari[k.id].length > 0 && (
-                      <div className="mt-3 border-t border-gray-200 pt-3">
-                        <p className="text-xs font-medium text-gray-500 mb-2">Evraklar ({egitimDosyalari[k.id].length})</p>
-                        <div className="flex flex-wrap gap-2">
-                          {egitimDosyalari[k.id].map((d: any) => (
-                            <a key={d.id} href={d.dosya_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs border border-gray-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition">
-                              {d.dosya_uzantisi?.toLowerCase() === "pdf" ? <BookOpen className="w-3.5 h-3.5" /> : d.dosya_uzantisi?.match(/jpg|jpeg|png|gif|webp/) ? <Paperclip className="w-3.5 h-3.5" /> : <Paperclip className="w-3.5 h-3.5" />}
-                              <span className="truncate max-w-[120px]">{d.dosya_adi}</span>
-                              <Download className="w-3 h-3 text-gray-400" />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                </div>
-              )}
+                  </div>
+                )}
+                {k.notlar && <p className="text-xs text-gray-500">{k.notlar}</p>}
+                {egitimDosyalari[k.id] && egitimDosyalari[k.id].length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">Evraklar ({egitimDosyalari[k.id].length})</p>
+                    <div className="flex flex-wrap gap-2">
+                      {egitimDosyalari[k.id].map((d: any) => (
+                        <a key={d.id} href={d.dosya_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs border border-gray-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition">
+                          <Paperclip className="w-3.5 h-3.5 text-purple-400" />
+                          <span className="truncate max-w-[120px]">{d.dosya_adi}</span>
+                          <Download className="w-3 h-3 text-gray-400" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
           {filteredKayitlar.length === 0 && (
