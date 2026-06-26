@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus, Lock, Unlock } from "lucide-react";
+import { validateFile } from "@/lib/file-validation";
+import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, ChevronDown, ChevronUp, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
 
 const emptyForm = {
   tanim_id: "", egitim_adi_manuel: "", egitmen_id: "", egitmen_manuel: "",
@@ -51,6 +52,9 @@ export default function Egitimler() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [katilimcilarDetay, setKatilimcilarDetay] = useState<Record<string, any[]>>({});
   const [silmeKilitli, setSilmeKilitli] = useState(true);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview?: string }[]>([]);
+  const [egitimDosyalari, setEgitimDosyalari] = useState<Record<string, any[]>>({});
+  const [uploadDragOver, setUploadDragOver] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -77,18 +81,27 @@ export default function Egitimler() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [kayitRes, tanimRes, egitmenRes, yerRes, personelRes] = await Promise.all([
+      const [kayitRes, tanimRes, egitmenRes, yerRes, personelRes, dosyaRes] = await Promise.all([
         supabase.from("egitim_kayitlari").select("*").order("tarih", { ascending: false }),
         supabase.from("egitim_tanimlari").select("*").order("ad"),
         supabase.from("egitmen_tanimlari").select("*").order("ad"),
         supabase.from("egitim_yer_tanimlari").select("*").order("ad"),
         supabase.from("personel").select("id, ad, soyad, kimlik_no").eq("arsivde", false).order("ad"),
+        supabase.from("egitim_dosyalari").select("id, egitim_kaydi_id, dosya_adi").is("silinme_tarihi", null),
       ]);
       if (kayitRes.data) setKayitlar(kayitRes.data);
       if (tanimRes.data) setTanimlar(tanimRes.data);
       if (egitmenRes.data) setEgitmenler(egitmenRes.data);
       if (yerRes.data) setYerTanimlari(yerRes.data);
       if (personelRes.data) setPersonel(personelRes.data);
+      if (dosyaRes.data) {
+        const grouped: Record<string, any[]> = {};
+        for (const d of dosyaRes.data) {
+          if (!grouped[d.egitim_kaydi_id]) grouped[d.egitim_kaydi_id] = [];
+          grouped[d.egitim_kaydi_id].push(d);
+        }
+        setEgitimDosyalari(grouped);
+      }
     } catch (e: any) {
       setEditStatus({ type: "error", message: "Veriler yüklenirken hata" });
     }
@@ -107,6 +120,7 @@ export default function Egitimler() {
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
     if (!katilimcilarDetay[id]) fetchKatilimcilar(id);
+    if (!egitimDosyalari[id]) fetchEgitimDosyalari(id);
   };
 
   const getEgitimAdi = (k: any) => {
@@ -191,7 +205,20 @@ export default function Egitimler() {
         }
       }
 
-      setShowForm(false); setEditing(null); setForm(emptyForm);
+      for (const pf of pendingFiles) {
+        const fileName = `${kayitId}/${Date.now()}_${pf.file.name}`;
+        const { error: upErr } = await supabase.storage.from("egitim-dosyalari").upload(fileName, pf.file);
+        if (upErr) { console.error("Upload error:", upErr); continue; }
+        const { data: urlData } = supabase.storage.from("egitim-dosyalari").getPublicUrl(fileName);
+        const ext = pf.file.name.split(".").pop() || "";
+        const { data: dosyaData } = await supabase.from("egitim_dosyalari").insert({
+          egitim_kaydi_id: kayitId, dosya_url: urlData.publicUrl, dosya_adi: pf.file.name,
+          dosya_uzantisi: ext, dosya_boyut: pf.file.size,
+        }).select();
+        if (dosyaData?.[0]) await logAudit("egitim_dosyalari", "INSERT", dosyaData[0].id, null, dosyaData[0]);
+      }
+
+      setShowForm(false); setEditing(null); setForm(emptyForm); setPendingFiles([]);
       setEditStatus({ type: "success", message: editing ? "Eğitim güncellendi" : "Eğitim eklendi" });
       fetchAll();
     } catch (e: any) {
@@ -199,8 +226,14 @@ export default function Egitimler() {
     }
   };
 
+  const fetchEgitimDosyalari = async (egitimKaydiId: string) => {
+    const { data } = await supabase.from("egitim_dosyalari").select("*").eq("egitim_kaydi_id", egitimKaydiId).is("silinme_tarihi", null);
+    if (data) setEgitimDosyalari(prev => ({ ...prev, [egitimKaydiId]: data }));
+  };
+
   const handleEdit = async (k: any) => {
     setEditing(k);
+    setPendingFiles([]);
     const { data: katData } = await supabase
       .from("egitim_katilimcilar")
       .select("id, personel_id, katilimci_manuel, personel:personel_id(id, ad, soyad)")
@@ -218,6 +251,7 @@ export default function Egitimler() {
     });
     setShowForm(true);
     setEditStatus(null);
+    fetchEgitimDosyalari(k.id);
   };
 
   const handleDelete = async (id: string) => {
@@ -227,6 +261,13 @@ export default function Egitimler() {
       const { data: oldKats } = await supabase.from("egitim_katilimcilar").select("*").eq("egitim_kaydi_id", id);
       await supabase.from("egitim_katilimcilar").delete().eq("egitim_kaydi_id", id);
       if (oldKats?.length) for (const row of oldKats) await logAudit("egitim_katilimcilar", "DELETE", row.id, row, null);
+      const { data: oldDosyalar } = await supabase.from("egitim_dosyalari").select("*").eq("egitim_kaydi_id", id);
+      for (const d of (oldDosyalar || [])) {
+        const path = d.dosya_url?.split("/").pop();
+        if (path) await supabase.storage.from("egitim-dosyalari").remove([`${id}/${path}`]);
+        await logAudit("egitim_dosyalari", "DELETE", d.id, d, null);
+      }
+      await supabase.from("egitim_dosyalari").delete().eq("egitim_kaydi_id", id);
       await supabase.from("egitim_kayitlari").delete().eq("id", id);
       if (item) await logAudit("egitim_kayitlari", "DELETE", id, item, null);
       setEditStatus({ type: "success", message: "Eğitim silindi" });
@@ -268,7 +309,7 @@ export default function Egitimler() {
             <button onClick={() => { setShowTanitim(true); }} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
               <Settings className="w-4 h-4" /> Tanımlar
             </button>
-            <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setEditStatus(null); }} className="btn btn-primary flex items-center gap-2">
+            <button onClick={() => { setShowForm(true); setEditing(null); setForm(emptyForm); setEditStatus(null); setPendingFiles([]); }} className="btn btn-primary flex items-center gap-2">
               <Plus className="w-4 h-4" /> Yeni Eğitim
             </button>
           </div>
@@ -348,6 +389,7 @@ export default function Egitimler() {
                       {k.sure && <span>Süre: {k.sure}</span>}
                       <span className="flex items-center gap-1"><UserCheck className="w-3 h-3" />{getEgitmenAdi(k)}</span>
                       {k.yer && <span>Yer: {k.yer}</span>}
+                      {egitimDosyalari[k.id]?.length > 0 && <span className="flex items-center gap-1 text-purple-500"><Paperclip className="w-3 h-3" />{egitimDosyalari[k.id].length}</span>}
                     </div>
                   </div>
                 </div>
@@ -375,7 +417,21 @@ export default function Egitimler() {
                   ) : (
                     <p className="text-xs text-gray-400">Yükleniyor...</p>
                   )}
-                  {k.notlar && <p className="text-xs text-gray-500 mt-3 border-t border-gray-200 pt-3">{k.notlar}</p>}
+                    {k.notlar && <p className="text-xs text-gray-500 mt-3 border-t border-gray-200 pt-3">{k.notlar}</p>}
+                    {egitimDosyalari[k.id] && egitimDosyalari[k.id].length > 0 && (
+                      <div className="mt-3 border-t border-gray-200 pt-3">
+                        <p className="text-xs font-medium text-gray-500 mb-2">Evraklar ({egitimDosyalari[k.id].length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {egitimDosyalari[k.id].map((d: any) => (
+                            <a key={d.id} href={d.dosya_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs border border-gray-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition">
+                              {d.dosya_uzantisi?.toLowerCase() === "pdf" ? <BookOpen className="w-3.5 h-3.5" /> : d.dosya_uzantisi?.match(/jpg|jpeg|png|gif|webp/) ? <Paperclip className="w-3.5 h-3.5" /> : <Paperclip className="w-3.5 h-3.5" />}
+                              <span className="truncate max-w-[120px]">{d.dosya_adi}</span>
+                              <Download className="w-3 h-3 text-gray-400" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -456,8 +512,55 @@ export default function Egitimler() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notlar</label>
                 <textarea rows={2} placeholder="Ek notlar..." value={form.notlar} onChange={e => setForm({ ...form, notlar: e.target.value })} className="w-full p-2 border rounded-lg" />
               </div>
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Eğitim Evrakları</h4>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${uploadDragOver ? "border-purple-400 bg-purple-50" : "border-gray-300 hover:border-gray-400"}`}
+                  onDragOver={e => { e.preventDefault(); setUploadDragOver(true); }}
+                  onDragLeave={() => setUploadDragOver(false)}
+                  onDrop={e => { e.preventDefault(); setUploadDragOver(false); const files = Array.from(e.dataTransfer.files); const valid = files.filter(f => validateFile(f).valid); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); }}
+                >
+                  <Upload className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                  <p className="text-xs text-gray-500">Resim veya PDF sürükleyin veya tıklayın</p>
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx" className="hidden" id="egitim-dosya-input" onChange={e => { const files = Array.from(e.target.files || []); const valid = files.filter(f => validateFile(f).valid); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); e.target.value = ""; }} />
+                  <button type="button" onClick={() => document.getElementById("egitim-dosya-input")?.click()} className="text-xs text-purple-600 hover:underline mt-1">Dosya Seç</button>
+                </div>
+                {pendingFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {pendingFiles.map((pf, i) => (
+                      <div key={i} className="flex items-center justify-between bg-purple-50 px-3 py-1.5 rounded-lg text-xs">
+                        <div className="flex items-center gap-2">
+                          {pf.preview ? <img src={pf.preview} className="w-8 h-8 object-cover rounded" /> : <Paperclip className="w-4 h-4 text-purple-400" />}
+                          <span className="truncate max-w-[200px]">{pf.file.name}</span>
+                        </div>
+                        <button onClick={() => { if (pf.preview) URL.revokeObjectURL(pf.preview); setPendingFiles(prev => prev.filter((_, j) => j !== i)); }} className="text-red-500 hover:text-red-700"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {editing && egitimDosyalari[editing.id]?.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-gray-500 mb-1">Yüklenmiş dosyalar:</p>
+                    <div className="space-y-1">
+                      {egitimDosyalari[editing.id].map((d: any) => (
+                        <div key={d.id} className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded-lg text-xs">
+                          <a href={d.dosya_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-purple-600 hover:underline">
+                            <Paperclip className="w-3.5 h-3.5" /><span className="truncate max-w-[200px]">{d.dosya_adi}</span>
+                          </a>
+                          <button onClick={async () => {
+                            if (!confirm("Dosyayı silmek istediğinize emin misiniz?")) return;
+                            await supabase.from("egitim_dosyalari").update({ silinme_tarihi: new Date().toISOString() }).eq("id", d.id);
+                            await logAudit("egitim_dosyalari", "UPDATE", d.id, d, { silinme_tarihi: new Date().toISOString() });
+                            fetchEgitimDosyalari(editing.id);
+                          }} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <button onClick={() => setShowForm(false)} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
+                <button onClick={() => { setShowForm(false); setPendingFiles([]); }} className="btn bg-gray-100 text-gray-700 hover:bg-gray-200">İptal</button>
                 <button onClick={handleSubmit} className="btn btn-primary">{editing ? "Güncelle" : "Kaydet"}</button>
               </div>
             </div>
