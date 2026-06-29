@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
 import {
   AlertTriangle, Plus, Edit, Trash2, Search, X, Save,
-  CheckCircle, AlertCircle, Loader2, Upload, ExternalLink
+  CheckCircle, AlertCircle, Loader2, Upload, ExternalLink, FileText
 } from "lucide-react";
 
 const DOSYA_TIPLERI = [
@@ -57,6 +57,7 @@ export default function IsKazalari() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
   const defaultForm = {
     personel_id: "", tarih: "", saat: "", bildirim_no: "", bildirim_tarihi: "",
@@ -216,6 +217,26 @@ export default function IsKazalari() {
     await supabase.from("is_kazalari").update({ [tip.column]: null }).eq("id", kazaId);
     setForm({ ...form, [tip.column]: "" });
     fetchKazalar();
+  };
+
+  const handleInlineUpload = async (kazaId: string, tip: typeof DOSYA_TIPLERI[number], file: File) => {
+    const key = `${kazaId}_${tip.key}`;
+    setUploadingFile(key);
+    try {
+      const ext = file.name.split(".").pop() || "";
+      const fileName = `${kazaId}/${tip.key}_${Date.now()}_${sanitizeFileName(file.name)}`;
+      const { error: upErr } = await supabase.storage.from("kaza-dosyalari").upload(fileName, file);
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("kaza-dosyalari").getPublicUrl(fileName);
+      await supabase.from("is_kazalari").update({ [tip.column]: urlData.publicUrl }).eq("id", kazaId);
+      await logAudit("is_kazalari", "UPDATE", kazaId, null, { [tip.column]: urlData.publicUrl });
+      setEditStatus({ type: "success", message: `${tip.label} yüklendi` });
+      fetchKazalar();
+    } catch (e: any) {
+      setEditStatus({ type: "error", message: `${tip.label} yüklenirken hata: ${e.message}` });
+    } finally {
+      setUploadingFile(null);
+    }
   };
 
   const yaralanmaRenk = (d: string) => {
@@ -524,23 +545,24 @@ export default function IsKazalari() {
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tarih/Saat</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Personel</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">TC</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Meslek</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Şantiye</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Bildirim</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dosya No</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Nerede</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Yaralanan</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Uzuv Kaybı</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Durum</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">TC</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Meslek</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Şantiye</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Bildirim</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Dosya No</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Nerede Oldu</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Yaralanan Uzuv</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Uzuv Kaybı</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Durum</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Çalışıyor</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Tıbbi</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Hastane</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Hastane</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Rapor No</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">İstirahat</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dönüş</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">İşe Dönüş</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dönüş Eğt</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Tutanak</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 whitespace-nowrap">Dosyalar</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 whitespace-nowrap">İşlemler</th>
               </tr>
             </thead>
@@ -621,6 +643,50 @@ export default function IsKazalari() {
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">{k.ise_donus_egitimi ? <span className="text-green-600 font-medium">Var</span> : "Yok"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">{k.kaza_tutanagi ? <span className="text-green-600 font-medium">Var</span> : "Yok"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        {DOSYA_TIPLERI.map((dt) => {
+                          const dosyaUrl = k[dt.column];
+                          const uploadKey = `${k.id}_${dt.key}`;
+                          return (
+                            <div key={dt.key} className="relative">
+                              {dosyaUrl ? (
+                                <a href={dosyaUrl} target="_blank" rel="noopener noreferrer" className="p-1 text-purple-600 hover:bg-purple-50 rounded block" title={dt.label}>
+                                  <FileText className="w-4 h-4" />
+                                </a>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={uploadingFile === uploadKey}
+                                    onClick={() => document.getElementById(`file-${k.id}-${dt.key}`)?.click()}
+                                    className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded disabled:opacity-50"
+                                    title={`${dt.label} yükle`}
+                                  >
+                                    {uploadingFile === uploadKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                  </button>
+                                  <input
+                                    id={`file-${k.id}-${dt.key}`}
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      if (f) {
+                                        const res = validateFile(f);
+                                        if (res.valid) handleInlineUpload(k.id, dt, f);
+                                        else alert(res.error);
+                                      }
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="flex justify-center gap-1">
                         <button onClick={() => openEdit(k)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Düzenle">
