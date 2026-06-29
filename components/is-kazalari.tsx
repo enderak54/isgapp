@@ -7,8 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
 import {
   AlertTriangle, Plus, Edit, Trash2, Search, X, Save,
-  CheckCircle, AlertCircle, Loader2, Calendar, FileText,
-  User, Building2, Shield
+  CheckCircle, AlertCircle, Loader2
 } from "lucide-react";
 
 export default function IsKazalari() {
@@ -61,7 +60,7 @@ export default function IsKazalari() {
   const fetchKazalar = async () => {
     const { data } = await supabase
       .from("is_kazalari")
-      .select("*, personel(kimlik_no, ad, soyad, meslek)")
+      .select("*, personel(kimlik_no, ad, soyad, meslek_kodu)")
       .order("tarih", { ascending: false });
     if (data) setKazalar(data);
     setLoading(false);
@@ -70,7 +69,7 @@ export default function IsKazalari() {
   const fetchPersonel = async () => {
     const { data } = await supabase
       .from("personel")
-      .select("id, kimlik_no, ad, soyad, meslek")
+      .select("id, kimlik_no, ad, soyad, meslek_kodu")
       .eq("arsivde", false);
     if (data) setPersonel(data);
   };
@@ -214,7 +213,7 @@ export default function IsKazalari() {
                     <option value="">Personel Seçin</option>
                     {personel.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.ad} {p.soyad} — {p.meslek || "Meslek yok"}
+                        {p.ad} {p.soyad} — {p.meslek_kodu || "Meslek kodu yok"}
                       </option>
                     ))}
                   </select>
@@ -430,7 +429,7 @@ export default function IsKazalari() {
                       {k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.kimlik_no || "-"}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.meslek || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.meslek_kodu || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">{k.santiye_adi || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {k.bildirim_no || "-"}
