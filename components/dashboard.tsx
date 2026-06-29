@@ -211,6 +211,7 @@ export default function Dashboard() {
         { data: duzeltici },
         { data: politikalar },
         { data: ekipmanDosyalari },
+        { data: istirahatKayitlari },
       ] = await Promise.all([
         supabase.from("santiyeler").select("id, ad, bitis_tarihi").not("bitis_tarihi", "is", null),
         supabase.from("personel_myk_egitimleri").select("id, alis_tarihi, gecerlilik_suresi, myk_adi, personel_id"),
@@ -221,6 +222,7 @@ export default function Dashboard() {
         supabase.from("duzeltici_faaliyet").select("id, baslik, hedef_tarih").not("hedef_tarih", "is", null),
         supabase.from("politika_yonetimi").select("id, baslik, gecerlilik_tarihi").not("gecerlilik_tarihi", "is", null),
         supabase.from("ekipman_dosyalari").select("id, ekipman_id, dosya_adi, bitis_tarihi").not("bitis_tarihi", "is", null).is("silinme_tarihi", null),
+        supabase.from("is_kazalari").select("id, istirahat_gun, istirahat_bitis_tarihi, personel_id, personel(ad, soyad)").not("istirahat_bitis_tarihi", "is", null),
       ]);
 
       if (santiyeler) for (const s of santiyeler) isUyarisi(s.bitis_tarihi, s.ad, "Şantiye Bitiş", "/santiyeler");
@@ -239,6 +241,15 @@ export default function Dashboard() {
       if (duzeltici) for (const d of duzeltici) isUyarisi(d.hedef_tarih, d.baslik, "Düzeltici Faaliyet", "/duzeltici-faaliyet");
       if (politikalar) for (const p of politikalar) isUyarisi(p.gecerlilik_tarihi, p.baslik, "Politika", "/politika");
       if (ekipmanDosyalari) for (const d of ekipmanDosyalari) isUyarisi(d.bitis_tarihi, d.dosya_adi, "Ekipman Evrakı", "/ekipmanlar", 60);
+
+      if (istirahatKayitlari) for (const k of istirahatKayitlari) {
+        const kalan = Math.ceil((new Date(k.istirahat_bitis_tarihi).getTime() - Date.now()) / 86400000);
+        if (kalan <= 1) {
+          const p = k.personel as any;
+          const ad = p ? `${p.ad || ""} ${p.soyad || ""}`.trim() : "Bilinmeyen";
+          diger.push({ label: "İstirahat Bitişi" + (k.istirahat_gun ? ` (${k.istirahat_gun}g)` : ""), personel_id: `/kazalar`, personel_ad: ad, kalanGun: kalan });
+        }
+      }
 
       diger.sort((a, b) => a.kalanGun - b.kalanGun);
       setDigerUyarilar(diger.slice(0, 15));

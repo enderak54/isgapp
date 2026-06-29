@@ -343,19 +343,38 @@ export default function IsKazalari() {
               {/* İşe Dönüş */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">İşe Dönüş</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">İşe Dönüş Tarihi</label>
-                    <input type="date" value={form.ise_donus_tarihi} onChange={(e) => setForm({ ...form, ise_donus_tarihi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={!!form.ise_donus_tarihi}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setForm({ ...form, ise_donus_tarihi: "", ise_donus_egitimi: false });
+                        } else {
+                          setForm({ ...form, ise_donus_tarihi: new Date().toISOString().split("T")[0] });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">İşe Döndü</span>
+                  </label>
+                  {form.ise_donus_tarihi && (
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">İşe Dönüş Tarihi</label>
+                      <input type="date" value={form.ise_donus_tarihi} onChange={(e) => setForm({ ...form, ise_donus_tarihi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                      <input type="checkbox" checked={form.ise_donus_egitimi} onChange={(e) => setForm({ ...form, ise_donus_egitimi: e.target.checked })} className="w-4 h-4" />
+                      <span className="text-sm font-medium">İşe Dönüş Eğitimi</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                      <input type="checkbox" checked={form.kaza_tutanagi} onChange={(e) => setForm({ ...form, kaza_tutanagi: e.target.checked })} className="w-4 h-4" />
+                      <span className="text-sm font-medium">Kaza Tutanağı</span>
+                    </label>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
-                    <input type="checkbox" checked={form.ise_donus_egitimi} onChange={(e) => setForm({ ...form, ise_donus_egitimi: e.target.checked })} className="w-4 h-4" />
-                    <span className="text-sm font-medium">İşe Dönüş Eğitimi</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
-                    <input type="checkbox" checked={form.kaza_tutanagi} onChange={(e) => setForm({ ...form, kaza_tutanagi: e.target.checked })} className="w-4 h-4" />
-                    <span className="text-sm font-medium">Kaza Tutanağı</span>
-                  </label>
                 </div>
               </div>
 
