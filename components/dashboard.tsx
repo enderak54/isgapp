@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb } from "lucide-react";
+import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb, Wrench } from "lucide-react";
 import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 const motivasyonSozleri = [
@@ -77,6 +77,7 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [egitimUyarilari, setEgitimUyarilari] = useState<EgitimUyari[]>([]);
+  const [ekipmanUyarilari, setEkipmanUyarilari] = useState<EgitimUyari[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -96,6 +97,7 @@ export default function Dashboard() {
       { data: kazalar365 },
       { data: personel },
       { data: uyariAyarlari },
+      { data: ekipmanlar },
     ] = await Promise.all([
       supabase.from("personel").select("*", { count: "exact", head: true }),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date365),
@@ -104,6 +106,7 @@ export default function Dashboard() {
       supabase.from("is_kazalari").select("yaralanma_durumu").gte("tarih", date365),
       supabase.from("personel").select("id, ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz").eq("arsivde", false),
       supabase.from("ayarlar").select("key, value").eq("type", "egitim_uyari"),
+      supabase.from("is_ekipmanlari").select("id, ad, firma_adi, sonraki_kontrol_tarihi"),
     ]);
 
     const agirYaralanma = kazalar365?.filter(k => k.yaralanma_durumu === "agri").length || 0;
@@ -141,7 +144,27 @@ export default function Dashboard() {
     }
     uyariDetay.sort((a, b) => a.kalanGun - b.kalanGun);
     const egitimUyariList = uyariDetay.slice(0, 25);
-    const totalUyarilar = uyariDetay.length;
+
+    // Ekipman uyarıları
+    const ekipUyariDetay: EgitimUyari[] = [];
+    if (ekipmanlar) {
+      for (const e of ekipmanlar) {
+        if (!e.sonraki_kontrol_tarihi) continue;
+        const kalan = Math.ceil((new Date(e.sonraki_kontrol_tarihi).getTime() - Date.now()) / 86400000);
+        if (kalan <= 7) {
+          ekipUyariDetay.push({
+            label: "Ekipman Kontrol",
+            personel_id: e.id,
+            personel_ad: `${e.ad}${e.firma_adi ? ` (${e.firma_adi})` : ""}`,
+            kalanGun: kalan,
+          });
+        }
+      }
+    }
+    ekipUyariDetay.sort((a, b) => a.kalanGun - b.kalanGun);
+    const ekipmanUyariList = ekipUyariDetay.slice(0, 10);
+
+    const totalUyarilar = uyariDetay.length + ekipUyariDetay.length;
 
     const riskSkoru = Math.min(100, Math.round(
       (kaza365 || 0) * 10 +
@@ -151,6 +174,7 @@ export default function Dashboard() {
     ));
 
     setEgitimUyarilari(egitimUyariList);
+    setEkipmanUyarilari(ekipmanUyariList);
     setStats({
       totalPersonel: totalPersonel || 0,
       kaza365: kaza365 || 0,
@@ -340,6 +364,43 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Ekipman Uyarıları */}
+      <div className="mt-3 card p-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5"><Wrench className="w-4 h-4 text-gray-500" /> Ekipman Uyarıları</h3>
+        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+          {ekipmanUyarilari.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-4">Kontrol tarihi yaklaşan ekipman yok</p>
+          ) : (
+            ekipmanUyarilari.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => router.push("/ekipmanlar?search=" + encodeURIComponent(item.personel_ad))}
+                className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-700 truncate">
+                    <Wrench className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
+                    {item.personel_ad}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{item.label} — {item.kalanGun <= 0 ? "Süre geçmiş" : `${item.kalanGun} gün kaldı`}</p>
+                </div>
+                <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                  {item.kalanGun <= 0 ? "!" : item.kalanGun}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+        {ekipmanUyarilari.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <button onClick={() => router.push("/ekipmanlar")} className="btn btn-primary text-xs py-1.5 px-3">
+              <Wrench className="w-3.5 h-3.5" />
+              Tüm Ekipmanları Gör
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Risk Değerlendirme Matrisi */}
