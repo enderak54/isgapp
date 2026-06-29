@@ -3,12 +3,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
+import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
 import {
   AlertTriangle, Plus, Edit, Trash2, Search, X, Save,
-  CheckCircle, AlertCircle, Loader2
+  CheckCircle, AlertCircle, Loader2, Upload, ExternalLink
 } from "lucide-react";
+
+const DOSYA_TIPLERI = [
+  { key: "kaza_tutanagi", label: "Kaza Tutanağı", column: "kaza_tutanagi_dosyasi" },
+  { key: "kaza_bildirim", label: "Kaza Bildirimi", column: "kaza_bildirim_dosyasi" },
+  { key: "ise_donus_egitimi", label: "İşe Dönüş Eğitimi", column: "ise_donus_egitimi_dosyasi" },
+  { key: "rapor", label: "Rapor", column: "rapor_dosyasi" },
+];
 
 export default function IsKazalari() {
   const [kazalar, setKazalar] = useState<any[]>([]);
@@ -40,10 +48,15 @@ export default function IsKazalari() {
     ise_donus_tarihi: "",
     ise_donus_egitimi: false,
     kaza_tutanagi: false,
+    kaza_tutanagi_dosyasi: "",
+    kaza_bildirim_dosyasi: "",
+    ise_donus_egitimi_dosyasi: "",
+    rapor_dosyasi: "",
     onleyici_onlemler: "",
   });
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
 
   const defaultForm = {
     personel_id: "", tarih: "", saat: "", bildirim_no: "", bildirim_tarihi: "",
@@ -52,6 +65,8 @@ export default function IsKazalari() {
     calismaya_devam: false, tibbi_mudahale: false, hastane: "", rapor_no: "",
     istirahat_gun: "", istirahat_bitis_tarihi: "", santiye_adi: "",
     ise_donus_tarihi: "", ise_donus_egitimi: false, kaza_tutanagi: false,
+    kaza_tutanagi_dosyasi: "", kaza_bildirim_dosyasi: "",
+    ise_donus_egitimi_dosyasi: "", rapor_dosyasi: "",
     onleyici_onlemler: "",
   };
 
@@ -74,6 +89,20 @@ export default function IsKazalari() {
     if (data) setPersonel(data);
   };
 
+  const uploadFile = async (file: File, kazaId: string, dosyaTipi: string): Promise<string | null> => {
+    try {
+      const ext = file.name.split(".").pop() || "";
+      const fileName = `${kazaId}/${dosyaTipi}_${Date.now()}_${sanitizeFileName(file.name)}`;
+      const { error: upErr } = await supabase.storage.from("kaza-dosyalari").upload(fileName, file);
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("kaza-dosyalari").getPublicUrl(fileName);
+      return urlData.publicUrl;
+    } catch (e: any) {
+      console.error(`${dosyaTipi} yüklenirken hata:`, e.message);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -83,6 +112,8 @@ export default function IsKazalari() {
         ...form,
         istirahat_gun: form.istirahat_gun ? Number(form.istirahat_gun) : null,
       });
+      let kazaId: string | null = editing?.id || null;
+
       if (editing) {
         const { error } = await supabase
           .from("is_kazalari")
@@ -97,11 +128,31 @@ export default function IsKazalari() {
           .insert(payload)
           .select();
         if (error) throw error;
-        if (data) await logAudit("is_kazalari", "INSERT", data[0].id, null, payload);
+        if (data) {
+          kazaId = data[0].id;
+          await logAudit("is_kazalari", "INSERT", data[0].id, null, payload);
+        }
         setEditStatus({ type: "success", message: "Kaza kaydı eklendi" });
       }
+
+      // Dosyaları yükle
+      if (kazaId) {
+        const updates: Record<string, string | null> = {};
+        for (const dt of DOSYA_TIPLERI) {
+          const file = pendingFiles[dt.key];
+          if (file) {
+            const url = await uploadFile(file, kazaId, dt.key);
+            if (url) updates[dt.column] = url;
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("is_kazalari").update(updates).eq("id", kazaId);
+        }
+      }
+
       setShowForm(false);
       setEditing(null);
+      setPendingFiles({});
       setForm(defaultForm);
       fetchKazalar();
     } catch (e: any) {
@@ -151,8 +202,20 @@ export default function IsKazalari() {
       ise_donus_egitimi: k.ise_donus_egitimi || false,
       kaza_tutanagi: k.kaza_tutanagi || false,
       onleyici_onlemler: k.onleyici_onlemler || "",
+      kaza_tutanagi_dosyasi: k.kaza_tutanagi_dosyasi || "",
+      kaza_bildirim_dosyasi: k.kaza_bildirim_dosyasi || "",
+      ise_donus_egitimi_dosyasi: k.ise_donus_egitimi_dosyasi || "",
+      rapor_dosyasi: k.rapor_dosyasi || "",
     });
+    setPendingFiles({});
     setShowForm(true);
+  };
+
+  const handleDeleteFile = async (tip: typeof DOSYA_TIPLERI[number], kazaId: string) => {
+    if (!confirm(`${tip.label} dosyasını silmek istediğinize emin misiniz?`)) return;
+    await supabase.from("is_kazalari").update({ [tip.column]: null }).eq("id", kazaId);
+    setForm({ ...form, [tip.column]: "" });
+    fetchKazalar();
   };
 
   const yaralanmaRenk = (d: string) => {
@@ -170,7 +233,7 @@ export default function IsKazalari() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">İş Kazaları</h2>
         <button
-          onClick={() => { setShowForm(true); setEditing(null); setForm(defaultForm); }}
+          onClick={() => { setShowForm(true); setEditing(null); setForm(defaultForm); setPendingFiles({}); }}
           className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
         >
           <Plus className="w-5 h-5" /> Yeni Kaza
@@ -202,7 +265,7 @@ export default function IsKazalari() {
           <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editing ? "Kaza Düzenle" : "Yeni İş Kazası"}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowForm(false); setPendingFiles({}); }} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Personel + Şantiye */}
@@ -375,6 +438,63 @@ export default function IsKazalari() {
                       <span className="text-sm font-medium">Kaza Tutanağı</span>
                     </label>
                   </div>
+                </div>
+              </div>
+
+              {/* Dosyalar */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Dosyalar</h4>
+                <div className="space-y-3">
+                  {DOSYA_TIPLERI.map((dt) => {
+                    const dosyaUrl = (form as any)[dt.column];
+                    return (
+                      <div key={dt.key} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-700">{dt.label}</p>
+                          {dosyaUrl ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <a href={dosyaUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline truncate flex items-center gap-1">
+                                <ExternalLink className="w-3 h-3" />
+                                Dosyayı Gör
+                              </a>
+                              {editing && (
+                                <button type="button" onClick={() => handleDeleteFile(dt, editing.id)} className="text-xs text-red-500 hover:underline">Sil</button>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-400 mt-1">Dosya seçilmedi</p>
+                          )}
+                        </div>
+                        <label className="cursor-pointer text-xs text-purple-600 hover:bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-200 flex items-center gap-1 flex-shrink-0">
+                          <Upload className="w-3.5 h-3.5" />
+                          {pendingFiles[dt.key] ? "Değiştir" : "Yükle"}
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                const res = validateFile(f);
+                                if (res.valid) setPendingFiles({ ...pendingFiles, [dt.key]: f });
+                                else alert(res.error);
+                              }
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        {pendingFiles[dt.key] && (
+                          <button type="button" onClick={() => {
+                            const pf = { ...pendingFiles };
+                            delete pf[dt.key];
+                            setPendingFiles(pf);
+                          }} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
