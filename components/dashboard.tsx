@@ -376,85 +376,85 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Uyarılar */}
+        {/* ISG Uyarıları */}
         <div className="card p-4">
           <h3 className="text-sm font-semibold text-gray-800 mb-3">ISG Uyarıları</h3>
-          <div className="space-y-1.5 max-h-72 overflow-y-auto">
-            {egitimUyarilari.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-4">Aktif uyarı bulunmuyor</p>
-            ) : (
-              egitimUyarilari.map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => router.push("/personel?search=" + encodeURIComponent(item.personel_ad))}
-                  className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-gray-700 truncate">
-                      <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
-                      {item.personel_ad}
-                    </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{item.label}</p>
-                  </div>
-                  <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${
-                    item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                  }`}>
-                    {item.kalanGun <= 0 ? "!" : item.kalanGun}
-                  </span>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {egitimUyarilari.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">Aktif uyarı bulunmuyor</p>
+              ) : (
+                egitimUyarilari.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => router.push("/personel?search=" + encodeURIComponent(item.personel_ad))}
+                    className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700 truncate">
+                        <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
+                        {item.personel_ad}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{item.label}</p>
+                    </div>
+                    <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${
+                      item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {item.kalanGun <= 0 ? "!" : item.kalanGun}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            {egitimUyarilari.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-500">
+                  {stats.uyarilar} uyarıdan {egitimUyarilari.length} gösteriliyor
+                </span>
+                <button onClick={() => router.push("/personel")} className="btn btn-primary text-xs py-1.5 px-3">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Tümünü Gör
                 </button>
-              ))
+              </div>
             )}
           </div>
-          {egitimUyarilari.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-500">
-                {stats.uyarilar} uyarıdan {egitimUyarilari.length} gösteriliyor
-              </span>
-              <button onClick={() => router.push("/personel")} className="btn btn-primary text-xs py-1.5 px-3">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Tümünü Gör
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Ekipman Uyarıları */}
-      <div className="mt-3 card p-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5"><Wrench className="w-4 h-4 text-gray-500" /> Ekipman Uyarıları</h3>
-        <div className="space-y-1.5 max-h-60 overflow-y-auto">
-          {ekipmanUyarilari.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-4">Kontrol tarihi yaklaşan ekipman yok</p>
-          ) : (
-            ekipmanUyarilari.map((item, i) => (
-              <button
-                key={i}
-                onClick={() => router.push("/ekipmanlar?search=" + encodeURIComponent(item.personel_ad))}
-                className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-gray-700 truncate">
-                    <Wrench className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
-                    {item.personel_ad}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{item.label} — {item.kalanGun <= 0 ? "Süre geçmiş" : `${item.kalanGun} gün kaldı`}</p>
-                </div>
-                <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-                  {item.kalanGun <= 0 ? "!" : item.kalanGun}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-        {ekipmanUyarilari.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <button onClick={() => router.push("/ekipmanlar")} className="btn btn-primary text-xs py-1.5 px-3">
-              <Wrench className="w-3.5 h-3.5" />
-              Tüm Ekipmanları Gör
-            </button>
+          {/* Ekipman Uyarıları */}
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5"><Wrench className="w-4 h-4 text-gray-500" /> Ekipman Uyarıları</h3>
+            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+              {ekipmanUyarilari.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">Kontrol tarihi yaklaşan ekipman yok</p>
+              ) : (
+                ekipmanUyarilari.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => router.push("/ekipmanlar?search=" + encodeURIComponent(item.personel_ad))}
+                    className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700 truncate">
+                        <Wrench className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
+                        {item.personel_ad}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{item.label} — {item.kalanGun <= 0 ? "Süre geçmiş" : `${item.kalanGun} gün kaldı`}</p>
+                    </div>
+                    <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                      {item.kalanGun <= 0 ? "!" : item.kalanGun}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            {ekipmanUyarilari.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <button onClick={() => router.push("/ekipmanlar")} className="btn btn-primary text-xs py-1.5 px-3">
+                  <Wrench className="w-3.5 h-3.5" />
+                  Tüm Ekipmanları Gör
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
       {/* Diğer Tarih Uyarıları */}
       <div className="mt-3 card p-4">

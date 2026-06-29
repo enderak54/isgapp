@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm, maskTC } from "@/lib/security";
+import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { displayDate } from "@/lib/tarih";
-import { AlertTriangle, Plus, Edit, Trash2, Search, X, Save, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { displayDate, formatDate } from "@/lib/tarih";
+import {
+  AlertTriangle, Plus, Edit, Trash2, Search, X, Save,
+  CheckCircle, AlertCircle, Loader2, Calendar, FileText,
+  User, Building2, Shield
+} from "lucide-react";
 
 export default function IsKazalari() {
   const [kazalar, setKazalar] = useState<any[]>([]);
@@ -14,20 +18,60 @@ export default function IsKazalari() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [personel, setPersonel] = useState<any[]>([]);
-  const [form, setForm] = useState({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" });
+  const [form, setForm] = useState({
+    personel_id: "",
+    tarih: "",
+    saat: "",
+    bildirim_no: "",
+    bildirim_tarihi: "",
+    dosya_no: "",
+    yer: "",
+    aciklama: "",
+    yaralanan_uzuv: "",
+    uzuv_kaybi: false,
+    uzuv_kaybi_aciklama: "",
+    yaralanma_durumu: "",
+    calismaya_devam: false,
+    tibbi_mudahale: false,
+    hastane: "",
+    rapor_no: "",
+    istirahat_gun: "",
+    istirahat_bitis_tarihi: "",
+    santiye_adi: "",
+    ise_donus_tarihi: "",
+    ise_donus_egitimi: false,
+    kaza_tutanagi: false,
+    onleyici_onlemler: "",
+  });
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const defaultForm = {
+    personel_id: "", tarih: "", saat: "", bildirim_no: "", bildirim_tarihi: "",
+    dosya_no: "", yer: "", aciklama: "", yaralanan_uzuv: "",
+    uzuv_kaybi: false, uzuv_kaybi_aciklama: "", yaralanma_durumu: "",
+    calismaya_devam: false, tibbi_mudahale: false, hastane: "", rapor_no: "",
+    istirahat_gun: "", istirahat_bitis_tarihi: "", santiye_adi: "",
+    ise_donus_tarihi: "", ise_donus_egitimi: false, kaza_tutanagi: false,
+    onleyici_onlemler: "",
+  };
 
   useEffect(() => { fetchKazalar(); fetchPersonel(); }, []);
 
   const fetchKazalar = async () => {
-    const { data } = await supabase.from("is_kazalari").select("*, personel(kimlik_no, ad, soyad)").order("tarih", { ascending: false });
+    const { data } = await supabase
+      .from("is_kazalari")
+      .select("*, personel(kimlik_no, ad, soyad, meslek)")
+      .order("tarih", { ascending: false });
     if (data) setKazalar(data);
     setLoading(false);
   };
 
   const fetchPersonel = async () => {
-    const { data } = await supabase.from("personel").select("id, kimlik_no, ad, soyad").eq("arsivde", false);
+    const { data } = await supabase
+      .from("personel")
+      .select("id, kimlik_no, ad, soyad, meslek")
+      .eq("arsivde", false);
     if (data) setPersonel(data);
   };
 
@@ -36,18 +80,30 @@ export default function IsKazalari() {
     setSaving(true);
     setEditStatus(null);
     try {
+      const payload = sanitizeForm({
+        ...form,
+        istirahat_gun: form.istirahat_gun ? Number(form.istirahat_gun) : null,
+      });
       if (editing) {
-        const { error } = await supabase.from("is_kazalari").update(sanitizeForm(form)).eq("id", editing.id);
+        const { error } = await supabase
+          .from("is_kazalari")
+          .update(payload)
+          .eq("id", editing.id);
         if (error) throw error;
-        await logAudit("is_kazalari", "UPDATE", editing.id, editing, form);
+        await logAudit("is_kazalari", "UPDATE", editing.id, editing, payload);
         setEditStatus({ type: "success", message: "Kaza kaydı güncellendi" });
       } else {
-        const { data, error } = await supabase.from("is_kazalari").insert(sanitizeForm(form)).select();
+        const { data, error } = await supabase
+          .from("is_kazalari")
+          .insert(payload)
+          .select();
         if (error) throw error;
-        if (data) await logAudit("is_kazalari", "INSERT", data[0].id, null, form);
+        if (data) await logAudit("is_kazalari", "INSERT", data[0].id, null, payload);
         setEditStatus({ type: "success", message: "Kaza kaydı eklendi" });
       }
-      setShowForm(false); setEditing(null); setForm({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" });
+      setShowForm(false);
+      setEditing(null);
+      setForm(defaultForm);
       fetchKazalar();
     } catch (e: any) {
       setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
@@ -70,11 +126,54 @@ export default function IsKazalari() {
     }
   };
 
+  const openEdit = (k: any) => {
+    setEditing(k);
+    setForm({
+      personel_id: k.personel_id || "",
+      tarih: k.tarih || "",
+      saat: k.saat || "",
+      bildirim_no: k.bildirim_no || "",
+      bildirim_tarihi: k.bildirim_tarihi || "",
+      dosya_no: k.dosya_no || "",
+      yer: k.yer || "",
+      aciklama: k.aciklama || "",
+      yaralanan_uzuv: k.yaralanan_uzuv || "",
+      uzuv_kaybi: k.uzuv_kaybi || false,
+      uzuv_kaybi_aciklama: k.uzuv_kaybi_aciklama || "",
+      yaralanma_durumu: k.yaralanma_durumu || "",
+      calismaya_devam: k.calismaya_devam || false,
+      tibbi_mudahale: k.tibbi_mudahale || false,
+      hastane: k.hastane || "",
+      rapor_no: k.rapor_no || "",
+      istirahat_gun: k.istirahat_gun != null ? String(k.istirahat_gun) : "",
+      istirahat_bitis_tarihi: k.istirahat_bitis_tarihi || "",
+      santiye_adi: k.santiye_adi || "",
+      ise_donus_tarihi: k.ise_donus_tarihi || "",
+      ise_donus_egitimi: k.ise_donus_egitimi || false,
+      kaza_tutanagi: k.kaza_tutanagi || false,
+      onleyici_onlemler: k.onleyici_onlemler || "",
+    });
+    setShowForm(true);
+  };
+
+  const yaralanmaRenk = (d: string) => {
+    const map: Record<string, string> = {
+      yok: "bg-green-100 text-green-700",
+      hafif: "bg-yellow-100 text-yellow-700",
+      agri: "bg-orange-100 text-orange-700",
+      olum: "bg-red-100 text-red-700",
+    };
+    return map[d] || "bg-gray-100 text-gray-600";
+  };
+
   return (
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">İş Kazaları</h2>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ personel_id: "", tarih: "", saat: "", yer: "", aciklama: "", yaralanma_durumu: "", hastane: "", rapor_no: "", onleyici_onlemler: "" }); }} className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700">
+        <button
+          onClick={() => { setShowForm(true); setEditing(null); setForm(defaultForm); }}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700"
+        >
           <Plus className="w-5 h-5" /> Yeni Kaza
         </button>
       </div>
@@ -82,7 +181,13 @@ export default function IsKazalari() {
       <div className="card p-4 mb-6">
         <div className="relative">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input type="text" placeholder="Kaza ara..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pr-12" />
+          <input
+            type="text"
+            placeholder="Kaza ara (personel, şantiye, yer...)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input pr-12"
+          />
         </div>
       </div>
 
@@ -95,65 +200,301 @@ export default function IsKazalari() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editing ? "Kaza Düzenle" : "Yeni İş Kazası"}</h3>
               <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
-                <option value="">Personel Seçin</option>
-                {personel.map((p) => <option key={p.id} value={p.id}>{p.ad} {p.soyad} ({maskTC(p.kimlik_no)})</option>)}
-              </select>
-              <div className="grid grid-cols-2 gap-4">
-                <input type="date" required value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} className="p-2 border rounded-lg" />
-                <input type="time" value={form.saat} onChange={(e) => setForm({ ...form, saat: e.target.value })} className="p-2 border rounded-lg" />
+              {/* Personel + Şantiye */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Personel *</label>
+                  <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} required className="w-full p-2 border rounded-lg">
+                    <option value="">Personel Seçin</option>
+                    {personel.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.ad} {p.soyad} — {p.meslek || "Meslek yok"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Şantiye Adı</label>
+                  <input
+                    placeholder="Şantiye adı"
+                    value={form.santiye_adi}
+                    onChange={(e) => setForm({ ...form, santiye_adi: e.target.value })}
+                    className="w-full p-2 border rounded-lg"
+                  />
+                </div>
               </div>
-              <input placeholder="Kaza Yeri" value={form.yer} onChange={(e) => setForm({ ...form, yer: e.target.value })} className="w-full p-2 border rounded-lg" />
-              <select value={form.yaralanma_durumu} onChange={(e) => setForm({ ...form, yaralanma_durumu: e.target.value })} className="w-full p-2 border rounded-lg">
-                <option value="">Yaralanma Durumu</option>
-                <option value="yok">Yaralanma Yok</option>
-                <option value="hafif">Hafif Yaralanma</option>
-                <option value="agri">Ağır Yaralanma</option>
-                <option value="olum">Ölümlü</option>
-              </select>
-              <input placeholder="Hastane" value={form.hastane} onChange={(e) => setForm({ ...form, hastane: e.target.value })} className="w-full p-2 border rounded-lg" />
-              <input placeholder="Rapor No" value={form.rapor_no} onChange={(e) => setForm({ ...form, rapor_no: e.target.value })} className="w-full p-2 border rounded-lg" />
-              <textarea placeholder="Kaza Açıklaması" value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
-              <textarea placeholder="Önleyici Önlemler" value={form.onleyici_onlemler} onChange={(e) => setForm({ ...form, onleyici_onlemler: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
-              <button type="submit" disabled={saving} className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50">{saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}{saving ? "Kaydediliyor..." : "Kaydet"}</button>
+
+              {/* Kaza Tarih/Saat + Bildirim */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Kaza Tarihi *</label>
+                  <input type="date" required value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Saat</label>
+                  <input type="time" value={form.saat} onChange={(e) => setForm({ ...form, saat: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Bildirim No</label>
+                  <input placeholder="Bildirim no" value={form.bildirim_no} onChange={(e) => setForm({ ...form, bildirim_no: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Bildirim Tarihi</label>
+                  <input type="date" value={form.bildirim_tarihi} onChange={(e) => setForm({ ...form, bildirim_tarihi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+              </div>
+
+              {/* Dosya No + Yer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Dosya No</label>
+                  <input placeholder="Dosya no" value={form.dosya_no} onChange={(e) => setForm({ ...form, dosya_no: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Nerede Oldu</label>
+                  <input placeholder="Kaza yeri" value={form.yer} onChange={(e) => setForm({ ...form, yer: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+              </div>
+
+              {/* Kaza Açıklaması */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Kaza Nasıl Oldu</label>
+                <textarea placeholder="Kazanın oluş şekli..." value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
+              </div>
+
+              {/* Yaralanma Detayları */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Yaralanan Uzuv</label>
+                  <input placeholder="Örn: Sağ kol, sol bacak" value={form.yaralanan_uzuv} onChange={(e) => setForm({ ...form, yaralanan_uzuv: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Yaralanma Durumu</label>
+                  <select value={form.yaralanma_durumu} onChange={(e) => setForm({ ...form, yaralanma_durumu: e.target.value })} className="w-full p-2 border rounded-lg">
+                    <option value="">Seçin</option>
+                    <option value="yok">Yaralanma Yok</option>
+                    <option value="hafif">Hafif Yaralanma</option>
+                    <option value="agri">Ağır Yaralanma</option>
+                    <option value="olum">Ölümlü</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Uzuv Kaybı */}
+              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.uzuv_kaybi} onChange={(e) => setForm({ ...form, uzuv_kaybi: e.target.checked })} className="w-4 h-4" />
+                  <span className="text-sm font-medium">Uzuv Kaybı Var</span>
+                </label>
+                {form.uzuv_kaybi && (
+                  <input
+                    placeholder="Kaybedilen uzuv..."
+                    value={form.uzuv_kaybi_aciklama}
+                    onChange={(e) => setForm({ ...form, uzuv_kaybi_aciklama: e.target.value })}
+                    className="w-full p-2 border rounded-lg"
+                  />
+                )}
+              </div>
+
+              {/* Çalışma + Tıbbi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                  <input type="checkbox" checked={form.calismaya_devam} onChange={(e) => setForm({ ...form, calismaya_devam: e.target.checked })} className="w-4 h-4" />
+                  <span className="text-sm font-medium">Çalışmaya Devam Etti</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                  <input type="checkbox" checked={form.tibbi_mudahale} onChange={(e) => setForm({ ...form, tibbi_mudahale: e.target.checked })} className="w-4 h-4" />
+                  <span className="text-sm font-medium">Tıbbi Müdahale Oldu</span>
+                </label>
+              </div>
+
+              {/* Hastane + Rapor */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Hastane</label>
+                  <input placeholder="Hastane adı" value={form.hastane} onChange={(e) => setForm({ ...form, hastane: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Rapor No</label>
+                  <input placeholder="Rapor no" value={form.rapor_no} onChange={(e) => setForm({ ...form, rapor_no: e.target.value })} className="w-full p-2 border rounded-lg" />
+                </div>
+              </div>
+
+              {/* İstirahat */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">İstirahat Bilgisi</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">İstirahat Gün Sayısı</label>
+                    <input type="number" min="0" placeholder="Gün" value={form.istirahat_gun} onChange={(e) => setForm({ ...form, istirahat_gun: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">İstirahat Bitiş Tarihi</label>
+                    <input type="date" value={form.istirahat_bitis_tarihi} onChange={(e) => setForm({ ...form, istirahat_bitis_tarihi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  </div>
+                </div>
+              </div>
+
+              {/* İşe Dönüş */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">İşe Dönüş</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">İşe Dönüş Tarihi</label>
+                    <input type="date" value={form.ise_donus_tarihi} onChange={(e) => setForm({ ...form, ise_donus_tarihi: e.target.value })} className="w-full p-2 border rounded-lg" />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                    <input type="checkbox" checked={form.ise_donus_egitimi} onChange={(e) => setForm({ ...form, ise_donus_egitimi: e.target.checked })} className="w-4 h-4" />
+                    <span className="text-sm font-medium">İşe Dönüş Eğitimi</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-lg">
+                    <input type="checkbox" checked={form.kaza_tutanagi} onChange={(e) => setForm({ ...form, kaza_tutanagi: e.target.checked })} className="w-4 h-4" />
+                    <span className="text-sm font-medium">Kaza Tutanağı</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Önleyici Önlemler */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Önleyici Önlemler</label>
+                <textarea placeholder="Alınan/alınacak önleyici önlemler..." value={form.onleyici_onlemler} onChange={(e) => setForm({ ...form, onleyici_onlemler: e.target.value })} className="w-full p-2 border rounded-lg h-20" />
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
             </form>
           </div>
         </div>
       )}
 
       {loading ? <div className="text-center py-12">Yükleniyor...</div> : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+          <table className="w-full min-w-[1200px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Tarih</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Personel</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Yer</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Yaralanma</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Rapor No</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tarih/Saat</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Personel</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">TC</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Meslek</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Şantiye</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Bildirim</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Dosya No</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Nerede Oldu</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Yaralanan Uzuv</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Uzuv Kaybı</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Durum</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Çalışıyor</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tıbbi</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Hastane</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Rapor No</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">İstirahat</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">İşe Dönüş</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Dönüş Eğt</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tutanak</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 whitespace-nowrap">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {kazalar.filter((k) => !search || (k.personel && `${k.personel.ad || ""} ${k.personel.soyad || ""}`.toLowerCase().includes(search.toLowerCase())) || k.yer?.toLowerCase().includes(search.toLowerCase())).map((k) => (
-                <tr key={k.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{displayDate(k.tarih)}</td>
-                  <td className="px-4 py-3 text-sm">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}</td>
-                  <td className="px-4 py-3 text-sm">{k.yer || "-"}</td>
-                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs ${k.yaralanma_durumu === "yok" ? "bg-green-100 text-green-700" : k.yaralanma_durumu === "hafif" ? "bg-yellow-100 text-yellow-700" : k.yaralanma_durumu === "agri" ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>{k.yaralanma_durumu || "-"}</span></td>
-                  <td className="px-4 py-3 text-sm">{k.rapor_no || "-"}</td>
-                  <td className="px-4 py-3 flex justify-center gap-2">
-                    <button onClick={() => { setEditing(k); setForm({ personel_id: k.personel_id || "", tarih: k.tarih || "", saat: k.saat || "", yer: k.yer || "", aciklama: k.aciklama || "", yaralanma_durumu: k.yaralanma_durumu || "", hastane: k.hastane || "", rapor_no: k.rapor_no || "", onleyici_onlemler: k.onleyici_onlemler || "" }); setShowForm(true); }} className="p-1 text-green-600 hover:bg-green-50 rounded"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
-                  </td>
-                </tr>
-              ))}
+              {kazalar
+                .filter((k) => {
+                  if (!search) return true;
+                  const q = search.toLowerCase();
+                  const p = k.personel;
+                  return (
+                    (p && `${p.ad || ""} ${p.soyad || ""}`.toLowerCase().includes(q)) ||
+                    (p && p.kimlik_no && p.kimlik_no.includes(q)) ||
+                    k.yer?.toLowerCase().includes(q) ||
+                    k.santiye_adi?.toLowerCase().includes(q) ||
+                    k.bildirim_no?.toLowerCase().includes(q)
+                  );
+                })
+                .map((k) => (
+                  <tr key={k.id} className="hover:bg-gray-50 text-sm">
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {displayDate(k.tarih)}
+                      {k.saat && <span className="text-gray-400 ml-1">{k.saat.slice(0, 5)}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.kimlik_no || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.meslek || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.santiye_adi || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {k.bildirim_no || "-"}
+                      {k.bildirim_tarihi && <span className="text-gray-400 text-xs block">{displayDate(k.bildirim_tarihi)}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.dosya_no || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.yer || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.yaralanan_uzuv || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {k.uzuv_kaybi ? (
+                        <span title={k.uzuv_kaybi_aciklama || ""} className="text-red-600 font-medium">Evet{k.uzuv_kaybi_aciklama ? "!" : ""}</span>
+                      ) : "-"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${yaralanmaRenk(k.yaralanma_durumu)}`}>
+                        {k.yaralanma_durumu === "yok" ? "Yok" : k.yaralanma_durumu === "hafif" ? "Hafif" : k.yaralanma_durumu === "agri" ? "Ağır" : k.yaralanma_durumu === "olum" ? "Ölümlü" : "-"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.calismaya_devam ? <span className="text-green-600 font-medium">Evet</span> : <span className="text-red-500">Hayır</span>}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.tibbi_mudahale ? <span className="text-blue-600 font-medium">Evet</span> : "Hayır"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.hastane || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.rapor_no || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {k.istirahat_gun ? (
+                        <span>
+                          {k.istirahat_gun} gün
+                          {k.istirahat_bitis_tarihi && (
+                            <span className="text-gray-400 text-xs block">
+                              {displayDate(k.istirahat_bitis_tarihi)}
+                              {new Date(k.istirahat_bitis_tarihi) < new Date() && (
+                                <span className="text-red-500 ml-1">(süre doldu)</span>
+                              )}
+                            </span>
+                          )}
+                        </span>
+                      ) : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {k.ise_donus_tarihi ? (
+                        <span>
+                          {displayDate(k.ise_donus_tarihi)}
+                          {(() => {
+                            const diff = Math.ceil((new Date(k.ise_donus_tarihi).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                            if (diff <= 1 && diff >= 0) return <span className="text-amber-600 text-xs block">Yarın!</span>;
+                            if (diff < 0) return <span className="text-red-500 text-xs block">Gecikmiş</span>;
+                            return null;
+                          })()}
+                        </span>
+                      ) : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.ise_donus_egitimi ? <span className="text-green-600 font-medium">Var</span> : "Yok"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{k.kaza_tutanagi ? <span className="text-green-600 font-medium">Var</span> : "Yok"}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex justify-center gap-1">
+                        <button onClick={() => openEdit(k)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Düzenle">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Sil">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
