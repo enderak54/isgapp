@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [egitimUyarilari, setEgitimUyarilari] = useState<EgitimUyari[]>([]);
   const [ekipmanUyarilari, setEkipmanUyarilari] = useState<EgitimUyari[]>([]);
+  const [digerUyarilar, setDigerUyarilar] = useState<EgitimUyari[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -190,6 +191,58 @@ export default function Dashboard() {
       saglikRaporuOrani,
     });
     setLoading(false);
+
+    // Fetch all other date-tracked items in parallel
+    (async () => {
+      const diger: EgitimUyari[] = [];
+      const isUyarisi = (tarih: string | null, ad: string, label: string, route: string, esikGun = 30) => {
+        if (!tarih) return;
+        const kalan = Math.ceil((new Date(tarih).getTime() - Date.now()) / 86400000);
+        if (kalan <= esikGun) diger.push({ label, personel_id: route, personel_ad: ad, kalanGun: kalan });
+      };
+
+      const [
+        { data: santiyeler },
+        { data: mykEgitimler },
+        { data: yetkinlikler },
+        { data: yasal },
+        { data: acilDurum },
+        { data: dokumanlar },
+        { data: duzeltici },
+        { data: politikalar },
+        { data: ekipmanDosyalari },
+      ] = await Promise.all([
+        supabase.from("santiyeler").select("id, ad, bitis_tarihi").not("bitis_tarihi", "is", null),
+        supabase.from("personel_myk_egitimleri").select("id, alis_tarihi, gecerlilik_suresi, myk_adi, personel_id"),
+        supabase.from("yetkinlik_matrisi").select("id, ad, gecerlilik_tarihi"),
+        supabase.from("yasal_uygunluk").select("id, ad, sonraki_degerlendirme_tarihi").not("sonraki_degerlendirme_tarihi", "is", null),
+        supabase.from("acil_durum").select("id, ad, sonraki_tatbikat_tarihi").not("sonraki_tatbikat_tarihi", "is", null),
+        supabase.from("dokuman_kontrol").select("id, dokuman_adi, gecerlilik_tarihi").not("gecerlilik_tarihi", "is", null),
+        supabase.from("duzeltici_faaliyet").select("id, baslik, hedef_tarih").not("hedef_tarih", "is", null),
+        supabase.from("politika_yonetimi").select("id, baslik, gecerlilik_tarihi").not("gecerlilik_tarihi", "is", null),
+        supabase.from("ekipman_dosyalari").select("id, ekipman_id, dosya_adi, bitis_tarihi").not("bitis_tarihi", "is", null).is("silinme_tarihi", null),
+      ]);
+
+      if (santiyeler) for (const s of santiyeler) isUyarisi(s.bitis_tarihi, s.ad, "Şantiye Bitiş", "/santiyeler");
+      if (mykEgitimler) for (const m of mykEgitimler) {
+        if (m.alis_tarihi && m.gecerlilik_suresi) {
+          const bitis = new Date(m.alis_tarihi);
+          bitis.setFullYear(bitis.getFullYear() + m.gecerlilik_suresi);
+          const kalan = Math.ceil((bitis.getTime() - Date.now()) / 86400000);
+          if (kalan <= 30) diger.push({ label: "MYK Eğitim", personel_id: `/myk?search=${encodeURIComponent(m.myk_adi || "")}`, personel_ad: m.myk_adi || `MYK #${m.id.slice(0, 8)}`, kalanGun: kalan });
+        }
+      }
+      if (yetkinlikler) for (const y of yetkinlikler) isUyarisi(y.gecerlilik_tarihi, y.ad, "Yetkinlik", "/yetkinlik");
+      if (yasal) for (const y of yasal) isUyarisi(y.sonraki_degerlendirme_tarihi, y.ad, "Yasal Değerlendirme", "/yasal");
+      if (acilDurum) for (const a of acilDurum) isUyarisi(a.sonraki_tatbikat_tarihi, a.ad, "Tatbikat", "/acil-durum", 60);
+      if (dokumanlar) for (const d of dokumanlar) isUyarisi(d.gecerlilik_tarihi, d.dokuman_adi, "Doküman", "/dokuman");
+      if (duzeltici) for (const d of duzeltici) isUyarisi(d.hedef_tarih, d.baslik, "Düzeltici Faaliyet", "/duzeltici-faaliyet");
+      if (politikalar) for (const p of politikalar) isUyarisi(p.gecerlilik_tarihi, p.baslik, "Politika", "/politika");
+      if (ekipmanDosyalari) for (const d of ekipmanDosyalari) isUyarisi(d.bitis_tarihi, d.dosya_adi, "Ekipman Evrakı", "/ekipmanlar", 60);
+
+      diger.sort((a, b) => a.kalanGun - b.kalanGun);
+      setDigerUyarilar(diger.slice(0, 15));
+    })();
   };
 
   const getRiskColor = (skor: number) => {
@@ -401,6 +454,35 @@ export default function Dashboard() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Diğer Tarih Uyarıları */}
+      <div className="mt-3 card p-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-500" /> Diğer Tarih Uyarıları</h3>
+        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+          {digerUyarilar.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-4">Yaklaşan tarih uyarısı bulunmuyor</p>
+          ) : (
+            digerUyarilar.map((item, i) => (
+              <button
+                key={i}
+                onClick={() => router.push(item.personel_id)}
+                className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-amber-50 transition text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-700 truncate">
+                    <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1 text-amber-500" />
+                    {item.personel_ad}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{item.label} — {item.kalanGun <= 0 ? "Süre geçmiş" : `${item.kalanGun} gün kaldı`}</p>
+                </div>
+                <span className={`ml-2 w-6 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${item.kalanGun <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                  {item.kalanGun <= 0 ? "!" : item.kalanGun}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Risk Değerlendirme Matrisi */}
