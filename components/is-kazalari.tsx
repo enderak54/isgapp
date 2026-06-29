@@ -271,8 +271,8 @@ export default function IsKazalari() {
               {/* Personel + Şantiye */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Personel *</label>
-                  <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} required className="w-full p-2 border rounded-lg">
+                  <label className="block text-xs text-gray-500 mb-1">Personel</label>
+                  <select value={form.personel_id} onChange={(e) => setForm({ ...form, personel_id: e.target.value })} className="w-full p-2 border rounded-lg">
                     <option value="">Personel Seçin</option>
                     {personel.map((p) => (
                       <option key={p.id} value={p.id}>
