@@ -394,6 +394,15 @@ tr:hover td {
 }
 @media (min-width: 768px) { .grid-2-responsive { grid-template-columns: repeat(2, 1fr); } }
 
+/* Vertical text for table headers */
+.vertical-text {
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  letter-spacing: 2px;
+  padding: 0.25rem 0;
+  max-height: 6rem;
+}
+
 /* App background (uses --bg var for theme support) */
 .app-bg { background: var(--bg); }
 .app-surface { background: var(--surface); }

@@ -524,23 +524,23 @@ export default function IsKazalari() {
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tarih/Saat</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Personel</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">TC</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Meslek</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Şantiye</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Bildirim</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Dosya No</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Nerede Oldu</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Yaralanan Uzuv</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Uzuv Kaybı</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Durum</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Çalışıyor</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tıbbi</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Hastane</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Rapor No</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">İstirahat</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">İşe Dönüş</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Dönüş Eğt</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 whitespace-nowrap">Tutanak</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">TC</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Meslek</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Şantiye</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Bildirim</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dosya No</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Nerede</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Yaralanan</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Uzuv Kaybı</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Durum</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Çalışıyor</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Tıbbi</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Hastane</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Rapor No</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">İstirahat</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dönüş</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Dönüş Eğt</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 vertical-text">Tutanak</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-600 whitespace-nowrap">İşlemler</th>
               </tr>
             </thead>
