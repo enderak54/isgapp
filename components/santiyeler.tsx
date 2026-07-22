@@ -32,6 +32,7 @@ export default function Santiyeler() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
   const [form, setForm] = useState({
     ad: "", adres: "", sorumlu: "", telefon: "",
     baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "",
@@ -74,10 +75,9 @@ export default function Santiyeler() {
     setSaving(true);
     setEditStatus(null);
     try {
-      // Dosya kolonlarindaki pending placeholder'ları temizle
       const cleanForm = { ...form };
       for (const dt of DOSYA_TIPLERI) {
-        if (cleanForm[dt.column as keyof typeof cleanForm]?.toString().startsWith("__pending__")) {
+        if ((cleanForm as any)[dt.column]?.toString().startsWith("__pending__")) {
           (cleanForm as any)[dt.column] = "";
         }
       }
@@ -92,7 +92,6 @@ export default function Santiyeler() {
         const { error } = await supabase.from("santiyeler").update(payload).eq("id", editing.id);
         if (error) throw error;
         await logAudit("santiyeler", "UPDATE", editing.id, editing, payload);
-        setEditStatus({ type: "success", message: "Şantiye güncellendi" });
       } else {
         const { data, error } = await supabase.from("santiyeler").insert(payload).select();
         if (error) throw error;
@@ -100,9 +99,25 @@ export default function Santiyeler() {
           santiyeId = data[0].id;
           await logAudit("santiyeler", "INSERT", data[0].id, null, payload);
         }
-        setEditStatus({ type: "success", message: "Şantiye kaydedildi" });
       }
-      setShowForm(false); setEditing(null);
+
+      if (santiyeId) {
+        for (const dt of DOSYA_TIPLERI) {
+          const pendingFile = pendingFiles[dt.column];
+          if (pendingFile) {
+            const ext = pendingFile.name.split(".").pop() || "";
+            const fileName = `${santiyeId}/${dt.key}_${Date.now()}_${sanitizeFileName(pendingFile.name)}`;
+            const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, pendingFile);
+            if (!upErr) {
+              const { data: urlData } = supabase.storage.from("santiye-dosyalari").getPublicUrl(fileName);
+              await supabase.from("santiyeler").update({ [dt.column]: urlData.publicUrl }).eq("id", santiyeId);
+            }
+          }
+        }
+      }
+
+      setEditStatus({ type: "success", message: editing ? "Şantiye güncellendi" : "Şantiye kaydedildi" });
+      setShowForm(false); setEditing(null); setPendingFiles({});
       setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "", yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "", acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "" });
       fetchSantiyeler();
     } catch (e: any) {
@@ -139,6 +154,7 @@ export default function Santiyeler() {
 
   const handleEdit = (s: any) => {
     setEditing(s);
+    setPendingFiles({});
     setForm({
       ad: s.ad, adres: s.adres || "", sorumlu: s.sorumlu || "", telefon: s.telefon || "",
       baslangic_tarihi: s.baslangic_tarihi || "", bitis_tarihi: s.bitis_tarihi || "",
@@ -184,7 +200,7 @@ export default function Santiyeler() {
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Şantiyeler</h2>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "", yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "", acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+        <button onClick={() => { setShowForm(true); setEditing(null); setPendingFiles({}); setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "", yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "", acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
           <Plus className="w-5 h-5" /> Yeni Şantiye
         </button>
       </div>
@@ -208,7 +224,7 @@ export default function Santiyeler() {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editing ? "Şantiye Düzenle" : "Yeni Şantiye"}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowForm(false); setPendingFiles({}); }} className="p-1 hover:bg-gray-100 rounded"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -240,11 +256,18 @@ export default function Santiyeler() {
                 <div className="space-y-3">
                   {DOSYA_TIPLERI.map((dt) => {
                     const dosyaUrl = (form as any)[dt.column];
+                    const hasPending = !!pendingFiles[dt.column];
                     return (
                       <div key={dt.key} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-gray-700">{dt.label}</p>
-                          {dosyaUrl ? (
+                          {hasPending ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-blue-600 flex items-center gap-1">
+                                <FileText className="w-3 h-3" /> {pendingFiles[dt.column].name} (bekleniyor)
+                              </span>
+                            </div>
+                          ) : dosyaUrl ? (
                             <div className="flex items-center gap-2 mt-1">
                               <a href={dosyaUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline flex items-center gap-1">
                                 <ExternalLink className="w-3 h-3" /> Dosyayı Gör
@@ -264,8 +287,10 @@ export default function Santiyeler() {
                               const f = e.target.files?.[0];
                               if (f) {
                                 const res = validateFile(f);
-                                if (res.valid) setForm({ ...form, [dt.column]: `__pending__${f.name}` });
-                                else alert(res.error);
+                                if (res.valid) {
+                                  setPendingFiles(prev => ({ ...prev, [dt.column]: f }));
+                                  setForm({ ...form, [dt.column]: f.name });
+                                } else alert(res.error);
                               }
                               e.target.value = "";
                             }}
@@ -339,7 +364,7 @@ export default function Santiyeler() {
                         const uploadKey = `${s.id}_${dt.key}`;
                         return (
                           <div key={dt.key} className="relative">
-                            {dosyaUrl ? (
+                          {dosyaUrl && !dosyaUrl.startsWith("__pending__") ? (
                               <a href={dosyaUrl} target="_blank" rel="noopener noreferrer" className="p-1 text-purple-600 hover:bg-purple-50 rounded block" title={dt.label}>
                                 <FileText className="w-4 h-4" />
                               </a>
