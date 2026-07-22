@@ -8,7 +8,12 @@ ALTER TABLE santiyeler
   ADD COLUMN IF NOT EXISTS is_sozlesme_dosyasi TEXT,
   ADD COLUMN IF NOT EXISTS risk_analizi_dosyasi TEXT,
   ADD COLUMN IF NOT EXISTS acil_durum_plani_dosyasi TEXT,
-  ADD COLUMN IF NOT EXISTS tatbikat_dosyasi TEXT;
+  ADD COLUMN IF NOT EXISTS tatbikat_dosyasi TEXT,
+  ADD COLUMN IF NOT EXISTS yapi_ruhsati_dosyasi TEXT,
+  ADD COLUMN IF NOT EXISTS calisan_temsilcisi_dosyasi TEXT,
+  ADD COLUMN IF NOT EXISTS destek_elemani_dosyasi TEXT,
+  ADD COLUMN IF NOT EXISTS yapilacak_isler_dosyasi TEXT,
+  ADD COLUMN IF NOT EXISTS acil_durum_ekipleri_dosyasi TEXT;
 
 -- Santiye dosyaları için storage bucket
 INSERT INTO storage.buckets (id, name, public)

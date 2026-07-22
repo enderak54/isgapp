@@ -12,9 +12,14 @@ import {
 } from "lucide-react";
 
 const DOSYA_TIPLERI = [
+  { key: "yapi_ruhsati", label: "Yapı Ruhsatı", column: "yapi_ruhsati_dosyasi" },
   { key: "is_sozlesme", label: "İş Sözleşme", column: "is_sozlesme_dosyasi" },
   { key: "risk_analizi", label: "Risk Analizi", column: "risk_analizi_dosyasi" },
+  { key: "calisan_temsilcisi", label: "Çalışan Temsilcisi", column: "calisan_temsilcisi_dosyasi" },
+  { key: "destek_elemani", label: "Destek Elemanı", column: "destek_elemani_dosyasi" },
+  { key: "yapilacak_isler", label: "Yapılacak İşler", column: "yapilacak_isler_dosyasi" },
   { key: "acil_durum_plani", label: "Acil Durum Planı", column: "acil_durum_plani_dosyasi" },
+  { key: "acil_durum_ekipleri", label: "Acil Durum Ekipleri", column: "acil_durum_ekipleri_dosyasi" },
   { key: "tatbikat", label: "Tatbikat", column: "tatbikat_dosyasi" },
 ];
 
@@ -32,8 +37,10 @@ export default function Santiyeler() {
     baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "",
     sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "",
     destek_elemani: "", acil_durum_ekipleri: "",
-    is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "",
-    acil_durum_plani_dosyasi: "", tatbikat_dosyasi: "",
+    yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "",
+    calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "",
+    yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "",
+    acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "",
   });
 
   useEffect(() => { fetchSantiyeler(); }, []);
@@ -96,7 +103,7 @@ export default function Santiyeler() {
         setEditStatus({ type: "success", message: "Şantiye kaydedildi" });
       }
       setShowForm(false); setEditing(null);
-      setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", acil_durum_plani_dosyasi: "", tatbikat_dosyasi: "" });
+      setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "", yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "", acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "" });
       fetchSantiyeler();
     } catch (e: any) {
       setEditStatus({ type: "error", message: e.message || "Kayıt işlemi başarısız" });
@@ -141,9 +148,14 @@ export default function Santiyeler() {
       calisan_temsilcisi: s.calisan_temsilcisi || "",
       destek_elemani: s.destek_elemani || "",
       acil_durum_ekipleri: s.acil_durum_ekipleri || "",
+      yapi_ruhsati_dosyasi: s.yapi_ruhsati_dosyasi || "",
       is_sozlesme_dosyasi: s.is_sozlesme_dosyasi || "",
       risk_analizi_dosyasi: s.risk_analizi_dosyasi || "",
+      calisan_temsilcisi_dosyasi: s.calisan_temsilcisi_dosyasi || "",
+      destek_elemani_dosyasi: s.destek_elemani_dosyasi || "",
+      yapilacak_isler_dosyasi: s.yapilacak_isler_dosyasi || "",
       acil_durum_plani_dosyasi: s.acil_durum_plani_dosyasi || "",
+      acil_durum_ekipleri_dosyasi: s.acil_durum_ekipleri_dosyasi || "",
       tatbikat_dosyasi: s.tatbikat_dosyasi || "",
     });
     setShowForm(true);
@@ -172,7 +184,7 @@ export default function Santiyeler() {
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Şantiyeler</h2>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", acil_durum_plani_dosyasi: "", tatbikat_dosyasi: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ ad: "", adres: "", sorumlu: "", telefon: "", baslangic_tarihi: "", bitis_tarihi: "", durum: "aktif", notlar: "", sicil_numarasi: "", yapilacak_isler: "", calisan_temsilcisi: "", destek_elemani: "", acil_durum_ekipleri: "", yapi_ruhsati_dosyasi: "", is_sozlesme_dosyasi: "", risk_analizi_dosyasi: "", calisan_temsilcisi_dosyasi: "", destek_elemani_dosyasi: "", yapilacak_isler_dosyasi: "", acil_durum_plani_dosyasi: "", acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "" }); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
           <Plus className="w-5 h-5" /> Yeni Şantiye
         </button>
       </div>
