@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
-import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Image as ImageIcon, FileText as FileDoc } from "lucide-react";
+import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Image as ImageIcon, FileText as FileDoc, Building2, HardHat, BookOpen, Wrench, AlertTriangle, FileWarning, ClipboardList } from "lucide-react";
+
+const MODULE_TABS = [
+  { key: "personel", label: "Personel", icon: User },
+  { key: "santiye", label: "Şantiye", icon: Building2 },
+  { key: "taseron", label: "Taşeron", icon: HardHat },
+  { key: "egitim", label: "Eğitim", icon: BookOpen },
+  { key: "ekipman", label: "Ekipman", icon: Wrench },
+  { key: "is_kazasi", label: "İş Kazası", icon: AlertTriangle },
+  { key: "ihtar", label: "İhtar", icon: FileWarning },
+  { key: "dokuman", label: "Döküman", icon: ClipboardList },
+];
 
 const FOLDER_CATEGORIES = [
   { key: "isg_egitim", label: "İSG Eğitimleri", icon: FileText, color: "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100" },
@@ -17,29 +28,165 @@ const FOLDER_CATEGORIES = [
 ];
 
 const BELGE_TIPI_TO_FOLDER: Record<string, string> = {
-  isg_egitim: "isg_egitim",
-  yuksekte_calisma: "isg_egitim",
-  myk: "isg_egitim",
-  operator_belgesi: "isg_egitim",
-  kkd: "isg_egitim",
-  oryantasyon: "isg_egitim",
-  sertifika: "isg_egitim",
-  saglik_raporu: "saglik",
-  yuksekte_calisamaz: "saglik",
-  gece_calisamaz: "saglik",
-  vardiyali_calisamaz: "saglik",
+  isg_egitim: "isg_egitim", yuksekte_calisma: "isg_egitim", myk: "isg_egitim",
+  operator_belgesi: "isg_egitim", kkd: "isg_egitim", oryantasyon: "isg_egitim", sertifika: "isg_egitim",
+  saglik_raporu: "saglik", yuksekte_calisamaz: "saglik", gece_calisamaz: "saglik", vardiyali_calisamaz: "saglik",
 };
 
 const BELGE_TURU_TO_FOLDER: Record<string, string> = {
-  saglik_raporu: "saglik",
-  egitim_belgesi: "isg_egitim",
-  kimlik: "kimlik",
-  sss_belgesi: "ssk",
-  is_guvenligi: "is_guvenligi",
-  diger: "diger",
+  saglik_raporu: "saglik", egitim_belgesi: "isg_egitim", kimlik: "kimlik",
+  sss_belgesi: "ssk", is_guvenligi: "is_guvenligi", diger: "diger",
 };
 
+const SANIYE_DOSYA_ALANLARI = [
+  { column: "yapi_ruhsati_dosyasi", label: "Yapı Ruhsatı" },
+  { column: "is_sozlesme_dosyasi", label: "İş Sözleşmesi" },
+  { column: "risk_analizi_dosyasi", label: "Risk Analizi" },
+  { column: "calisan_temsilcisi_dosyasi", label: "Çalışan Temsilcisi" },
+  { column: "destek_elemani_dosyasi", label: "Destek Elemanı" },
+  { column: "yapilacak_isler_dosyasi", label: "Yapılacak İşler" },
+  { column: "acil_durum_plani_dosyasi", label: "Acil Durum Planı" },
+  { column: "acil_durum_ekipleri_dosyasi", label: "Acil Durum Ekipleri" },
+  { column: "tatbikat_dosyasi", label: "Tatbikat" },
+];
+
+const KAZA_DOSYA_ALANLARI = [
+  { column: "kaza_tutanagi_dosyasi", label: "Kaza Tutanağı" },
+  { column: "kaza_bildirim_dosyasi", label: "Kaza Bildirimi" },
+  { column: "ise_donus_egitimi_dosyasi", label: "İşe Dönüş Eğitimi" },
+  { column: "rapor_dosyasi", label: "Rapor" },
+];
+
+const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+const getFileIcon = (url?: string | null) => {
+  if (url && isImage(url)) return <ImageIcon className="w-4 h-4 text-blue-500" />;
+  return <FileDoc className="w-4 h-4 text-amber-500" />;
+};
+
+interface FileItem {
+  id: string;
+  name: string;
+  url: string | null;
+  date?: string;
+  extra?: string;
+}
+
 export default function PersonelDosyasi() {
+  const [activeModule, setActiveModule] = useState("personel");
+  return (
+    <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-xl font-bold text-gray-800 tracking-tight">Dosya Yönetimi</h1>
+      </div>
+      <div className="px-6 pt-4">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
+          {MODULE_TABS.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button key={tab.key} onClick={() => setActiveModule(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeModule === tab.key ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-white/50"}`}>
+                <Icon className="w-3.5 h-3.5" /> {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex-1 px-6 py-4">
+        {activeModule === "personel" && <PersonelModule />}
+        {activeModule === "santiye" && <SantiyeModule />}
+        {activeModule === "taseron" && <TaseronModule />}
+        {activeModule === "egitim" && <EgitimModule />}
+        {activeModule === "ekipman" && <EkipmanModule />}
+        {activeModule === "is_kazasi" && <KazaModule />}
+        {activeModule === "ihtar" && <IhtarModule />}
+        {activeModule === "dokuman" && <DokumanModule />}
+      </div>
+    </div>
+  );
+}
+
+function FileCard({ item }: { item: FileItem }) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
+      <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+        {getFileIcon(item.url)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-gray-800 break-words">{item.name || "Adsız"}</p>
+        <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+          {item.date && <span>{displayDate(item.date)}</span>}
+          {item.extra && <span className="text-gray-300">|</span>}
+          {item.extra && <span>{item.extra}</span>}
+        </div>
+      </div>
+      <div className="flex gap-1 flex-shrink-0">
+        {item.url ? (
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
+            <Eye className="w-3.5 h-3.5" />
+          </a>
+        ) : (
+          <span className="p-1.5 text-gray-300"><Eye className="w-3.5 h-3.5" /></span>
+        )}
+        {item.url && (
+          <a href={item.url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
+            <Download className="w-3.5 h-3.5" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır." }: { files: FileItem[]; emptyText?: string }) {
+  if (files.length === 0) return <div className="text-center py-10 text-gray-400 text-sm">{emptyText}</div>;
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {files.map((item, idx) => <FileCard key={idx} item={item} />)}
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="relative">
+      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <input type="text" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} className="input pr-12" />
+    </div>
+  );
+}
+
+function PanelCard({ title, children, count }: { title: string; children: React.ReactNode; count?: number }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm font-semibold text-gray-700">{title}</span>
+        {count !== undefined && <span className="text-xs text-gray-400 ml-auto">{count} dosya</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function useSupabaseList<T>(table: string, filter?: Record<string, any>, select = "*") {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      let q = supabase.from(table).select(select);
+      if (filter) for (const [k, v] of Object.entries(filter)) {
+        if (v === null) q = q.is(k, null);
+        else q = q.eq(k, v);
+      }
+      const { data: rows } = await q.order("created_at", { ascending: false });
+      setData((rows as T[]) || []);
+      setLoading(false);
+    })();
+  }, [table, JSON.stringify(filter), select]);
+  return { data, loading };
+}
+
+// ─── PERSONEL MODULE ───────────────────────────────────────────────
+function PersonelModule() {
   const [personel, setPersonel] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
@@ -62,9 +209,6 @@ export default function PersonelDosyasi() {
     if (!selectedPerson) return;
     setFilesLoading(true);
     setSelectedFolder(null);
-    setBelgeler([]);
-    setDosyalar([]);
-    setTalimatlar([]);
     Promise.all([
       supabase.from("personel_belgeleri").select("*").eq("personel_id", selectedPerson.id).is("silinme_tarihi", null),
       supabase.from("personel_dosyasi").select("*").eq("personel_id", selectedPerson.id),
@@ -78,30 +222,23 @@ export default function PersonelDosyasi() {
   }, [selectedPerson]);
 
   const filteredPersonel = personel.filter(p =>
-    `${p.ad} ${p.soyad}`.toLowerCase().includes(search.toLowerCase()) ||
-    (p.kimlik_no || "").includes(search)
+    `${p.ad} ${p.soyad}`.toLowerCase().includes(search.toLowerCase()) || (p.kimlik_no || "").includes(search)
   );
 
-  const getFolderFiles = (folderKey: string): any[] => {
-    if (folderKey === "talimat") return talimatlar.map(t => ({ ...t, _source: "talimat", _name: t.tanim || "Talimat", _url: null, _tarih: t.eklenme_tarihi }));
+  const getFolderFiles = (folderKey: string): FileItem[] => {
+    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.tanim || "Talimat", url: null, date: t.eklenme_tarihi }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
-    const merged = [
-      ...fromBelgeler.map(b => ({ ...b, _source: "belge", _name: b.dosya_adi || b.belge_tipi, _url: b.dosya_url, _tarih: b.eklenme_tarihi })),
-      ...fromDosyalar.map(d => ({ ...d, _source: "dosya", _name: d.belge_adi, _url: d.dosya_url, _tarih: d.tarih })),
-    ];
-    return merged.sort((a, b) => new Date(b._tarih || 0).getTime() - new Date(a._tarih || 0).getTime());
+    return [
+      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi })),
+      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi, url: d.dosya_url, date: d.tarih })),
+    ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
   };
 
-  const getAllFiles = (): any[] => {
-    const all: any[] = [];
-    FOLDER_CATEGORIES.forEach(f => {
-      const files = getFolderFiles(f.key);
-      files.forEach(file => {
-        all.push({ ...file, _folderKey: f.key, _folderLabel: f.label });
-      });
-    });
-    return all.sort((a, b) => new Date(b._tarih || 0).getTime() - new Date(a._tarih || 0).getTime());
+  const getAllFiles = (): FileItem[] => {
+    const all: FileItem[] = [];
+    FOLDER_CATEGORIES.forEach(f => getFolderFiles(f.key).forEach(file => all.push(file)));
+    return all.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
   };
 
   const folderFileCount = (folderKey: string): number => {
@@ -110,95 +247,56 @@ export default function PersonelDosyasi() {
       dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
   };
 
-  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-  const getFileIcon = (item: any) => {
-    if (item._url && isImage(item._url)) return <ImageIcon className="w-4 h-4 text-blue-500" />;
-    return <FileDoc className="w-4 h-4 text-amber-500" />;
-  };
-
   const currentFiles = selectedFolder ? (selectedFolder === "_all" ? getAllFiles() : getFolderFiles(selectedFolder)) : [];
   const allFilesCount = FOLDER_CATEGORIES.reduce((sum, f) => sum + folderFileCount(f.key), 0);
 
   return (
-    <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-800 tracking-tight">Personel Dosyası</h1>
-      </div>
-
-      {/* Step 1: Personel Seçimi */}
-      <div className="px-6 py-4">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">1</div>
-            <span className="text-sm font-semibold text-gray-700">Personel Seçimi</span>
-          </div>
-          <div className="relative">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Personel adı veya TC kimlik no ile ara..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); setSelectedPerson(null); setSelectedFolder(null); }}
-                onFocus={() => setShowDropdown(true)}
-                className="input pr-12"
-            />
-            {showDropdown && search && filteredPersonel.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-30">
-                {filteredPersonel.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setSelectedPerson(p); setSearch(`${p.ad} ${p.soyad}`); setShowDropdown(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left border-b border-gray-50 last:border-0"
-                  >
-                    <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium text-gray-800">{p.ad} {p.soyad}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{maskTC(p.kimlik_no)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {showDropdown && search && filteredPersonel.length === 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-sm text-gray-400 z-30">Personel bulunamadı</div>
-            )}
-          </div>
-          {selectedPerson && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
-              <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{maskTC(selectedPerson.kimlik_no)}</span>
+    <>
+      <PanelCard title="1. Personel Seçimi">
+        <div className="relative">
+          <SearchInput value={search} onChange={v => { setSearch(v); setShowDropdown(true); setSelectedPerson(null); setSelectedFolder(null); }} placeholder="Personel adı veya TC kimlik no ile ara..." />
+          {showDropdown && search && filteredPersonel.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-30">
+              {filteredPersonel.map(p => (
+                <button key={p.id} onClick={() => { setSelectedPerson(p); setSearch(`${p.ad} ${p.soyad}`); setShowDropdown(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left border-b border-gray-50 last:border-0">
+                  <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className="font-medium text-gray-800">{p.ad} {p.soyad}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{maskTC(p.kimlik_no)}</span>
+                </button>
+              ))}
             </div>
           )}
+          {showDropdown && search && filteredPersonel.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-sm text-gray-400 z-30">Personel bulunamadı</div>
+          )}
         </div>
-      </div>
+        {selectedPerson && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+            <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{maskTC(selectedPerson.kimlik_no)}</span>
+          </div>
+        )}
+      </PanelCard>
 
-      {/* Step 2: Klasör Seçimi */}
       {selectedPerson && (
-        <div className="px-6 pb-4">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">2</div>
-              <span className="text-sm font-semibold text-gray-700">Klasör Seçimi</span>
-            </div>
+        <div className="mt-4">
+          <PanelCard title="2. Klasör Seçimi">
             {filesLoading ? (
               <div className="text-center py-6 text-gray-400 text-sm">Yükleniyor...</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                <button
-                  onClick={() => setSelectedFolder("_all")}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedFolder === "_all" ? "border-green-500 bg-green-50" : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300"}`}
-                >
+                <button onClick={() => setSelectedFolder("_all")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedFolder === "_all" ? "border-green-500 bg-green-50" : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300"}`}>
                   <Folder className="w-8 h-8 text-gray-500" />
                   <span className="text-xs font-medium text-gray-700 text-center">Tümünü Göster</span>
                   <span className="text-[10px] text-gray-400">{allFilesCount} dosya</span>
                 </button>
-                {FOLDER_CATEGORIES.map((folder) => {
+                {FOLDER_CATEGORIES.map(folder => {
                   const count = folderFileCount(folder.key);
                   const Icon = folder.icon;
                   return (
-                    <button
-                      key={folder.key}
-                      onClick={() => setSelectedFolder(folder.key)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedFolder === folder.key ? "border-green-500 bg-green-50" : folder.color}`}
-                    >
+                    <button key={folder.key} onClick={() => setSelectedFolder(folder.key)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedFolder === folder.key ? "border-green-500 bg-green-50" : folder.color}`}>
                       <Icon className="w-8 h-8" />
                       <span className="text-xs font-medium text-gray-700 text-center">{folder.label}</span>
                       <span className="text-[10px] text-gray-400">{count} dosya</span>
@@ -207,99 +305,363 @@ export default function PersonelDosyasi() {
                 })}
               </div>
             )}
-          </div>
+          </PanelCard>
         </div>
       )}
 
-      {/* Step 3: Dosyaların Gösterilmesi */}
       {selectedPerson && selectedFolder && (
-        <div className="px-6 pb-6 flex-1">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">3</div>
-              <span className="text-sm font-semibold text-gray-700">
-                {selectedFolder === "_all" ? "Tüm Dosyalar" : FOLDER_CATEGORIES.find(f => f.key === selectedFolder)?.label || selectedFolder}
-              </span>
-              <span className="text-xs text-gray-400 ml-auto">{currentFiles.length} dosya bulundu</span>
-            </div>
-            {currentFiles.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 text-sm">Henüz dosya bulunmamaktadır.</div>
-            ) : selectedFolder === "_all" ? (
-              <div className="space-y-2">
+        <div className="mt-4">
+          <PanelCard title={selectedFolder === "_all" ? "Tüm Dosyalar" : FOLDER_CATEGORIES.find(f => f.key === selectedFolder)?.label || selectedFolder} count={currentFiles.length}>
+            {selectedFolder === "_all" ? (
+              <div className="space-y-4">
                 {FOLDER_CATEGORIES.map(folder => {
-                  const files = currentFiles.filter(f => f._folderKey === folder.key);
-                  if (files.length === 0) return null;
+                  const files = currentFiles.filter(f => {
+                    const idx = FOLDER_CATEGORIES.indexOf(folder);
+                    return true;
+                  });
+                  const folderFiles = getFolderFiles(folder.key);
+                  if (folderFiles.length === 0) return null;
                   const Icon = folder.icon;
                   return (
                     <div key={folder.key}>
-                      <div className="flex items-center gap-2 mb-2 mt-4 first:mt-0">
+                      <div className="flex items-center gap-2 mb-2">
                         <Icon className="w-4 h-4 text-gray-400" />
                         <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{folder.label}</span>
-                        <span className="text-[10px] text-gray-400">({files.length})</span>
+                        <span className="text-[10px] text-gray-400">({folderFiles.length})</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {files.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
-                            <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-                              {getFileIcon(item)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-800 break-words">{item._name || "Adsız"}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">{item._tarih ? displayDate(item._tarih) : ""}</p>
-                            </div>
-                            <div className="flex gap-1 flex-shrink-0">
-                              {item._url ? (
-                                <a href={item._url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
-                                  <Eye className="w-3.5 h-3.5" />
-                                </a>
-                              ) : (
-                                <span className="p-1.5 text-gray-300" title="Dosya yok"><Eye className="w-3.5 h-3.5" /></span>
-                              )}
-                              {item._url && (
-                                <a href={item._url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
-                                  <Download className="w-3.5 h-3.5" />
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        {folderFiles.map((item, idx) => <FileCard key={idx} item={item} />)}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {currentFiles.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-                      {getFileIcon(item)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-800 break-words">{item._name || "Adsız"}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{item._tarih ? displayDate(item._tarih) : ""}</p>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      {item._url ? (
-                        <a href={item._url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
-                          <Eye className="w-3.5 h-3.5" />
-                        </a>
-                      ) : (
-                        <span className="p-1.5 text-gray-300" title="Dosya yok"><Eye className="w-3.5 h-3.5" /></span>
-                      )}
-                      {item._url && (
-                        <a href={item._url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <FileGrid files={currentFiles} />
             )}
-          </div>
+          </PanelCard>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+// ─── ŞANTİYE MODULE ────────────────────────────────────────────────
+function SantiyeModule() {
+  const [santiyeler, setSantiyeler] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("santiyeler").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setSantiyeler(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = santiyeler.filter(s => (s.ad || "").toLowerCase().includes(search.toLowerCase()));
+
+  const getFiles = (santiye: any): FileItem[] => {
+    return SANIYE_DOSYA_ALANLARI
+      .filter(a => santiye[a.column])
+      .map(a => ({ id: a.column, name: a.label, url: santiye[a.column] }));
+  };
+
+  return (
+    <>
+      <PanelCard title="Şantiye Seçimi">
+        <SearchInput value={search} onChange={setSearch} placeholder="Şantiye adı ile ara..." />
+        <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+          {filtered.map(s => (
+            <button key={s.id} onClick={() => setSelected(s)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === s.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
+              <Building2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium">{s.ad}</span>
+              <span className="text-xs text-gray-400 ml-auto">{getFiles(s).length} dosya</span>
+            </button>
+          ))}
+          {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Şantiye bulunamadı</div>}
+        </div>
+      </PanelCard>
+      {selected && (
+        <div className="mt-4">
+          <PanelCard title={`${selected.ad} — Dosyalar`} count={getFiles(selected).length}>
+            <FileGrid files={getFiles(selected)} emptyText="Bu şantiyeye ait dosya bulunmamaktadır." />
+          </PanelCard>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── TAŞERON MODULE ────────────────────────────────────────────────
+function TaseronModule() {
+  const [taseronlar, setTaseronlar] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [belgeler, setBelgeler] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filesLoading, setFilesLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.from("taseronlar").select("id, firma_adi, durum").eq("durum", "aktif").order("firma_adi").then(({ data }) => {
+      if (data) setTaseronlar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    setFilesLoading(true);
+    supabase.from("personel").select("id").eq("taseron_id", selected.id).then(async ({ data: personelList }) => {
+      if (!personelList || personelList.length === 0) { setBelgeler([]); setFilesLoading(false); return; }
+      const pids = personelList.map(p => p.id);
+      const { data } = await supabase.from("personel_belgeleri").select("*").in("personel_id", pids).is("silinme_tarihi", null);
+      setBelgeler(data || []);
+      setFilesLoading(false);
+    });
+  }, [selected]);
+
+  const filtered = taseronlar.filter(t => (t.firma_adi || "").toLowerCase().includes(search.toLowerCase()));
+
+  const getFiles = (): FileItem[] => {
+    return belgeler
+      .filter(b => b.dosya_url)
+      .map(b => ({
+        id: b.id,
+        name: b.dosya_adi || b.belge_tipi,
+        url: b.dosya_url,
+        date: b.eklenme_tarihi,
+        extra: b.belge_tipi?.replace(/_/g, " "),
+      }));
+  };
+
+  return (
+    <>
+      <PanelCard title="Taşeron Seçimi">
+        <SearchInput value={search} onChange={setSearch} placeholder="Taşeron firma adı ile ara..." />
+        <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+          {filtered.map(t => (
+            <button key={t.id} onClick={() => { setSelected(t); setSearch(t.firma_adi); }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === t.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
+              <HardHat className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium">{t.firma_adi}</span>
+            </button>
+          ))}
+          {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Taşeron bulunamadı</div>}
+        </div>
+      </PanelCard>
+      {selected && (
+        <div className="mt-4">
+          <PanelCard title={`${selected.firma_adi} — Belgeler`} count={getFiles().length}>
+            {filesLoading ? (
+              <div className="text-center py-6 text-gray-400 text-sm">Yükleniyor...</div>
+            ) : (
+              <FileGrid files={getFiles()} emptyText="Bu taşerona ait belge bulunmamaktadır." />
+            )}
+          </PanelCard>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── EĞİTİM MODULE ─────────────────────────────────────────────────
+function EgitimModule() {
+  const [dosyalar, setDosyalar] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("egitim_dosyalari").select("*, egitimler:egitim_kaydi_id (egitim_adi, egitim_tarihi)").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setDosyalar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const files: FileItem[] = dosyalar.filter(d => d.dosya_url).map(d => ({
+    id: d.id, name: d.dosya_adi || "Eğitim Dosyası", url: d.dosya_url, date: d.created_at,
+    extra: d.egitimler?.egitim_adi,
+  }));
+
+  return (
+    <PanelCard title="Eğitim Dosyaları" count={files.length}>
+      <FileGrid files={files} emptyText="Henüz eğitim dosyası bulunmamaktadır." />
+    </PanelCard>
+  );
+}
+
+// ─── EKİPMAN MODULE ────────────────────────────────────────────────
+function EkipmanModule() {
+  const [dosyalar, setDosyalar] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("ekipman_dosyalari").select("*, ekipmanlar:ekipman_id (adi, turu)").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setDosyalar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const files: FileItem[] = dosyalar.filter(d => d.dosya_url).map(d => ({
+    id: d.id, name: d.dosya_adi || "Ekipman Dosyası", url: d.dosya_url, date: d.created_at,
+    extra: d.ekipmanlar?.adi,
+  }));
+
+  return (
+    <PanelCard title="Ekipman Dosyaları" count={files.length}>
+      <FileGrid files={files} emptyText="Henüz ekipman dosyası bulunmamaktadır." />
+    </PanelCard>
+  );
+}
+
+// ─── İŞ KAZASI MODULE ──────────────────────────────────────────────
+function KazaModule() {
+  const [kazalar, setKazalar] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("is_kazalari").select("*, personel:personel_id (ad, soyad)").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setKazalar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = kazalar.filter(k => {
+    const ad = `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase();
+    return ad.includes(search.toLowerCase()) || (k.dosya_no || "").toLowerCase().includes(search.toLowerCase());
+  });
+
+  const getFiles = (kaza: any): FileItem[] => {
+    return KAZA_DOSYA_ALANLARI
+      .filter(a => kaza[a.column])
+      .map(a => ({ id: a.column, name: a.label, url: kaza[a.column] }));
+  };
+
+  return (
+    <>
+      <PanelCard title="İş Kazası Seçimi">
+        <SearchInput value={search} onChange={setSearch} placeholder="Personel adı veya dosya no ile ara..." />
+        <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+          {filtered.map(k => (
+            <button key={k.id} onClick={() => setSelected(k)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === k.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
+              <AlertTriangle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium">{k.personel?.ad} {k.personel?.soyad}</span>
+              {k.dosya_no && <span className="text-xs text-gray-400 ml-auto">#{k.dosya_no}</span>}
+              <span className="text-xs text-gray-400 ml-auto">{getFiles(k).length} dosya</span>
+            </button>
+          ))}
+          {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Kaza bulunamadı</div>}
+        </div>
+      </PanelCard>
+      {selected && (
+        <div className="mt-4">
+          <PanelCard title={`${selected.personel?.ad} ${selected.personel?.soyad} — Dosyalar`} count={getFiles(selected).length}>
+            <FileGrid files={getFiles(selected)} emptyText="Bu kazaya ait dosya bulunmamaktadır." />
+          </PanelCard>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── İHTAR MODULE ──────────────────────────────────────────────────
+function IhtarModule() {
+  const [ihtarlar, setIhtarlar] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [dosyalar, setDosyalar] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filesLoading, setFilesLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.from("ihtarlar").select("id, personel:personel_id (ad, soyad), tarih, ihtar_nedeni").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setIhtarlar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    setFilesLoading(true);
+    supabase.from("ihtar_dosyalari").select("*").eq("ihtar_id", selected.id).is("silinme_tarihi", null).then(({ data }) => {
+      setDosyalar(data || []);
+      setFilesLoading(false);
+    });
+  }, [selected]);
+
+  const filtered = ihtarlar.filter(i => {
+    const ad = `${i.personel?.ad || ""} ${i.personel?.soyad || ""}`.toLowerCase();
+    return ad.includes(search.toLowerCase()) || (i.ihtar_nedeni || "").toLowerCase().includes(search.toLowerCase());
+  });
+
+  const getFiles = (): FileItem[] => {
+    return dosyalar.filter(d => d.dosya_url).map(d => ({
+      id: d.id, name: d.dosya_adi || "İhtar Dosyası", url: d.dosya_url, date: d.eklenme_tarihi,
+      extra: d.neden,
+    }));
+  };
+
+  return (
+    <>
+      <PanelCard title="İhtar Seçimi">
+        <SearchInput value={search} onChange={setSearch} placeholder="Personel adı veya ihtar nedeni ile ara..." />
+        <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+          {filtered.map(i => (
+            <button key={i.id} onClick={() => { setSelected(i); }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === i.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
+              <FileWarning className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium">{i.personel?.ad} {i.personel?.soyad}</span>
+              <span className="text-xs text-gray-400 ml-auto">{i.ihtar_nedeni || "-"}</span>
+            </button>
+          ))}
+          {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">İhtar bulunamadı</div>}
+        </div>
+      </PanelCard>
+      {selected && (
+        <div className="mt-4">
+          <PanelCard title={`${selected.personel?.ad} ${selected.personel?.soyad} — İhtar Dosyaları`} count={getFiles().length}>
+            {filesLoading ? (
+              <div className="text-center py-6 text-gray-400 text-sm">Yükleniyor...</div>
+            ) : (
+              <FileGrid files={getFiles()} emptyText="Bu ihtara ait dosya bulunmamaktadır." />
+            )}
+          </PanelCard>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── DÖKÜMAN MODULE ────────────────────────────────────────────────
+function DokumanModule() {
+  const [dokumanlar, setDokumanlar] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("dokuman_kontrol").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setDokumanlar(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = dokumanlar.filter(d => (d.dokuman_adi || "").toLowerCase().includes(search.toLowerCase()));
+
+  const files: FileItem[] = filtered.filter(d => d.dosya_url).map(d => ({
+    id: d.id, name: d.dokuman_adi, url: d.dosya_url, date: d.created_at,
+    extra: d.dokuman_no,
+  }));
+
+  return (
+    <PanelCard title="Döküman Dosyaları" count={files.length}>
+      <SearchInput value={search} onChange={setSearch} placeholder="Döküman adı ile ara..." />
+      <div className="mt-4">
+        <FileGrid files={files} emptyText="Henüz döküman dosyası bulunmamaktadır." />
+      </div>
+    </PanelCard>
   );
 }
