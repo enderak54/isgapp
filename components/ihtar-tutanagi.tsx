@@ -6,6 +6,7 @@ import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import { AlertOctagon, Plus, Search, Edit, Trash2, X, Eye, Upload, FileText, Image as ImageIcon, Download, Calendar, FolderOpen, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { sanitizeFileName } from "@/lib/file-validation";
 
 const ALLOWED_IMAGES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ALLOWED_DOCS = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"];
@@ -36,6 +37,7 @@ interface PivotRow {
   ekip_adi: string;
   ihtarlar: { tarih: string; sebep: string; id: string }[];
   toplam: number;
+  is_akdi_durumu: string;
 }
 
 const MAX_IHTAR = 3;
@@ -62,12 +64,25 @@ export default function IhtarTutanagi() {
   const dropRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [personelDurum, setPersonelDurum] = useState<Record<string, string>>({});
 
   useEffect(() => { fetchItems(); fetchPersonel(); }, []);
 
   const fetchItems = async () => {
     const { data } = await supabase.from("ihtar_tutanagi").select("*, personel(ad, soyad, kimlik_no)").order("tarih", { ascending: false });
-    if (data) setItems(data);
+    if (data) {
+      setItems(data);
+      // Fetch personel is_akdi_durumu for all distinct personel_ids
+      const pids = [...new Set(data.map(i => i.personel_id).filter(Boolean))];
+      if (pids.length > 0) {
+        const { data: personeller } = await supabase.from("personel").select("id, is_akdi_durumu").in("id", pids);
+        if (personeller) {
+          const map: Record<string, string> = {};
+          personeller.forEach(p => { map[p.id] = p.is_akdi_durumu || "normal"; });
+          setPersonelDurum(map);
+        }
+      }
+    }
     setLoading(false);
   };
 
@@ -104,10 +119,10 @@ export default function IhtarTutanagi() {
     }
     const rows = Object.values(grouped).map(g => {
       g.ihtarlar.sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime());
-      return { ...g, ihtarlar: g.ihtarlar.slice(0, MAX_IHTAR), toplam: g.ihtarlar.length };
+      return { ...g, ihtarlar: g.ihtarlar.slice(0, MAX_IHTAR), toplam: g.ihtarlar.length, is_akdi_durumu: personelDurum[g.personel_id] || "normal" };
     });
     return rows;
-  }, [items]);
+  }, [items, personelDurum]);
 
   const filtered = useMemo(() => {
     if (!search) return pivotData;
@@ -134,7 +149,24 @@ export default function IhtarTutanagi() {
         const { data, error } = await supabase.from("ihtar_tutanagi").insert(payload).select();
         if (error) throw error;
         if (data) await logAudit("ihtar_tutanagi", "INSERT", data[0].id, null, payload);
-        setEditStatus({ type: "success", message: "İhtar kaydedildi" });
+
+        // 3. ihtar kontrolü — iş akdi sonlandırma süreci
+        const { data: ihtarCount } = await supabase.from("ihtar_tutanagi").select("id", { count: "exact", head: false }).eq("personel_id", form.personel_id);
+        const count = ihtarCount?.length || 0;
+        if (count >= 3) {
+          const { data: person } = await supabase.from("personel").select("is_akdi_durumu").eq("id", form.personel_id).single();
+          if (person && person.is_akdi_durumu === "normal") {
+            await supabase.from("personel").update({ is_akdi_durumu: "sonlandirma_surecinde" }).eq("id", form.personel_id);
+            await logAudit("personel", "UPDATE", form.personel_id, { is_akdi_durumu: "normal" }, { is_akdi_durumu: "sonlandirma_surecinde" });
+            setEditStatus({ type: "success", message: `⚠️ ${count}. ihtar kaydedildi! Personelin iş akdi sonlandırma süreci başlatıldı.` });
+          } else if (person && person.is_akdi_durumu === "sonlandirma_surecinde") {
+            setEditStatus({ type: "success", message: `${count}. ihtar kaydedildi. İş akdi sonlandırma süreci devam ediyor.` });
+          } else {
+            setEditStatus({ type: "success", message: "İhtar kaydedildi" });
+          }
+        } else {
+          setEditStatus({ type: "success", message: "İhtar kaydedildi" });
+        }
       }
       setShowForm(false);
       setEditing(null);
@@ -218,7 +250,8 @@ export default function IhtarTutanagi() {
     setUploading(true);
     try {
       for (const file of uploadFiles) {
-        const fileName = `${selectedIhtar.id}/${Date.now()}_${file.name}`;
+        const fileName = `${selectedIhtar.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
+        console.log("Uploading:", { original: file.name, sanitized: fileName, size: file.size, type: file.type });
         const { error: upErr } = await supabase.storage.from("ihtar-dosyalari").upload(fileName, file);
         if (upErr) throw upErr;
         const { data: urlData } = supabase.storage.from("ihtar-dosyalari").getPublicUrl(fileName);
@@ -239,6 +272,7 @@ export default function IhtarTutanagi() {
       setEditStatus({ type: "success", message: "Dosyalar yüklendi" });
       fetchDosyalar(selectedIhtar.id);
     } catch (err: any) {
+      console.error("Upload error details:", err);
       setEditStatus({ type: "error", message: err.message || "Yükleme hatası" });
     } finally {
       setUploading(false);
@@ -343,6 +377,7 @@ export default function IhtarTutanagi() {
                 <th className="px-3 py-3 text-center text-xs font-bold text-gray-800 uppercase whitespace-nowrap border-b border-gray-300">TARİH (3. İhtar)</th>
                 <th className="px-3 py-3 text-left text-xs font-bold text-gray-800 uppercase whitespace-nowrap border-b border-gray-300">İHTAR SEBEBİ (3)</th>
                 <th className="px-3 py-3 text-center text-xs font-bold text-gray-800 uppercase whitespace-nowrap border-b border-gray-300">İHTAR SAYISI</th>
+                <th className="px-3 py-3 text-center text-xs font-bold text-gray-800 uppercase whitespace-nowrap border-b border-gray-300">İŞ AKDİ DURUMU</th>
                 <th className="px-3 py-3 text-center text-xs font-bold text-gray-800 uppercase whitespace-nowrap border-b border-gray-300">İŞLEM</th>
               </tr>
             </thead>
@@ -370,6 +405,15 @@ export default function IhtarTutanagi() {
                     <td className={`px-3 py-2.5 text-center whitespace-nowrap font-bold ${textStyle}`}>
                       {row.toplam}
                     </td>
+                    <td className={`px-3 py-2.5 text-center whitespace-nowrap ${textStyle}`}>
+                      {row.is_akdi_durumu === "sonlandi" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-700 text-white text-[10px] font-bold">SONLANDI</span>
+                      ) : row.is_akdi_durumu === "sonlandirma_surecinde" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-500 text-white text-[10px] font-bold">SÜREÇ DEVAM EDİYOR</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="flex justify-center gap-1">
                         <button onClick={() => handleOpenAllForPerson(row)} className={`p-1 rounded hover:bg-white/50 ${textStyle === "text-white" ? "text-white/70 hover:text-white" : "text-gray-500"}`} title="Tümünü Gör">
@@ -391,7 +435,7 @@ export default function IhtarTutanagi() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={12} className="text-center py-8 text-gray-400">Kayıt bulunamadı</td></tr>
+                <tr><td colSpan={13} className="text-center py-8 text-gray-400">Kayıt bulunamadı</td></tr>
               )}
             </tbody>
           </table>

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile } from "@/lib/file-validation";
+import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import Link from "next/link";
 import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare, Upload } from "lucide-react";
 
@@ -296,7 +296,7 @@ export default function Taseronlar() {
         const file = fileUploads[du.tip];
         if (file) {
           const ext = file.name.split(".").pop() || "";
-          const fileName = `${editingPerson.id}/${Date.now()}_${file.name}`;
+          const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
           const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
           if (!upErr) {
             const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
@@ -340,7 +340,7 @@ export default function Taseronlar() {
         const file = fileUploads[`operator_${i}`];
         if (file) {
           const ext = file.name.split(".").pop() || "";
-          const fileName = `${editingPerson.id}/${Date.now()}_${file.name}`;
+          const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
           const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
           if (!upErr) {
             const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);

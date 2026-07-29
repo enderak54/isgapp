@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 import { displayDate } from "@/lib/tarih";
+import { sanitizeFileName } from "@/lib/file-validation";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
@@ -348,7 +349,7 @@ export default function PersonnelList() {
     for (const pf of pendingFiles) {
       if (!BELGE_TIPLERI[pf.field]) continue;
       const fileExt = getFileExt(pf.file.name);
-      const fileName = `${editingPerson.id}/${Date.now()}_${pf.file.name}`;
+      const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
@@ -428,6 +429,7 @@ export default function PersonnelList() {
         adres: editForm.adres || null,
         acil_durum_irtibat: editForm.acil_durum_irtibat || null,
         acil_durum_telefon: editForm.acil_durum_telefon || null,
+        is_akdi_durumu: editForm.is_akdi_durumu || "normal",
       });
       const oldValues = { ...editingPerson };
       const { error } = await supabase.from("personel").update(payload).eq("id", editingPerson.id);
@@ -874,9 +876,10 @@ export default function PersonnelList() {
                   {columnVisibility.notlar && <th>Notlar</th>}
                   {columnVisibility.ayrilis_tarihi && <th>Ayr.Tarihi</th>}
                   {columnVisibility.ayrilis_nedeni && <th>Ayr.Nedeni</th>}
-                  {columnVisibility.adres && <th>Adres</th>}
-                  {columnVisibility.acil_durum_irtibat && <th>Acil İrtibat</th>}
-                  {columnVisibility.acil_durum_telefon && <th>Acil Tel</th>}
+                {columnVisibility.adres && <th>Adres</th>}
+                {columnVisibility.acil_durum_irtibat && <th>Acil İrtibat</th>}
+                {columnVisibility.acil_durum_telefon && <th>Acil Tel</th>}
+                <th style={{ textAlign: "center" }}>İş Akdi</th>
                   <th style={{ textAlign: "center" }}>İşlemler</th>
                 </tr>
               </thead>
@@ -914,6 +917,15 @@ export default function PersonnelList() {
                     {columnVisibility.adres && <td className="text-gray-600 align-middle max-w-[150px] truncate" title={p.adres}>{p.adres || "-"}</td>}
                     {columnVisibility.acil_durum_irtibat && <td className="text-gray-600 align-middle">{p.acil_durum_irtibat || "-"}</td>}
                     {columnVisibility.acil_durum_telefon && <td className="text-gray-600 align-middle">{p.acil_durum_telefon || "-"}</td>}
+                    <td className="align-middle text-center">
+                      {p.is_akdi_durumu === "sonlandi" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-700 text-white text-[10px] font-bold">SONLANDI</span>
+                      ) : p.is_akdi_durumu === "sonlandirma_surecinde" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold">SÜREÇ DEVAM EDİYOR</span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
                     <td className="align-middle">
                       <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
                         {arsivGoster ? (
@@ -1152,6 +1164,14 @@ export default function PersonnelList() {
                   <label className="text-xs text-gray-500 w-12 shrink-0">Acil Tel</label>
                   <input type="text" value={editForm.acil_durum_telefon || ""} onChange={e => setEditForm({...editForm, acil_durum_telefon: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500 w-12 shrink-0">İş Akdi</label>
+                <select value={editForm.is_akdi_durumu || "normal"} onChange={e => setEditForm({...editForm, is_akdi_durumu: e.target.value})} className="input text-xs flex-1 min-w-0">
+                  <option value="normal">Normal</option>
+                  <option value="sonlandirma_surecinde">Sonlandırma Sürecinde</option>
+                  <option value="sonlandi">Sonlandı</option>
+                </select>
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">

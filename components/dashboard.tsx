@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { AlertTriangle, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb, Wrench } from "lucide-react";
+import { AlertTriangle, AlertOctagon, Ambulance, Users, Shield, TrendingUp, Activity, Calendar, Target, Lightbulb, Wrench } from "lucide-react";
 import { EGITIM_FIELDS, calculateExpiryDate, daysUntil, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 
 const motivasyonSozleri = [
@@ -79,6 +79,7 @@ export default function Dashboard() {
   const [egitimUyarilari, setEgitimUyarilari] = useState<EgitimUyari[]>([]);
   const [ekipmanUyarilari, setEkipmanUyarilari] = useState<EgitimUyari[]>([]);
   const [digerUyarilar, setDigerUyarilar] = useState<EgitimUyari[]>([]);
+  const [personelList, setPersonelList] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -105,7 +106,7 @@ export default function Dashboard() {
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date30),
       supabase.from("is_kazalari").select("*", { count: "exact", head: true }).gte("tarih", date7),
       supabase.from("is_kazalari").select("yaralanma_durumu").gte("tarih", date365),
-      supabase.from("personel").select("id, ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz").eq("arsivde", false),
+      supabase.from("personel").select("id, ad, soyad, isg_egitim_tarihi, yuksekte_calisma_tarihi, myk_tarihi, sertifika_tarihi, operator_belgesi_tarihi, kkd_tarihi, oryantasyon_tarihi, saglik_raporu_tarihi, isg_egitim_gecerlilik_suresi, yuksekte_calisma_gecerlilik_suresi, myk_gecerlilik_suresi, sertifika_gecerlilik_suresi, operator_belgesi_gecerlilik_suresi, kkd_gecerlilik_suresi, oryantasyon_gecerlilik_suresi, saglik_raporu_gecerlilik_suresi, yuksekte_calisamaz, gece_calisamaz, vardiyali_calisamaz, is_akdi_durumu").eq("arsivde", false),
       supabase.from("ayarlar").select("key, value").eq("type", "egitim_uyari"),
       supabase.from("is_ekipmanlari").select("id, ad, firma_adi, sonraki_kontrol_tarihi"),
     ]);
@@ -145,6 +146,7 @@ export default function Dashboard() {
     }
     uyariDetay.sort((a, b) => a.kalanGun - b.kalanGun);
     const egitimUyariList = uyariDetay.slice(0, 25);
+    setPersonelList(personel || []);
 
     // Ekipman uyarıları
     const ekipUyariDetay: EgitimUyari[] = [];
@@ -496,6 +498,37 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* İş Akdi Sonlandırma Süreci */}
+      {(personelList || []).filter(p => p.is_akdi_durumu && p.is_akdi_durumu !== "normal").length > 0 && (
+        <div className="mt-3 card p-4 border-l-4 border-l-amber-500">
+          <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-1.5">
+            <AlertOctagon className="w-4 h-4 text-amber-600" /> İş Akdi Durumu
+          </h3>
+          <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            {(personelList || []).filter(p => p.is_akdi_durumu === "sonlandirma_surecinde").map(p => (
+              <button key={p.id} onClick={() => router.push(`/personel?search=${p.kimlik_no || ""}`)}
+                className="w-full flex items-center justify-between p-2 bg-amber-50 rounded-lg hover:bg-amber-100 transition text-left border border-amber-200">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-amber-800 truncate">{p.ad} {p.soyad}</p>
+                  <p className="text-[10px] text-amber-600 mt-0.5">İş akdi sonlandırma süreci devam ediyor</p>
+                </div>
+                <span className="ml-2 px-2 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold">SÜREÇ</span>
+              </button>
+            ))}
+            {(personelList || []).filter(p => p.is_akdi_durumu === "sonlandi").map(p => (
+              <button key={p.id} onClick={() => router.push(`/personel?search=${p.kimlik_no || ""}`)}
+                className="w-full flex items-center justify-between p-2 bg-red-50 rounded-lg hover:bg-red-100 transition text-left border border-red-200">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-red-800 truncate">{p.ad} {p.soyad}</p>
+                  <p className="text-[10px] text-red-600 mt-0.5">İş akdi sonlandırıldı</p>
+                </div>
+                <span className="ml-2 px-2 py-0.5 rounded bg-red-700 text-white text-[10px] font-bold">SONLANDI</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Risk Değerlendirme Matrisi */}
       <div className="mt-3 card p-4">

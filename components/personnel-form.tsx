@@ -8,7 +8,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { sanitize, validateTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { validateFile } from "@/lib/file-validation";
+import { validateFile, sanitizeFileName } from "@/lib/file-validation";
 import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
@@ -56,6 +56,7 @@ export default function PersonnelForm() {
     isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
     adres: "", acilDurumIrtibat: "", acilDurumTelefon: "",
     adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeSure: "",
+    isAkdiDurumu: "normal",
   });
 
   const [loading, setLoading] = useState(false);
@@ -286,7 +287,7 @@ export default function PersonnelForm() {
     if (filesForUpload.length === 0) return;
     for (const pf of filesForUpload) {
       const fileExt = getFileExt(pf.file.name);
-      const fileName = `${personelId}/${Date.now()}_${pf.file.name}`;
+      const fileName = `${personelId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
@@ -376,6 +377,7 @@ export default function PersonnelForm() {
         adres: form.adres ? sanitize(form.adres) : null,
         acil_durum_irtibat: form.acilDurumIrtibat ? sanitize(form.acilDurumIrtibat) : null,
         acil_durum_telefon: form.acilDurumTelefon ? sanitize(form.acilDurumTelefon) : null,
+        is_akdi_durumu: form.isAkdiDurumu || "normal",
 
       };
       const { data, error } = await supabase.from("personel").insert(payload).select();
@@ -395,6 +397,7 @@ export default function PersonnelForm() {
         isgEgitimSuresi: "", yuksekteSure: "", mykSure: "", sertifikaSure: "", operatorSure: "", kkdSure: "", oryantasyonSure: "", saglikRaporuSuresi: "",
         adres: "", acilDurumIrtibat: "", acilDurumTelefon: "",
         adliSicil: "", adliSicilTarihi: "", gorevlendirme: "", gorevlendirmeSure: "",
+        isAkdiDurumu: "normal",
       });
       setMykKayitlar([]);
       setSelectedSantiyeler([]);
@@ -578,6 +581,14 @@ export default function PersonnelForm() {
                   <label className="text-sm text-gray-600 mb-1.5 block">Acil Durum Telefon</label>
                   <input type="text" value={form.acilDurumTelefon} onChange={(e) => handleChange("acilDurumTelefon", e.target.value)} className="input" placeholder="05XX XXX XX XX" />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">İş Akdi Durumu</label>
+                <select value={form.isAkdiDurumu} onChange={(e) => handleChange("isAkdiDurumu", e.target.value)} className="input">
+                  <option value="normal">Normal</option>
+                  <option value="sonlandirma_surecinde">Sonlandırma Sürecinde</option>
+                  <option value="sonlandi">Sonlandı</option>
+                </select>
               </div>
             </div>
           </div>
