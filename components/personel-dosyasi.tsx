@@ -33,6 +33,15 @@ const BELGE_TIPI_TO_FOLDER: Record<string, string> = {
   isg_egitim: "isg_egitim", yuksekte_calisma: "isg_egitim", myk: "isg_egitim",
   operator_belgesi: "isg_egitim", kkd: "isg_egitim", oryantasyon: "isg_egitim", sertifika: "isg_egitim",
   saglik_raporu: "saglik", yuksekte_calisamaz: "saglik", gece_calisamaz: "saglik", vardiyali_calisamaz: "saglik",
+  gorevlendirme: "diger", adli_sicil: "diger",
+};
+
+const BELGE_TIPI_LABEL: Record<string, string> = {
+  isg_egitim: "İSG Eğitimi", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK",
+  operator_belgesi: "Operatör Belgesi", kkd: "KKD Zimmet", oryantasyon: "Oryantasyon", sertifika: "Sertifika",
+  saglik_raporu: "Sağlık Raporu", yuksekte_calisamaz: "Yüksekte Çalışamaz",
+  gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz",
+  gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil",
 };
 
 const BELGE_TURU_TO_FOLDER: Record<string, string> = {
@@ -40,7 +49,7 @@ const BELGE_TURU_TO_FOLDER: Record<string, string> = {
   sss_belgesi: "ssk", is_guvenligi: "is_guvenligi", diger: "diger",
 };
 
-const SANIYE_DOSYA_ALANLARI = [
+const SANIYE_DOSYA_ALANLARI: { column: string; label: string }[] = [
   { column: "yapi_ruhsati_dosyasi", label: "Yapı Ruhsatı" },
   { column: "is_sozlesme_dosyasi", label: "İş Sözleşmesi" },
   { column: "risk_analizi_dosyasi", label: "Risk Analizi" },
@@ -52,7 +61,7 @@ const SANIYE_DOSYA_ALANLARI = [
   { column: "tatbikat_dosyasi", label: "Tatbikat" },
 ];
 
-const KAZA_DOSYA_ALANLARI = [
+const KAZA_DOSYA_ALANLARI: { column: string; label: string }[] = [
   { column: "kaza_tutanagi_dosyasi", label: "Kaza Tutanağı" },
   { column: "kaza_bildirim_dosyasi", label: "Kaza Bildirimi" },
   { column: "ise_donus_egitimi_dosyasi", label: "İşe Dönüş Eğitimi" },
@@ -72,6 +81,7 @@ interface FileItem {
   date?: string;
   extra?: string;
   _source?: "belge" | "dosya" | "talimat";
+  _newTipi?: string;
 }
 
 export default function PersonelDosyasi() {
@@ -330,10 +340,19 @@ function PersonelModule() {
     if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: t.dosya_url || null, date: t.tarih || t.eklenme_tarihi, extra: t.dosya_adi || null, _source: "talimat" as const }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
+    const existingTipis = new Set(fromBelgeler.map(b => b.belge_tipi));
+    const emptySlots: FileItem[] = Object.keys(BELGE_TIPI_LABEL)
+      .filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey && !existingTipis.has(tipi))
+      .map(tipi => ({ id: `_new_${tipi}`, name: BELGE_TIPI_LABEL[tipi], url: null, _source: "belge" as const, _newTipi: tipi }));
     return [
-      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi, _source: "belge" as const })),
-      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi, url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
-    ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi, _source: "belge" as const })),
+      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || "Dosya", url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
+      ...emptySlots,
+    ].sort((a, b) => {
+      if (a.url && !b.url) return -1;
+      if (!a.url && b.url) return 1;
+      return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+    });
   };
 
   const getAllFiles = (): FileItem[] => {
@@ -344,8 +363,10 @@ function PersonelModule() {
 
   const folderFileCount = (folderKey: string): number => {
     if (folderKey === "talimat") return talimatlar.length;
-    return belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey).length +
-      dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
+    const belgeCount = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey).length;
+    const dosyaCount = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
+    const emptyCount = Object.keys(BELGE_TIPI_LABEL).filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey).length - belgeCount;
+    return belgeCount + dosyaCount + Math.max(0, emptyCount);
   };
 
   const refreshTalimatlar = async () => {
@@ -372,10 +393,18 @@ function PersonelModule() {
     if (upErr) throw upErr;
     const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
     const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
-    await supabase.from("personel_belgeleri").update({
-      dosya_url: urlData.publicUrl, dosya_adi: file.name, dosya_uzantisi: fileExt, dosya_boyut: file.size,
-    }).eq("id", item.id);
-    await logAudit("personel_belgeleri", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    if (item.id.startsWith("_new_") && item._newTipi) {
+      const { data: newRec } = await supabase.from("personel_belgeleri").insert({
+        personel_id: selectedPerson!.id, belge_tipi: item._newTipi,
+        dosya_url: urlData.publicUrl, dosya_adi: file.name, dosya_uzantisi: fileExt, dosya_boyut: file.size,
+      }).select();
+      if (newRec?.[0]) await logAudit("personel_belgeleri", "INSERT", newRec[0].id, null, { dosya_adi: file.name, belge_tipi: item._newTipi });
+    } else {
+      await supabase.from("personel_belgeleri").update({
+        dosya_url: urlData.publicUrl, dosya_adi: file.name, dosya_uzantisi: fileExt, dosya_boyut: file.size,
+      }).eq("id", item.id);
+      await logAudit("personel_belgeleri", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    }
     await refreshBelgeler();
   };
 
@@ -518,9 +547,23 @@ function SantiyeModule() {
   const filtered = santiyeler.filter(s => (s.ad || "").toLowerCase().includes(search.toLowerCase()));
 
   const getFiles = (santiye: any): FileItem[] => {
-    return SANIYE_DOSYA_ALANLARI
-      .filter(a => santiye[a.column])
-      .map(a => ({ id: a.column, name: a.label, url: santiye[a.column] }));
+    return SANIYE_DOSYA_ALANLARI.map(a => ({
+      id: a.column, name: a.label, url: santiye[a.column] || null,
+    }));
+  };
+
+  const uploadSantiyeDosyasi = async (item: FileItem, file: File) => {
+    if (!selected) return;
+    const fileName = `santiye/${selected.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
+    const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, file);
+    if (upErr) throw upErr;
+    const { data: urlData } = supabase.storage.from("santiye-dosyalari").getPublicUrl(fileName);
+    const { error: updateError } = await supabase.from("santiyeler").update({ [item.id]: urlData.publicUrl }).eq("id", selected.id);
+    if (updateError) throw updateError;
+    await logAudit("santiyeler", "UPDATE", selected.id, null, { [item.id]: urlData.publicUrl, islem: "dosya_yukle" });
+    const { data: fresh } = await supabase.from("santiyeler").select("*").eq("id", selected.id).single();
+    if (fresh) setSelected(fresh);
+    setSantiyeler(prev => prev.map(s => s.id === selected.id ? fresh || s : s));
   };
 
   return (
@@ -533,7 +576,7 @@ function SantiyeModule() {
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === s.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
               <Building2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{s.ad}</span>
-              <span className="text-xs text-gray-400 ml-auto">{getFiles(s).length} dosya</span>
+              <span className="text-xs text-gray-400 ml-auto">{SANIYE_DOSYA_ALANLARI.filter(a => s[a.column]).length}/{SANIYE_DOSYA_ALANLARI.length} dosya</span>
             </button>
           ))}
           {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Şantiye bulunamadı</div>}
@@ -541,8 +584,8 @@ function SantiyeModule() {
       </PanelCard>
       {selected && (
         <div className="mt-4">
-          <PanelCard title={`${selected.ad} — Dosyalar`} count={getFiles(selected).length}>
-            <FileGrid files={getFiles(selected)} emptyText="Bu şantiyeye ait dosya bulunmamaktadır." />
+          <PanelCard title={`${selected.ad} — Dosyalar`} count={SANIYE_DOSYA_ALANLARI.length}>
+            <FileGrid files={getFiles(selected)} emptyText="Bu şantiyeye ait dosya bulunmamaktadır." onUpload={uploadSantiyeDosyasi} />
           </PanelCard>
         </div>
       )}
@@ -690,9 +733,23 @@ function KazaModule() {
   });
 
   const getFiles = (kaza: any): FileItem[] => {
-    return KAZA_DOSYA_ALANLARI
-      .filter(a => kaza[a.column])
-      .map(a => ({ id: a.column, name: a.label, url: kaza[a.column] }));
+    return KAZA_DOSYA_ALANLARI.map(a => ({
+      id: a.column, name: a.label, url: kaza[a.column] || null,
+    }));
+  };
+
+  const uploadKazaDosyasi = async (item: FileItem, file: File) => {
+    if (!selected) return;
+    const fileName = `kaza/${selected.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
+    const { error: upErr } = await supabase.storage.from("kaza-dosyalari").upload(fileName, file);
+    if (upErr) throw upErr;
+    const { data: urlData } = supabase.storage.from("kaza-dosyalari").getPublicUrl(fileName);
+    const { error: updateError } = await supabase.from("is_kazalari").update({ [item.id]: urlData.publicUrl }).eq("id", selected.id);
+    if (updateError) throw updateError;
+    await logAudit("is_kazalari", "UPDATE", selected.id, null, { [item.id]: urlData.publicUrl, islem: "dosya_yukle" });
+    const { data: fresh } = await supabase.from("is_kazalari").select("*, personel:personel_id (ad, soyad)").eq("id", selected.id).single();
+    if (fresh) setSelected(fresh);
+    setKazalar(prev => prev.map(k => k.id === selected.id ? fresh || k : k));
   };
 
   return (
@@ -706,7 +763,7 @@ function KazaModule() {
               <AlertTriangle className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{k.personel?.ad} {k.personel?.soyad}</span>
               {k.dosya_no && <span className="text-xs text-gray-400 ml-auto">#{k.dosya_no}</span>}
-              <span className="text-xs text-gray-400 ml-auto">{getFiles(k).length} dosya</span>
+              <span className="text-xs text-gray-400 ml-auto">{KAZA_DOSYA_ALANLARI.filter(a => k[a.column]).length}/{KAZA_DOSYA_ALANLARI.length} dosya</span>
             </button>
           ))}
           {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Kaza bulunamadı</div>}
@@ -714,8 +771,8 @@ function KazaModule() {
       </PanelCard>
       {selected && (
         <div className="mt-4">
-          <PanelCard title={`${selected.personel?.ad} ${selected.personel?.soyad} — Dosyalar`} count={getFiles(selected).length}>
-            <FileGrid files={getFiles(selected)} emptyText="Bu kazaya ait dosya bulunmamaktadır." />
+          <PanelCard title={`${selected.personel?.ad} ${selected.personel?.soyad} — Dosyalar`} count={KAZA_DOSYA_ALANLARI.length}>
+            <FileGrid files={getFiles(selected)} emptyText="Bu kazaya ait dosya bulunmamaktadır." onUpload={uploadKazaDosyasi} />
           </PanelCard>
         </div>
       )}
