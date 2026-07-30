@@ -226,7 +226,7 @@ function PersonelModule() {
   );
 
   const getFolderFiles = (folderKey: string): FileItem[] => {
-    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.tanim || "Talimat", url: null, date: t.eklenme_tarihi }));
+    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: null, date: t.tarih || t.eklenme_tarihi }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
     return [
