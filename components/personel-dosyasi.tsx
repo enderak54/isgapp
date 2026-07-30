@@ -44,6 +44,10 @@ const BELGE_TIPI_LABEL: Record<string, string> = {
   gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil",
 };
 
+const DOSYA_TURU_LABEL: Record<string, string> = {
+  kimlik: "Kimlik Belgesi", sss_belgesi: "SSK Belgesi", is_guvenligi: "İş Güvenliği Belgesi", diger: "Diğer Belge",
+};
+
 const BELGE_TURU_TO_FOLDER: Record<string, string> = {
   saglik_raporu: "saglik", egitim_belgesi: "isg_egitim", kimlik: "kimlik",
   sss_belgesi: "ssk", is_guvenligi: "is_guvenligi", diger: "diger",
@@ -341,13 +345,18 @@ function PersonelModule() {
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
     const existingTipis = new Set(fromBelgeler.map(b => b.belge_tipi));
-    const emptySlots: FileItem[] = Object.keys(BELGE_TIPI_LABEL)
+    const existingTurler = new Set(fromDosyalar.map(d => d.belge_turu));
+    const emptyBelgeSlots: FileItem[] = Object.keys(BELGE_TIPI_LABEL)
       .filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey && !existingTipis.has(tipi))
       .map(tipi => ({ id: `_new_${tipi}`, name: BELGE_TIPI_LABEL[tipi], url: null, _source: "belge" as const, _newTipi: tipi }));
+    const emptyDosyaSlots: FileItem[] = Object.keys(DOSYA_TURU_LABEL)
+      .filter(tur => BELGE_TURU_TO_FOLDER[tur] === folderKey && !existingTurler.has(tur))
+      .map(tur => ({ id: `_new_dosya_${tur}`, name: DOSYA_TURU_LABEL[tur], url: null, _source: "dosya" as const, _newTipi: tur }));
     return [
       ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi, _source: "belge" as const })),
-      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || "Dosya", url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
-      ...emptySlots,
+      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || DOSYA_TURU_LABEL[d.belge_turu] || "Dosya", url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
+      ...emptyBelgeSlots,
+      ...emptyDosyaSlots,
     ].sort((a, b) => {
       if (a.url && !b.url) return -1;
       if (!a.url && b.url) return 1;
@@ -365,8 +374,9 @@ function PersonelModule() {
     if (folderKey === "talimat") return talimatlar.length;
     const belgeCount = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey).length;
     const dosyaCount = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
-    const emptyCount = Object.keys(BELGE_TIPI_LABEL).filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey).length - belgeCount;
-    return belgeCount + dosyaCount + Math.max(0, emptyCount);
+    const emptyBelgeCount = Object.keys(BELGE_TIPI_LABEL).filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey).length - belgeCount;
+    const emptyDosyaCount = Object.keys(DOSYA_TURU_LABEL).filter(tur => BELGE_TURU_TO_FOLDER[tur] === folderKey).length - dosyaCount;
+    return belgeCount + dosyaCount + Math.max(0, emptyBelgeCount) + Math.max(0, emptyDosyaCount);
   };
 
   const refreshTalimatlar = async () => {
@@ -413,11 +423,18 @@ function PersonelModule() {
     const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
     if (upErr) throw upErr;
     const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
-    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
-    await supabase.from("personel_dosyasi").update({
-      dosya_url: urlData.publicUrl, belge_adi: file.name,
-    }).eq("id", item.id);
-    await logAudit("personel_dosyasi", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    if (item.id.startsWith("_new_") && item._newTipi) {
+      const { data: newRec } = await supabase.from("personel_dosyasi").insert({
+        personel_id: selectedPerson!.id, belge_turu: item._newTipi, belge_adi: file.name,
+        dosya_url: urlData.publicUrl,
+      }).select();
+      if (newRec?.[0]) await logAudit("personel_dosyasi", "INSERT", newRec[0].id, null, { dosya_adi: file.name, belge_turu: item._newTipi });
+    } else {
+      await supabase.from("personel_dosyasi").update({
+        dosya_url: urlData.publicUrl, belge_adi: file.name,
+      }).eq("id", item.id);
+      await logAudit("personel_dosyasi", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    }
     await refreshDosyalar();
   };
 
