@@ -71,6 +71,7 @@ interface FileItem {
   url: string | null;
   date?: string;
   extra?: string;
+  _source?: "belge" | "dosya" | "talimat";
 }
 
 export default function PersonelDosyasi() {
@@ -107,7 +108,25 @@ export default function PersonelDosyasi() {
   );
 }
 
-function FileCard({ item }: { item: FileItem }) {
+function FileCard({ item, onUpload }: { item: FileItem; onUpload?: (item: FileItem, file: File) => Promise<void> }) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onUpload) return;
+    const validation = validateFile(file);
+    if (!validation.valid) { alert(validation.error); return; }
+    setUploading(true);
+    try {
+      await onUpload(item, file);
+    } catch (err: any) {
+      alert("Dosya yüklenirken hata oluştu: " + (err.message || ""));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
       <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
@@ -123,27 +142,37 @@ function FileCard({ item }: { item: FileItem }) {
       </div>
       <div className="flex gap-1 flex-shrink-0">
         {item.url ? (
-          <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
-            <Eye className="w-3.5 h-3.5" />
-          </a>
+          <>
+            <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition" title="Görüntüle">
+              <Eye className="w-3.5 h-3.5" />
+            </a>
+            <a href={item.url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
+              <Download className="w-3.5 h-3.5" />
+            </a>
+          </>
         ) : (
           <span className="p-1.5 text-gray-300"><Eye className="w-3.5 h-3.5" /></span>
         )}
-        {item.url && (
-          <a href={item.url} download className="p-1.5 rounded text-green-600 hover:bg-green-50 transition" title="İndir">
-            <Download className="w-3.5 h-3.5" />
-          </a>
+        {onUpload && (
+          <>
+            <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={handleUpload} className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className={`p-1.5 rounded transition disabled:opacity-50 ${item.url ? "text-amber-600 hover:bg-amber-50" : "text-blue-600 hover:bg-blue-50"}`}
+              title={item.url ? "Dosyayı Değiştir" : "Dosya Yükle"}>
+              {uploading ? <span className="w-3.5 h-3.5 block animate-spin border-2 border-current border-t-transparent rounded-full" /> : <Upload className="w-3.5 h-3.5" />}
+            </button>
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır." }: { files: FileItem[]; emptyText?: string }) {
+function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır.", onUpload }: { files: FileItem[]; emptyText?: string; onUpload?: (item: FileItem, file: File) => Promise<void> }) {
   if (files.length === 0) return <div className="text-center py-10 text-gray-400 text-sm">{emptyText}</div>;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {files.map((item, idx) => <FileCard key={idx} item={item} />)}
+      {files.map((item, idx) => <FileCard key={idx} item={item} onUpload={onUpload} />)}
     </div>
   );
 }
@@ -298,12 +327,12 @@ function PersonelModule() {
   );
 
   const getFolderFiles = (folderKey: string): FileItem[] => {
-    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: t.dosya_url || null, date: t.tarih || t.eklenme_tarihi, extra: t.dosya_adi || null }));
+    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: t.dosya_url || null, date: t.tarih || t.eklenme_tarihi, extra: t.dosya_adi || null, _source: "talimat" as const }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
     const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
     return [
-      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi })),
-      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi, url: d.dosya_url, date: d.tarih })),
+      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi, _source: "belge" as const })),
+      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi, url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
     ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
   };
 
@@ -323,6 +352,50 @@ function PersonelModule() {
     if (!selectedPerson) return;
     const { data } = await supabase.from("personel_talimat_matrisi").select("*").eq("personel_id", selectedPerson.id);
     if (data) setTalimatlar(data);
+  };
+
+  const refreshBelgeler = async () => {
+    if (!selectedPerson) return;
+    const { data } = await supabase.from("personel_belgeleri").select("*").eq("personel_id", selectedPerson.id).is("silinme_tarihi", null);
+    if (data) setBelgeler(data);
+  };
+
+  const refreshDosyalar = async () => {
+    if (!selectedPerson) return;
+    const { data } = await supabase.from("personel_dosyasi").select("*").eq("personel_id", selectedPerson.id);
+    if (data) setDosyalar(data);
+  };
+
+  const uploadBelge = async (item: FileItem, file: File) => {
+    const fileName = `belgeler/${selectedPerson?.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
+    const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
+    if (upErr) throw upErr;
+    const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+    await supabase.from("personel_belgeleri").update({
+      dosya_url: urlData.publicUrl, dosya_adi: file.name, dosya_uzantisi: fileExt, dosya_boyut: file.size,
+    }).eq("id", item.id);
+    await logAudit("personel_belgeleri", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    await refreshBelgeler();
+  };
+
+  const uploadDosya = async (item: FileItem, file: File) => {
+    const fileName = `personel-ek/${selectedPerson?.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
+    const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
+    if (upErr) throw upErr;
+    const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+    await supabase.from("personel_dosyasi").update({
+      dosya_url: urlData.publicUrl, belge_adi: file.name,
+    }).eq("id", item.id);
+    await logAudit("personel_dosyasi", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
+    await refreshDosyalar();
+  };
+
+  const handleItemUpload = async (item: FileItem, file: File) => {
+    if (item._source === "belge") await uploadBelge(item, file);
+    else if (item._source === "dosya") await uploadDosya(item, file);
+    else throw new Error("Bu öğe için dosya yükleme desteklenmiyor");
   };
 
   const currentFiles = selectedFolder ? (selectedFolder === "_all" ? getAllFiles() : getFolderFiles(selectedFolder)) : [];
@@ -408,7 +481,7 @@ function PersonelModule() {
                         <span className="text-[10px] text-gray-400">({folderFiles.length})</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} personelId={selectedPerson.id} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} />)}
+                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} personelId={selectedPerson.id} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} onUpload={handleItemUpload} />)}
                       </div>
                     </div>
                   );
@@ -419,7 +492,7 @@ function PersonelModule() {
                 {currentFiles.length === 0 ? <div className="text-center py-10 text-gray-400 text-sm">Henüz dosya bulunmamaktadır.</div> : currentFiles.map((item, idx) => <TalimatCard key={idx} item={item} personelId={selectedPerson.id} onFileUploaded={refreshTalimatlar} />)}
               </div>
             ) : (
-              <FileGrid files={currentFiles} />
+              <FileGrid files={currentFiles} onUpload={handleItemUpload} />
             )}
           </PanelCard>
         </div>
