@@ -56,6 +56,23 @@ export default function MykBelgeleri() {
         myk_egitim_listesi: egitimMap.get(k.myk_egitim_id) || null,
       }));
       setKayitlar(joined);
+
+      const kayitliPersonelIds = new Set(kayitRes.data.map((k: any) => k.personel_id));
+      const belgesiOlupKaydiOlmayan = Object.keys(mykBelgeByPersonel)
+        .filter(pid => !kayitliPersonelIds.has(pid))
+        .map(pid => ({
+          id: `belge_${pid}`,
+          personel_id: pid,
+          personel: personelMap.get(pid) || null,
+          myk_egitim_id: null,
+          myk_egitim_listesi: null,
+          alis_tarihi: null,
+          gecerlilik_suresi: null,
+          sadeceBelge: true as const,
+        }));
+      if (belgesiOlupKaydiOlmayan.length > 0) {
+        setKayitlar(prev => [...belgesiOlupKaydiOlmayan, ...prev]);
+      }
     }
 
     if (matrixRes.data) {
@@ -134,11 +151,16 @@ export default function MykBelgeleri() {
   };
 
   const sorted = [...kayitlar]
-    .filter((k) =>
-      !search ||
-      `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase().includes(search.toLowerCase()) ||
-      k.myk_egitim_listesi?.ad?.toLowerCase().includes(search.toLowerCase())
-    )
+    .filter((k) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      const belgeler = mykBelgeByPersonel[k.personel_id] || [];
+      return (
+        `${k.personel?.ad || ""} ${k.personel?.soyad || ""}`.toLowerCase().includes(q) ||
+        k.myk_egitim_listesi?.ad?.toLowerCase().includes(q) ||
+        belgeler.some((b: any) => (b.dosya_adi || "").toLowerCase().includes(q))
+      );
+    })
     .sort((a, b) => {
       let va = "", vb = "";
       if (sortCol === "alis_tarihi") { va = a.alis_tarihi || ""; vb = b.alis_tarihi || ""; }
@@ -214,7 +236,7 @@ export default function MykBelgeleri() {
                     return (
                       <tr key={k.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-800">{k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-"}</td>
-                        <td className="px-4 py-3 text-sm">{k.myk_egitim_listesi?.ad || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{k.myk_egitim_listesi?.ad || (k.sadeceBelge ? "MYK Sertifikası" : "-")}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{displayDate(k.alis_tarihi)}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{k.gecerlilik_suresi ? `${k.gecerlilik_suresi} yıl` : "-"}</td>
                         <td className={`px-4 py-3 text-sm ${expired ? "text-red-600 font-medium" : warning ? "text-amber-600 font-medium" : "text-gray-600"}`}>
@@ -239,6 +261,7 @@ export default function MykBelgeleri() {
                           {(mykBelgeByPersonel[k.personel_id] || []).length === 0 && <span className="text-gray-400">-</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
+                          {!k.sadeceBelge ? (
                           <div className="flex items-center justify-center gap-1">
                             <button type="button" onClick={() => toggleLock(k.id)} className={`p-1 rounded border transition ${lockedKayitlar.has(k.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedKayitlar.has(k.id) ? "Kilidi aç" : "Kilitli"}>
                               {lockedKayitlar.has(k.id) ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
@@ -247,6 +270,7 @@ export default function MykBelgeleri() {
                               <button onClick={() => handleDelete(k.id)} className="p-1 text-red-600 hover:bg-red-50 rounded border border-red-200"><Trash2 className="w-4 h-4" /></button>
                             )}
                           </div>
+                          ) : <span className="text-gray-300">-</span>}
                         </td>
                       </tr>
                     );
