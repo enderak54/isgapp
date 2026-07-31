@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { logAudit } from "@/lib/audit";
 import { supabase } from "@/lib/supabase";
-import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown, Download, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Grid3X3, List, Check, Minus, Trash2, Calendar, Lock, Unlock, ArrowUp, ArrowDown, Download, Eye, CheckCircle, AlertCircle } from "lucide-react";
 import { isExpired, isWarningNeeded, daysUntil } from "@/lib/egitim-uyari";
 import { displayDate, kalanSureText } from "@/lib/tarih";
 import * as XLSX from "xlsx";
@@ -18,6 +18,7 @@ export default function MykBelgeleri() {
   const [personel, setPersonel] = useState<any[]>([]);
   const [kayitlar, setKayitlar] = useState<any[]>([]);
   const [personelMykEgitimler, setPersonelMykEgitimler] = useState<Record<string, Set<string>>>({});
+  const [mykBelgeByPersonel, setMykBelgeByPersonel] = useState<Record<string, any[]>>({});
   const [lockedKayitlar, setLockedKayitlar] = useState<Set<string>>(new Set());
   const [sortCol, setSortCol] = useState<string>("alis_tarihi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -29,14 +30,22 @@ export default function MykBelgeleri() {
   }, []);
 
   const fetchData = async () => {
-    const [egitimRes, personelRes, kayitRes, matrixRes] = await Promise.all([
+    const [egitimRes, personelRes, kayitRes, matrixRes, mykBelgeRes] = await Promise.all([
       supabase.from("myk_egitim_listesi").select("id, ad").eq("aktif", true).order("ad", { ascending: true }),
       supabase.from("personel").select("id, kimlik_no, ad, soyad").eq("arsivde", false).order("ad", { ascending: true }),
       supabase.from("personel_myk_egitimleri").select("*").order("alis_tarihi", { ascending: false }),
       supabase.from("personel_myk_egitimleri").select("personel_id, myk_egitim_id"),
+      supabase.from("personel_belgeleri").select("*").eq("belge_tipi", "myk").is("silinme_tarihi", null),
     ]);
     if (egitimRes.data) setMykEgitimListesi(egitimRes.data);
     if (personelRes.data) setPersonel(personelRes.data);
+
+    const mykBelgeByPersonel: Record<string, any[]> = {};
+    mykBelgeRes.data?.forEach((b: any) => {
+      if (!mykBelgeByPersonel[b.personel_id]) mykBelgeByPersonel[b.personel_id] = [];
+      mykBelgeByPersonel[b.personel_id].push(b);
+    });
+    setMykBelgeByPersonel(mykBelgeByPersonel);
 
     if (kayitRes.data) {
       const personelMap = new Map(personelRes.data?.map((p: any) => [p.id, p]) || []);
@@ -79,13 +88,17 @@ export default function MykBelgeleri() {
   };
 
   const exportListToExcel = () => {
-    const data = sorted.map(k => ({
-      Personel: k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-",
-      "MYK Eğitim": k.myk_egitim_listesi?.ad || "-",
-      "Alış Tarihi": k.alis_tarihi || "",
-      "Geçerlilik (yıl)": k.gecerlilik_suresi || "",
-      "Bitiş Tarihi": k.alis_tarihi && k.gecerlilik_suresi ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0] : "",
-    }));
+    const data = sorted.map(k => {
+      const belgeler = mykBelgeByPersonel[k.personel_id] || [];
+      return {
+        Personel: k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() : "-",
+        "MYK Eğitim": k.myk_egitim_listesi?.ad || "-",
+        "Alış Tarihi": k.alis_tarihi || "",
+        "Geçerlilik (yıl)": k.gecerlilik_suresi || "",
+        "Bitiş Tarihi": k.alis_tarihi && k.gecerlilik_suresi ? new Date(new Date(k.alis_tarihi).setFullYear(new Date(k.alis_tarihi).getFullYear() + k.gecerlilik_suresi)).toISOString().split("T")[0] : "",
+        "Sertifika": belgeler.map((b: any) => b.dosya_adi || "").filter(Boolean).join(", ") || "",
+      };
+    });
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "MYK Listesi");
@@ -186,6 +199,7 @@ export default function MykBelgeleri() {
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Geçerlilik Süresi</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-800 select-none" onClick={() => toggleSort("bitis_tarihi")}>Bitiş Tarihi{sortArrow("bitis_tarihi")}</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Kalan Süre</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Sertifika</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">İşlemler</th>
                   </tr>
                 </thead>
@@ -213,6 +227,17 @@ export default function MykBelgeleri() {
                             </span>
                           ) : "-"}
                         </td>
+                        <td className="px-4 py-3 text-sm">
+                          {(mykBelgeByPersonel[k.personel_id] || []).map((b: any) => (
+                            b.dosya_url ? (
+                              <a key={b.id} href={b.dosya_url} target="_blank" rel="noopener noreferrer" title={b.dosya_adi || "Sertifika"}
+                                className="inline-flex items-center gap-1 mr-2 px-2 py-0.5 rounded text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 transition">
+                                <Eye className="w-3 h-3" /> {b.dosya_adi || "Sertifika"}
+                              </a>
+                            ) : null
+                          ))}
+                          {(mykBelgeByPersonel[k.personel_id] || []).length === 0 && <span className="text-gray-400">-</span>}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button type="button" onClick={() => toggleLock(k.id)} className={`p-1 rounded border transition ${lockedKayitlar.has(k.id) ? "border-amber-400 bg-amber-50 text-amber-600 hover:bg-amber-100" : "border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100"}`} title={lockedKayitlar.has(k.id) ? "Kilidi aç" : "Kilitli"}>
@@ -228,7 +253,7 @@ export default function MykBelgeleri() {
                   })}
                   {sorted.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
+                      <td colSpan={8} className="text-center py-12 text-gray-400">Kayıt bulunamadı</td>
                     </tr>
                   )}
                 </tbody>
