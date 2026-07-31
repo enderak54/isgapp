@@ -47,7 +47,7 @@ export const sanitizeForm = <T extends Record<string, unknown>>(form: T): T => {
 // Mask TC Kimlik No for display (KVKK compliance)
 export const maskTC = (tc: string): string => {
   if (!tc || tc.length !== 11) return tc || "-";
-  return "********" + tc.slice(-3);
+  return tc.slice(0, 3) + "*****" + tc.slice(-3);
 };
 
 // Validate TC Kimlik No checksum
