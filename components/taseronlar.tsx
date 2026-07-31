@@ -45,7 +45,7 @@ const PERSONEL_ZORUNLU_ALANLAR = [
   { key: "soyad", label: "Soyad" },
   { key: "isgEgitimTarihi", label: "İSG Eğitim Tarihi (tarih + süre)" },
   { key: "yuksekteCalisma", label: "Yüksekte Çalışma (tarih + süre)" },
-  { key: "myk", label: "MYK (en az bir eğitim kaydı)" },
+  { key: "myk", label: "MYK (eğitim kaydı + sertifika tarihi zorunlu)" },
   { key: "sertifika", label: "Sertifika (tarih + süre)" },
   { key: "operatorBelgesi", label: "Operatör Belgesi (tarih + süre)" },
   { key: "kkd", label: "KKD (tarih + süre)" },
@@ -103,6 +103,7 @@ export default function Taseronlar() {
   // Per-taşeron zorunlu alanlar
   const [showZorunluModal, setShowZorunluModal] = useState(false);
   const [taseronZorunluAlanlar, setTaseronZorunluAlanlar] = useState<string[]>([]);
+  const [genelZorunluAlanlar, setGenelZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [taseronZorunluSaving, setTaseronZorunluSaving] = useState(false);
 
   // Yeni personel hızlı ekleme
@@ -136,6 +137,14 @@ export default function Taseronlar() {
   };
 
   useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
+
+  useEffect(() => {
+    supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single().then(({ data }) => {
+      if (data?.value) {
+        try { const v = JSON.parse(data.value); if (Array.isArray(v)) setGenelZorunluAlanlar(v); } catch {}
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (mykEgitimListesi.length === 0) {
@@ -366,6 +375,11 @@ export default function Taseronlar() {
   };
 
   const addMykToEdit = () => {
+    const activeZorunlu = taseronZorunluAlanlar.length > 0 ? taseronZorunluAlanlar : genelZorunluAlanlar;
+    if (activeZorunlu.includes("myk") && (!mykSecimTarih || !mykSecimSure)) {
+      alert("MYK eğitim kaydı için tarih bilgisi zorunludur (tarih + süre).");
+      return;
+    }
     if (!mykSecim) return;
     setEditForm(prev => ({
       ...prev, mykEgitimler: [...prev.mykEgitimler, { myk_egitim_id: mykSecim, alis_tarihi: mykSecimTarih, gecerlilik_suresi: mykSecimSure }],

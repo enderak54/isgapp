@@ -252,10 +252,15 @@ export default function MykBelgeleri() {
                         <td className="px-4 py-3 text-sm">
                           {(mykBelgeByPersonel[k.personel_id] || []).map((b: any) => (
                             b.dosya_url ? (
-                              <a key={b.id} href={b.dosya_url} target="_blank" rel="noopener noreferrer" title={b.dosya_adi || "Sertifika"}
-                                className="inline-flex items-center gap-1 mr-2 px-2 py-0.5 rounded text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 transition">
-                                <Eye className="w-3 h-3" /> {b.dosya_adi || "Sertifika"}
-                              </a>
+                              <span key={b.id} className="inline-flex items-center gap-1 mr-2">
+                                <a href={b.dosya_url} target="_blank" rel="noopener noreferrer" title={b.dosya_adi || "Sertifika"}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 transition">
+                                  <Eye className="w-3 h-3" /> {b.dosya_adi || "Sertifika"}
+                                </a>
+                                {!b.son_gecerlilik_tarihi && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700" title="Son geçerlilik tarihi girilmemiş">Tarih eksik</span>
+                                )}
+                              </span>
                             ) : null
                           ))}
                           {(mykBelgeByPersonel[k.personel_id] || []).length === 0 && <span className="text-gray-400">-</span>}

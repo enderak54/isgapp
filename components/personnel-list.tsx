@@ -97,6 +97,7 @@ export default function PersonnelList() {
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
   const [taseronlar, setTaseronlar] = useState<any[]>([]);
   const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
+  const [genelZorunluAlanlar, setGenelZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     ad: true, soyad: true, kimlik_no: true, santiye: true, ekip: true, taseron: true,
@@ -143,6 +144,9 @@ export default function PersonnelList() {
       if (ayarRes.data?.value) {
         try { setMykZorunluIds(JSON.parse(ayarRes.data.value)); } catch {}
       }
+      if (personelZorunluRes.data?.value) {
+        try { const v = JSON.parse(personelZorunluRes.data.value); if (Array.isArray(v)) setGenelZorunluAlanlar(v); } catch {}
+      }
       if (taseronZorunluRes.data?.value) {
         try { const v = JSON.parse(taseronZorunluRes.data.value); if (Array.isArray(v)) setTaseronPersonelZorunlu(v); } catch {}
       }
@@ -153,9 +157,9 @@ export default function PersonnelList() {
     if (editingPerson?.taseron_id && taseronPersonelZorunlu.length > 0) {
       setActiveZorunluAlanlar(taseronPersonelZorunlu);
     } else {
-      setActiveZorunluAlanlar(["kimlikNo", "ad", "soyad", "myk"]);
+      setActiveZorunluAlanlar(genelZorunluAlanlar);
     }
-  }, [editingPerson?.taseron_id, taseronPersonelZorunlu]);
+  }, [editingPerson?.taseron_id, taseronPersonelZorunlu, genelZorunluAlanlar]);
 
   const mykEkle = () => {
     if (!mykSecim || !mykSecimTarih || !mykSecimSure) return;
@@ -368,6 +372,17 @@ export default function PersonnelList() {
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
+      let sonGecerlilik: string | null = null;
+      if (pf.field === "myk" && activeZorunluAlanlar.includes("myk")) {
+        const mykKayit = mykKayitlar[0];
+        if (!mykKayit?.alis_tarihi || !mykKayit.gecerlilik_suresi) {
+          setEditStatus({ type: "error", message: "MYK sertifikası için tarih bilgisi zorunludur. Önce MYK eğitim kaydını (tarih + süre) ekleyin." });
+          continue;
+        }
+        const d = new Date(mykKayit.alis_tarihi);
+        d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
+        sonGecerlilik = d.toISOString().split("T")[0];
+      }
       const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
         personel_id: editingPerson.id,
         belge_tipi: BELGE_TIPLERI[pf.field],
@@ -375,6 +390,7 @@ export default function PersonnelList() {
         dosya_adi: pf.file.name,
         dosya_uzantisi: fileExt,
         dosya_boyut: pf.file.size,
+        son_gecerlilik_tarihi: sonGecerlilik,
       }).select();
       if (belgeData?.[0]) await logAudit("personel_belgeleri", "INSERT", belgeData[0].id, null, belgeData[0]);
     }

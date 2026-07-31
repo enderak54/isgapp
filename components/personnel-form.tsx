@@ -299,6 +299,16 @@ export default function PersonnelForm() {
         d.setFullYear(d.getFullYear() + parseInt(form.gorevlendirmeSure));
         sonGecerlilik = d.toISOString().split("T")[0];
       }
+      if (pf.field === "myk" && activeZorunluAlanlar.includes("myk")) {
+        const mykKayit = mykKayitlar[0];
+        if (!mykKayit?.alis_tarihi || !mykKayit.gecerlilik_suresi) {
+          setStatus({ type: "error", message: "MYK sertifikası için tarih bilgisi zorunludur. Önce MYK eğitim kaydını (tarih + süre) ekleyin." });
+          continue;
+        }
+        const d = new Date(mykKayit.alis_tarihi);
+        d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
+        sonGecerlilik = d.toISOString().split("T")[0];
+      }
       const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
         personel_id: personelId,
         belge_tipi: BELGE_TIPLERI[pf.field],

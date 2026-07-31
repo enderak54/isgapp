@@ -53,7 +53,7 @@ const PERSONEL_ZORUNLU_ALANLAR = [
   { key: "soyad", label: "Soyad" },
   { key: "isgEgitimTarihi", label: "İSG Eğitim Tarihi (tarih + süre)" },
   { key: "yuksekteCalisma", label: "Yüksekte Çalışma (tarih + süre)" },
-  { key: "myk", label: "MYK (en az bir eğitim kaydı)" },
+  { key: "myk", label: "MYK (eğitim kaydı + sertifika tarihi zorunlu)" },
   { key: "sertifika", label: "Sertifika (tarih + süre)" },
   { key: "operatorBelgesi", label: "Operatör Belgesi (tarih + süre)" },
   { key: "kkd", label: "KKD (tarih + süre)" },
