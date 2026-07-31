@@ -29,10 +29,6 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
       return { valid: false, error: "Geçersiz dosya türü" };
     }
   }
-  const nameParts = file.name.split(".");
-  if (nameParts.length > 2) {
-    return { valid: false, error: "Dosya adı güvenlik nedeniyle reddedildi" };
-  }
   return { valid: true };
 }
 

@@ -86,21 +86,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const nameParts = file.name.split(".");
-    if (nameParts.length > 2) {
-      return NextResponse.json({
-        valid: false,
-        error: "Dosya adı güvenlik nedeniyle reddedildi",
-      }, { status: 400 });
-    }
-
     const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    if (sanitized !== file.name) {
-      return NextResponse.json({
-        valid: false,
-        error: "Dosya adı geçersiz karakterler içeriyor",
-      }, { status: 400 });
-    }
 
     const buffer = new Uint8Array(await file.arrayBuffer());
     const realType = detectRealType(buffer);
