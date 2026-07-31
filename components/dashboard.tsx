@@ -507,7 +507,7 @@ export default function Dashboard() {
           </h3>
           <div className="space-y-1.5 max-h-60 overflow-y-auto">
             {(personelList || []).filter(p => p.is_akdi_durumu === "sonlandirma_surecinde").map(p => (
-              <button key={p.id} onClick={() => router.push(`/personel?search=${p.kimlik_no || ""}`)}
+              <button key={p.id} onClick={() => router.push(`/personel?search=${encodeURIComponent(`${p.ad || ""} ${p.soyad || ""}`.trim())}`)}
                 className="w-full flex items-center justify-between p-2 bg-amber-50 rounded-lg hover:bg-amber-100 transition text-left border border-amber-200">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-amber-800 truncate">{p.ad} {p.soyad}</p>
@@ -517,7 +517,7 @@ export default function Dashboard() {
               </button>
             ))}
             {(personelList || []).filter(p => p.is_akdi_durumu === "sonlandi").map(p => (
-              <button key={p.id} onClick={() => router.push(`/personel?search=${p.kimlik_no || ""}`)}
+              <button key={p.id} onClick={() => router.push(`/personel?search=${encodeURIComponent(`${p.ad || ""} ${p.soyad || ""}`.trim())}`)}
                 className="w-full flex items-center justify-between p-2 bg-red-50 rounded-lg hover:bg-red-100 transition text-left border border-red-200">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-red-800 truncate">{p.ad} {p.soyad}</p>

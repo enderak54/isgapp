@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { UserCog, Plus, Edit, Trash2, Search, X, Save, Users, Lock, Unlock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
@@ -316,7 +316,7 @@ export default function SahaSorumlulari() {
                   <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="text-sm font-medium">{u.ad} {u.soyad}</p>
-                      {u.kimlik_no && <p className="text-xs text-gray-400">{u.kimlik_no}</p>}
+                      {u.kimlik_no && <p className="text-xs text-gray-400">{maskTC(u.kimlik_no)}</p>}
                     </div>
                     {u.telefon && <p className="text-sm text-gray-500">{u.telefon}</p>}
                   </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
@@ -668,7 +668,7 @@ export default function Taseronlar() {
                     <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(sigDurum).bg} ${durumRenk(sigDurum).text}`}>{sigDurum}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.hat || emp.ekip_adi || emp.meslek_kodu || "-"}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{displayDate(emp.ise_giris_tarihi)}</td>
-                    <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.kimlik_no || "-"}</td>
+                    <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{maskTC(emp.kimlik_no || "")}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.telefon || "-"}</td>
                     <td className="px-1.5 py-1 text-center text-gray-600 border border-gray-200">{emp.meslek_kodu || "-"}</td>
                     <td className={`px-1.5 py-1 text-center border border-gray-200 ${durumRenk(mykIzmeDeger).bg} ${durumRenk(mykIzmeDeger).text}`}>{mykIzmeDeger}</td>
@@ -922,7 +922,7 @@ export default function Taseronlar() {
                       <input type="checkbox" checked={checked} onChange={() => setSelectedPersonelIds(prev => { const n = new Set(prev); if (checked) n.delete(p.id); else n.add(p.id); return n; })} className="rounded border-gray-300" />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-800">{p.ad} {p.soyad}</span>
-                        {p.kimlik_no && <span className="text-xs text-gray-400 ml-2">({p.kimlik_no})</span>}
+                        {p.kimlik_no && <span className="text-xs text-gray-400 ml-2">({maskTC(p.kimlik_no)})</span>}
                       </div>
                       {p.telefon && <span className="text-xs text-gray-400 flex-shrink-0">{p.telefon}</span>}
                     </label>

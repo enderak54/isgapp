@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import { AlertOctagon, Plus, Search, Edit, Trash2, X, Eye, Upload, FileText, Image as ImageIcon, Download, Calendar, FolderOpen, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
@@ -389,7 +389,7 @@ export default function IhtarTutanagi() {
                 const textStyle = getTextStyle(row.toplam);
                 return (
                   <tr key={row.personel_id} className={`${style} hover:opacity-90 transition`}>
-                    <td className={`px-3 py-2.5 whitespace-nowrap font-medium ${textStyle}`}>{row.kimlik_no || "-"}</td>
+                    <td className={`px-3 py-2.5 whitespace-nowrap font-medium ${textStyle}`}>{maskTC(row.kimlik_no)}</td>
                     <td className={`px-3 py-2.5 whitespace-nowrap ${textStyle}`}>{row.ad}</td>
                     <td className={`px-3 py-2.5 whitespace-nowrap ${textStyle}`}>{row.soyad}</td>
                     <td className={`px-3 py-2.5 whitespace-nowrap ${textStyle}`}>{row.ekip_adi || "-"}</td>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { X, CheckCircle, Search, Edit, Trash2 } from "lucide-react";
 
@@ -237,7 +237,7 @@ export default function KVKKConsents() {
                     <option value="">Personel seçin...</option>
                     {personels.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.ad + " " + p.soyad} ({p.kimlik_no})
+                        {p.ad + " " + p.soyad} ({maskTC(p.kimlik_no)})
                       </option>
                     ))}
                   </select>
@@ -399,7 +399,7 @@ export default function KVKKConsents() {
                       {consent.personel ? (consent.personel.ad + " " + consent.personel.soyad) : "Bilinmiyor"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {consent.personel ? consent.personel.kimlik_no : "Bilinmiyor"}
+                      {consent.personel ? maskTC(consent.personel.kimlik_no || "") : "Bilinmiyor"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {consentTypeOptions.find((opt) => opt.value === consent.consent_type)?.label || consent.consent_type}

@@ -754,7 +754,7 @@ export default function PersonnelList() {
           win.document.write(`<tr><td class="katilimci" colspan="3">${r.katilimci_adi}</td></tr>`);
         } else {
           const adSoyad = `${r.ad || ""} ${r.soyad || ""}`.trim();
-          const tc = r.kimlik_no || "-";
+          const tc = maskTC(r.kimlik_no || "");
           if (tip === "myk_yaklasan" || tip === "myk_gecen") {
             win.document.write(`<tr><td>${adSoyad}</td><td>${tc}</td><td>${r.myk_bitis || "-"}</td><td>${r.myk_kalan || "-"}</td></tr>`);
           } else if (tip === "egitimsizler") {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { sanitizeForm } from "@/lib/security";
+import { sanitizeForm, maskTC } from "@/lib/security";
 import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
@@ -595,7 +595,7 @@ export default function IsKazalari() {
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {k.personel ? `${k.personel.ad || ""} ${k.personel.soyad || ""}`.trim() || "-" : "-"}
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.kimlik_no || "-"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel ? maskTC(k.personel.kimlik_no || "") : "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{k.personel?.meslek_kodu || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">{k.santiye_adi || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
