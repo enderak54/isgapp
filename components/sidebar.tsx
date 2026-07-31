@@ -241,7 +241,7 @@ export default function Sidebar() {
       {/* Mobile drawer */}
       {isMobile && (
         <aside role="dialog" aria-modal="true" aria-label="Navigasyon menusu"
-          className={`fixed top-0 left-0 z-50 h-full bg-white border-r border-gray-100 flex flex-col transition-transform duration-300 w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`fixed top-0 left-0 z-50 h-full bg-gray-50 border-r border-gray-100 flex flex-col transition-transform duration-300 w-64 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="absolute top-3 right-3">
             <button aria-label="Menuyu kapat" onClick={() => setMobileOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
@@ -254,7 +254,7 @@ export default function Sidebar() {
 
       {/* Desktop sidebar */}
       {!isMobile && (
-        <aside role="navigation" aria-label="Ana navigasyon" className={`bg-white h-screen sticky top-0 border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
+        <aside role="navigation" aria-label="Ana navigasyon" className={`bg-gray-50 h-screen sticky top-0 border-r border-gray-100 flex flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}>
           {menuContent(false)}
         </aside>
       )}
