@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
 
 const emptyForm = {
@@ -182,6 +182,8 @@ export default function Egitimler() {
 
       const upErrors: string[] = [];
       for (const pf of pendingFiles) {
+        const serverValidation = await validateFileServer(pf.file);
+        if (!serverValidation.valid) { upErrors.push(`${pf.file.name}: ${serverValidation.error || "Sunucu doğrulaması başarısız"}`); continue; }
         const fileName = `${kayitId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
         const { error: upErr } = await supabase.storage.from("egitim-dosyalari").upload(fileName, pf.file);
         if (upErr) { upErrors.push(`${pf.file.name}: ${upErr.message}`); continue; }

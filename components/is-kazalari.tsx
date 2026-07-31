@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
 import {
@@ -92,6 +92,8 @@ export default function IsKazalari() {
 
   const uploadFile = async (file: File, kazaId: string, dosyaTipi: string): Promise<string | null> => {
     try {
+      const serverValidation = await validateFileServer(file);
+      if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); return null; }
       const ext = file.name.split(".").pop() || "";
       const fileName = `${kazaId}/${dosyaTipi}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("kaza-dosyalari").upload(fileName, file);
@@ -148,6 +150,7 @@ export default function IsKazalari() {
         }
         if (Object.keys(updates).length > 0) {
           await supabase.from("is_kazalari").update(updates).eq("id", kazaId);
+          await logAudit("is_kazalari", "UPDATE", kazaId, null, { ...updates, islem: "dosya_yukle" });
         }
       }
 
@@ -215,6 +218,7 @@ export default function IsKazalari() {
   const handleDeleteFile = async (tip: typeof DOSYA_TIPLERI[number], kazaId: string) => {
     if (!confirm(`${tip.label} dosyasını silmek istediğinize emin misiniz?`)) return;
     await supabase.from("is_kazalari").update({ [tip.column]: null }).eq("id", kazaId);
+    await logAudit("is_kazalari", "UPDATE", kazaId, null, { [tip.column]: null, islem: "dosya_silme" });
     setForm({ ...form, [tip.column]: "" });
     fetchKazalar();
   };
@@ -223,6 +227,8 @@ export default function IsKazalari() {
     const key = `${kazaId}_${tip.key}`;
     setUploadingFile(key);
     try {
+      const serverValidation = await validateFileServer(file);
+      if (!serverValidation.valid) { setEditStatus({ type: "error", message: serverValidation.error || "Sunucu doğrulaması başarısız" }); return; }
       const ext = file.name.split(".").pop() || "";
       const fileName = `${kazaId}/${tip.key}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("kaza-dosyalari").upload(fileName, file);

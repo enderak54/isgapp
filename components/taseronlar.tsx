@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import Link from "next/link";
 import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare, Upload } from "lucide-react";
 
@@ -295,6 +295,8 @@ export default function Taseronlar() {
         let dosyaBoyut: number | null = null;
         const file = fileUploads[du.tip];
         if (file) {
+          const serverValidation = await validateFileServer(file);
+          if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
           const ext = file.name.split(".").pop() || "";
           const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
           const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
@@ -339,6 +341,8 @@ export default function Taseronlar() {
         let dosyaBoyut: number | null = null;
         const file = fileUploads[`operator_${i}`];
         if (file) {
+          const serverValidation = await validateFileServer(file);
+          if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
           const ext = file.name.split(".").pop() || "";
           const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
           const { error: upErr } = await supabase.storage.from("personel-belgeleri").upload(fileName, file);
@@ -419,6 +423,10 @@ export default function Taseronlar() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.durum === "aktif" && !form.santiye_id) {
+      const onay = confirm("Aktif taşeron şantiyeye bağlı olmalıdır. Şantiye seçilmedi.\n\nYine de kaydedilsin mi?");
+      if (!onay) return;
+    }
     const payload = sanitizeForm({ ...form, santiye_id: form.santiye_id || null });
     try {
       if (editing) {

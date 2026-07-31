@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { Wrench, Plus, Edit, Trash2, Search, X, Save, AlertTriangle, CheckCircle, AlertCircle, Loader2, Upload, Paperclip, Download, Calendar } from "lucide-react";
 
 const emptyForm = {
@@ -69,6 +69,8 @@ export default function IsEkipmanlari() {
 
       const upErrors: string[] = [];
       for (const pf of pendingFiles) {
+        const serverValidation = await validateFileServer(pf.file);
+        if (!serverValidation.valid) { upErrors.push(`${pf.file.name}: ${serverValidation.error || "Sunucu doğrulaması başarısız"}`); continue; }
         const fileName = `${ekipmanId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
         const { error: upErr } = await supabase.storage.from("ekipman-dosyalari").upload(fileName, pf.file);
         if (upErr) { upErrors.push(`${pf.file.name}: ${upErr.message}`); continue; }

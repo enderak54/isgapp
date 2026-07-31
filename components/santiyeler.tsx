@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import {
@@ -59,6 +59,8 @@ export default function Santiyeler() {
 
   const uploadFile = async (file: File, santiyeId: string, dosyaTipi: string): Promise<string | null> => {
     try {
+      const serverValidation = await validateFileServer(file);
+      if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); return null; }
       const fileName = `${santiyeId}/${dosyaTipi}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, file);
       if (upErr) throw upErr;
@@ -105,12 +107,15 @@ export default function Santiyeler() {
         for (const dt of DOSYA_TIPLERI) {
           const pendingFile = pendingFiles[dt.column];
           if (pendingFile) {
+            const serverValidation = await validateFileServer(pendingFile);
+            if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
             const ext = pendingFile.name.split(".").pop() || "";
             const fileName = `${santiyeId}/${dt.key}_${Date.now()}_${sanitizeFileName(pendingFile.name)}`;
             const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, pendingFile);
             if (!upErr) {
               const { data: urlData } = supabase.storage.from("santiye-dosyalari").getPublicUrl(fileName);
               await supabase.from("santiyeler").update({ [dt.column]: urlData.publicUrl }).eq("id", santiyeId);
+              await logAudit("santiyeler", "UPDATE", santiyeId!, null, { [dt.column]: urlData.publicUrl, islem: "dosya_yukle" });
             }
           }
         }
@@ -131,6 +136,8 @@ export default function Santiyeler() {
     const key = `${santiyeId}_${tip.key}`;
     setUploadingFile(key);
     try {
+      const serverValidation = await validateFileServer(file);
+      if (!serverValidation.valid) { setEditStatus({ type: "error", message: serverValidation.error || "Sunucu doğrulaması başarısız" }); return; }
       const fileName = `${santiyeId}/${tip.key}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, file);
       if (upErr) throw upErr;
@@ -149,6 +156,7 @@ export default function Santiyeler() {
   const handleDeleteFile = async (tip: typeof DOSYA_TIPLERI[number], santiyeId: string) => {
     if (!confirm(`${tip.label} dosyasını silmek istediğinize emin misiniz?`)) return;
     await supabase.from("santiyeler").update({ [tip.column]: null }).eq("id", santiyeId);
+    await logAudit("santiyeler", "UPDATE", santiyeId, null, { [tip.column]: null, islem: "dosya_silme" });
     fetchSantiyeler();
   };
 

@@ -39,3 +39,18 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
 export function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
+
+export async function validateFileServer(file: File): Promise<{ valid: boolean; error?: string; fileName?: string }> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/validate-file", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    return data as { valid: boolean; error?: string; fileName?: string };
+  } catch {
+    return { valid: false, error: "Dosya doğrulama sunucusuna ulaşılamadı" };
+  }
+}

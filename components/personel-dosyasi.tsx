@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { logAudit } from "@/lib/audit";
-import { validateFile, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
 import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Upload, Image as ImageIcon, FileText as FileDoc, Building2, HardHat, BookOpen, Wrench, AlertTriangle, FileWarning, ClipboardList } from "lucide-react";
 
 const MODULE_TABS = [
@@ -144,6 +144,8 @@ function FileCard({ item, onUpload }: { item: FileItem; onUpload?: (item: FileIt
     if (!file || !onUpload) return;
     const validation = validateFile(file);
     if (!validation.valid) { alert(validation.error); return; }
+    const serverValidation = await validateFileServer(file);
+    if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); return; }
     setUploading(true);
     try {
       await onUpload(item, file);
@@ -213,6 +215,8 @@ function TalimatCard({ item, onFileUploaded }: { item: FileItem; onFileUploaded:
     if (!file) return;
     const validation = validateFile(file);
     if (!validation.valid) { alert(validation.error); return; }
+    const serverValidation = await validateFileServer(file);
+    if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); return; }
     setUploading(true);
     try {
       const fileName = `talimat/${item.id}/${Date.now()}_${sanitizeFileName(file.name)}`;

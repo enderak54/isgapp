@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, AlertTriangle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon } from "lucide-react";
 import * as XLSX from "xlsx";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 import { displayDate } from "@/lib/tarih";
-import { sanitizeFileName } from "@/lib/file-validation";
+import { sanitizeFileName, validateFileServer } from "@/lib/file-validation";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
@@ -282,6 +282,19 @@ export default function PersonnelList() {
 
   const savePersonelSantiyeler = async () => {
     if (!editingPerson) return;
+    const eksikler: string[] = [];
+    if (isExpired(editingPerson.isg_egitim_tarihi, editingPerson.isg_egitim_gecerlilik_suresi) || !editingPerson.isg_egitim_tarihi) {
+      eksikler.push("İSG eğitimi (geçersiz veya eksik)");
+    }
+    if (isExpired(editingPerson.saglik_raporu_tarihi, editingPerson.saglik_raporu_gecerlilik_suresi) || !editingPerson.saglik_raporu_tarihi) {
+      eksikler.push("sağlık raporu (geçersiz veya eksik)");
+    }
+    if (eksikler.length > 0) {
+      const onay = confirm(
+        `${editingPerson.ad} ${editingPerson.soyad} şantiyeye atanmak üzere ancak zorunlu belgeleri eksik: ${eksikler.join(", ")}.\n\nYine de atamayı sürdürmek istiyor musunuz?`
+      );
+      if (!onay) return;
+    }
     const { data: oldSantiyeler } = await supabase.from("personel_santiyeler").select("*").eq("personel_id", editingPerson.id);
     await supabase.from("personel_santiyeler").delete().eq("personel_id", editingPerson.id);
     if (oldSantiyeler?.length) for (const row of oldSantiyeler) await logAudit("personel_santiyeler", "DELETE", row.id, row, null);
@@ -348,6 +361,8 @@ export default function PersonnelList() {
     if (!editingPerson || pendingFiles.length === 0) return;
     for (const pf of pendingFiles) {
       if (!BELGE_TIPLERI[pf.field]) continue;
+      const serverValidation = await validateFileServer(pf.file);
+      if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
       const fileExt = getFileExt(pf.file.name);
       const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
       const { error: uploadError } = await supabase.storage.from("personel-belgeleri").upload(fileName, pf.file);
@@ -1122,6 +1137,12 @@ export default function PersonnelList() {
                         );
                       })}
                     </div>
+                    {selectedSantiyeler.length > 0 && (isExpired(editingPerson.isg_egitim_tarihi, editingPerson.isg_egitim_gecerlilik_suresi) || !editingPerson.isg_egitim_tarihi) && (
+                      <p className="mt-1.5 text-[10px] text-amber-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> İSG eğitimi geçersiz veya eksik — şantiye ataması yapılıyor</p>
+                    )}
+                    {selectedSantiyeler.length > 0 && (isExpired(editingPerson.saglik_raporu_tarihi, editingPerson.saglik_raporu_gecerlilik_suresi) || !editingPerson.saglik_raporu_tarihi) && (
+                      <p className="mt-1 text-[10px] text-amber-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Sağlık raporu geçersiz veya eksik — şantiye ataması yapılıyor</p>
+                    )}
                   </div>
                 </div>
               </div>

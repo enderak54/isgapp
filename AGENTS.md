@@ -37,10 +37,9 @@ Migration → Component → Route → Sidebar → Settings toggle → Backup API
 ### Known Security Gaps
 1. RLS is PUBLIC (development mode) — switch to `auth.role() = 'authenticated'` before production
 2. `BACKUP_API_KEY` not set in env — all backup requests return 401
-3. 18 modules missing audit log
-4. CSRF protection not implemented
-5. No server-side file validation
-6. Storage buckets are public
+3. CSRF protection not implemented
+4. No server-side file validation
+5. Storage buckets are public
 
 ## CRITICAL: Always check existing code patterns before writing new code. Match the style, imports, and conventions of neighboring files.
 <!-- END:project-standards -->

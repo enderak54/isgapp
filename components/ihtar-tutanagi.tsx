@@ -6,7 +6,7 @@ import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import { AlertOctagon, Plus, Search, Edit, Trash2, X, Eye, Upload, FileText, Image as ImageIcon, Download, Calendar, FolderOpen, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { sanitizeFileName } from "@/lib/file-validation";
+import { sanitizeFileName, validateFileServer } from "@/lib/file-validation";
 
 const ALLOWED_IMAGES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ALLOWED_DOCS = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"];
@@ -250,6 +250,8 @@ export default function IhtarTutanagi() {
     setUploading(true);
     try {
       for (const file of uploadFiles) {
+        const serverValidation = await validateFileServer(file);
+        if (!serverValidation.valid) { setEditStatus({ type: "error", message: `${file.name}: ${serverValidation.error || "Sunucu doğrulaması başarısız"}` }); continue; }
         const fileName = `${selectedIhtar.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
         console.log("Uploading:", { original: file.name, sanitized: fileName, size: file.size, type: file.type });
         const { error: upErr } = await supabase.storage.from("ihtar-dosyalari").upload(fileName, file);
