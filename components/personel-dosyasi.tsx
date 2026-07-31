@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { logAudit } from "@/lib/audit";
 import { validateFile, sanitizeFileName } from "@/lib/file-validation";
-import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Upload, Image as ImageIcon, FileText as FileDoc, Building2, HardHat, BookOpen, Wrench, AlertTriangle, FileWarning, ClipboardList, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Upload, Image as ImageIcon, FileText as FileDoc, Building2, HardHat, BookOpen, Wrench, AlertTriangle, FileWarning, ClipboardList } from "lucide-react";
 
 const MODULE_TABS = [
   { key: "personel", label: "Personel", icon: User },
@@ -88,6 +88,19 @@ interface FileItem {
   _newTipi?: string;
 }
 
+interface PersonelRow { id: string; kimlik_no?: string | null; ad: string; soyad: string; }
+interface BelgeRow { id: string; belge_tipi: string; dosya_url?: string | null; dosya_adi?: string | null; eklenme_tarihi?: string | null; }
+interface DosyaRow { id: string; belge_turu?: string | null; belge_adi?: string | null; tarih?: string | null; dosya_url?: string | null; }
+interface TalimatRow { id: string; talimat_adi?: string | null; tarih?: string | null; eklenme_tarihi?: string | null; dosya_url?: string | null; dosya_adi?: string | null; }
+interface SantiyeRow { id: string; ad?: string | null; yapi_ruhsati_dosyasi?: string | null; is_sozlesme_dosyasi?: string | null; risk_analizi_dosyasi?: string | null; calisan_temsilcisi_dosyasi?: string | null; destek_elemani_dosyasi?: string | null; yapilacak_isler_dosyasi?: string | null; acil_durum_plani_dosyasi?: string | null; acil_durum_ekipleri_dosyasi?: string | null; tatbikat_dosyasi?: string | null; }
+interface TaseronRow { id: string; firma_adi?: string | null; durum?: string | null; }
+interface EgitimDosyaRow { id: string; dosya_url?: string | null; dosya_adi?: string | null; created_at?: string | null; egitimler?: { egitim_adi?: string | null; egitim_tarihi?: string | null } | null; }
+interface EkipmanDosyaRow { id: string; dosya_url?: string | null; dosya_adi?: string | null; created_at?: string | null; ekipmanlar?: { adi?: string | null; turu?: string | null } | null; }
+interface KazaRow { id: string; dosya_no?: string | null; personel?: { ad?: string | null; soyad?: string | null } | null; kaza_tutanagi_dosyasi?: string | null; kaza_bildirim_dosyasi?: string | null; ise_donus_egitimi_dosyasi?: string | null; rapor_dosyasi?: string | null; }
+interface IhtarRow { id: string; tarih?: string | null; ihtar_nedeni?: string | null; personel?: { ad?: string | null; soyad?: string | null } | null; }
+interface IhtarDosyaRow { id: string; dosya_url?: string | null; dosya_adi?: string | null; eklenme_tarihi?: string | null; neden?: string | null; }
+interface DokumanRow { id: string; dokuman_adi?: string | null; dokuman_no?: string | null; dosya_url?: string | null; created_at?: string | null; }
+
 export default function PersonelDosyasi() {
   const [activeModule, setActiveModule] = useState("personel");
   return (
@@ -134,8 +147,8 @@ function FileCard({ item, onUpload }: { item: FileItem; onUpload?: (item: FileIt
     setUploading(true);
     try {
       await onUpload(item, file);
-    } catch (err: any) {
-      alert("Dosya yüklenirken hata oluştu: " + (err.message || ""));
+    } catch (err: unknown) {
+      alert("Dosya yüklenirken hata oluştu: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
     }
@@ -191,7 +204,7 @@ function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır.", onUploa
   );
 }
 
-function TalimatCard({ item, personelId, onFileUploaded }: { item: FileItem; personelId: string; onFileUploaded: () => void }) {
+function TalimatCard({ item, onFileUploaded }: { item: FileItem; onFileUploaded: () => void }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,9 +229,9 @@ function TalimatCard({ item, personelId, onFileUploaded }: { item: FileItem; per
       if (updateError) throw updateError;
       await logAudit("personel_talimat_matrisi", "UPDATE", item.id, null, { dosya_adi: file.name, islem: "dosya_yukle" });
       onFileUploaded();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Talimat dosya yükleme hatası:", err);
-      alert("Dosya yüklenirken hata oluştu: " + (err.message || ""));
+      alert("Dosya yüklenirken hata oluştu: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
     }
@@ -282,56 +295,34 @@ function PanelCard({ title, children, count }: { title: string; children: React.
   );
 }
 
-function useSupabaseList<T>(table: string, filter?: Record<string, any>, select = "*") {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    (async () => {
-      let q = supabase.from(table).select(select);
-      if (filter) for (const [k, v] of Object.entries(filter)) {
-        if (v === null) q = q.is(k, null);
-        else q = q.eq(k, v);
-      }
-      const { data: rows } = await q.order("created_at", { ascending: false });
-      setData((rows as T[]) || []);
-      setLoading(false);
-    })();
-  }, [table, JSON.stringify(filter), select]);
-  return { data, loading };
-}
-
 // ─── PERSONEL MODULE ───────────────────────────────────────────────
 function PersonelModule() {
-  const [personel, setPersonel] = useState<any[]>([]);
+  const [personel, setPersonel] = useState<PersonelRow[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<PersonelRow | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [belgeler, setBelgeler] = useState<any[]>([]);
-  const [dosyalar, setDosyalar] = useState<any[]>([]);
-  const [talimatlar, setTalimatlar] = useState<any[]>([]);
+  const [belgeler, setBelgeler] = useState<BelgeRow[]>([]);
+  const [dosyalar, setDosyalar] = useState<DosyaRow[]>([]);
+  const [talimatlar, setTalimatlar] = useState<TalimatRow[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     supabase.from("personel").select("id, kimlik_no, ad, soyad").eq("arsivde", false).order("ad", { ascending: true }).then(({ data }) => {
-      if (data) setPersonel(data);
-      setLoading(false);
+      if (data) setPersonel(data as PersonelRow[]);
     });
   }, []);
 
   useEffect(() => {
     if (!selectedPerson) return;
-    setFilesLoading(true);
-    setSelectedFolder(null);
     Promise.all([
       supabase.from("personel_belgeleri").select("*").eq("personel_id", selectedPerson.id).is("silinme_tarihi", null),
       supabase.from("personel_dosyasi").select("*").eq("personel_id", selectedPerson.id),
       supabase.from("personel_talimat_matrisi").select("*").eq("personel_id", selectedPerson.id),
     ]).then(([belgelerRes, dosyalarRes, talimatRes]) => {
-      if (belgelerRes.data) setBelgeler(belgelerRes.data);
-      if (dosyalarRes.data) setDosyalar(dosyalarRes.data);
-      if (talimatRes.data) setTalimatlar(talimatRes.data);
+      if (belgelerRes.data) setBelgeler(belgelerRes.data as BelgeRow[]);
+      if (dosyalarRes.data) setDosyalar(dosyalarRes.data as DosyaRow[]);
+      if (talimatRes.data) setTalimatlar(talimatRes.data as TalimatRow[]);
       setFilesLoading(false);
     });
   }, [selectedPerson]);
@@ -341,11 +332,11 @@ function PersonelModule() {
   );
 
   const getFolderFiles = (folderKey: string): FileItem[] => {
-    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: t.dosya_url || null, date: t.tarih || t.eklenme_tarihi, extra: t.dosya_adi || null, _source: "talimat" as const }));
+    if (folderKey === "talimat") return talimatlar.map(t => ({ id: t.id, name: t.talimat_adi || "Talimat", url: t.dosya_url || null, date: t.tarih || t.eklenme_tarihi || undefined, extra: t.dosya_adi || undefined, _source: "talimat" as const }));
     const fromBelgeler = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey);
-    const fromDosyalar = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
+    const fromDosyalar = dosyalar.filter(d => d.belge_turu && BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey);
     const existingTipis = new Set(fromBelgeler.map(b => b.belge_tipi));
-    const existingTurler = new Set(fromDosyalar.map(d => d.belge_turu));
+    const existingTurler = new Set(fromDosyalar.map(d => d.belge_turu || ""));
     const emptyBelgeSlots: FileItem[] = Object.keys(BELGE_TIPI_LABEL)
       .filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey && !existingTipis.has(tipi))
       .map(tipi => ({ id: `_new_${tipi}`, name: BELGE_TIPI_LABEL[tipi], url: null, _source: "belge" as const, _newTipi: tipi }));
@@ -353,8 +344,8 @@ function PersonelModule() {
       .filter(tur => BELGE_TURU_TO_FOLDER[tur] === folderKey && !existingTurler.has(tur))
       .map(tur => ({ id: `_new_dosya_${tur}`, name: DOSYA_TURU_LABEL[tur], url: null, _source: "dosya" as const, _newTipi: tur }));
     return [
-      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url, date: b.eklenme_tarihi, _source: "belge" as const })),
-      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || DOSYA_TURU_LABEL[d.belge_turu] || "Dosya", url: d.dosya_url, date: d.tarih, _source: "dosya" as const })),
+      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url || null, date: b.eklenme_tarihi || undefined, _source: "belge" as const })),
+      ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || DOSYA_TURU_LABEL[d.belge_turu || ""] || "Dosya", url: d.dosya_url || null, date: d.tarih || undefined, _source: "dosya" as const })),
       ...emptyBelgeSlots,
       ...emptyDosyaSlots,
     ].sort((a, b) => {
@@ -373,7 +364,7 @@ function PersonelModule() {
   const folderFileCount = (folderKey: string): number => {
     if (folderKey === "talimat") return talimatlar.length;
     const belgeCount = belgeler.filter(b => BELGE_TIPI_TO_FOLDER[b.belge_tipi] === folderKey).length;
-    const dosyaCount = dosyalar.filter(d => BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
+    const dosyaCount = dosyalar.filter(d => d.belge_turu && BELGE_TURU_TO_FOLDER[d.belge_turu] === folderKey).length;
     const emptyBelgeCount = Object.keys(BELGE_TIPI_LABEL).filter(tipi => BELGE_TIPI_TO_FOLDER[tipi] === folderKey).length - belgeCount;
     const emptyDosyaCount = Object.keys(DOSYA_TURU_LABEL).filter(tur => BELGE_TURU_TO_FOLDER[tur] === folderKey).length - dosyaCount;
     return belgeCount + dosyaCount + Math.max(0, emptyBelgeCount) + Math.max(0, emptyDosyaCount);
@@ -455,11 +446,11 @@ function PersonelModule() {
           {showDropdown && search && filteredPersonel.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-30">
               {filteredPersonel.map(p => (
-                <button key={p.id} onClick={() => { setSelectedPerson(p); setSearch(`${p.ad} ${p.soyad}`); setShowDropdown(false); }}
+                <button key={p.id} onClick={() => { setSelectedPerson(p); setSearch(`${p.ad} ${p.soyad}`); setShowDropdown(false); setSelectedFolder(null); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 text-left border-b border-gray-50 last:border-0">
                   <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <span className="font-medium text-gray-800">{p.ad} {p.soyad}</span>
-                  <span className="text-xs text-gray-400 ml-auto">{maskTC(p.kimlik_no)}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{maskTC(p.kimlik_no || "")}</span>
                 </button>
               ))}
             </div>
@@ -470,7 +461,7 @@ function PersonelModule() {
         </div>
         {selectedPerson && (
           <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
-            <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{maskTC(selectedPerson.kimlik_no)}</span>
+            <User className="w-4 h-4" /> <span className="font-medium">{selectedPerson.ad} {selectedPerson.soyad}</span> <span className="text-green-500">|</span> <span className="text-green-600">{maskTC(selectedPerson.kimlik_no || "")}</span>
           </div>
         )}
       </PanelCard>
@@ -512,10 +503,6 @@ function PersonelModule() {
             {selectedFolder === "_all" ? (
               <div className="space-y-4">
                 {FOLDER_CATEGORIES.map(folder => {
-                  const files = currentFiles.filter(f => {
-                    const idx = FOLDER_CATEGORIES.indexOf(folder);
-                    return true;
-                  });
                   const folderFiles = getFolderFiles(folder.key);
                   if (folderFiles.length === 0) return null;
                   const Icon = folder.icon;
@@ -527,7 +514,7 @@ function PersonelModule() {
                         <span className="text-[10px] text-gray-400">({folderFiles.length})</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} personelId={selectedPerson.id} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} onUpload={handleItemUpload} />)}
+                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} onUpload={handleItemUpload} />)}
                       </div>
                     </div>
                   );
@@ -535,7 +522,7 @@ function PersonelModule() {
               </div>
             ) : selectedFolder === "talimat" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {currentFiles.length === 0 ? <div className="text-center py-10 text-gray-400 text-sm">Henüz dosya bulunmamaktadır.</div> : currentFiles.map((item, idx) => <TalimatCard key={idx} item={item} personelId={selectedPerson.id} onFileUploaded={refreshTalimatlar} />)}
+                {currentFiles.length === 0 ? <div className="text-center py-10 text-gray-400 text-sm">Henüz dosya bulunmamaktadır.</div> : currentFiles.map((item, idx) => <TalimatCard key={idx} item={item} onFileUploaded={refreshTalimatlar} />)}
               </div>
             ) : (
               <FileGrid files={currentFiles} onUpload={handleItemUpload} />
@@ -549,23 +536,23 @@ function PersonelModule() {
 
 // ─── ŞANTİYE MODULE ────────────────────────────────────────────────
 function SantiyeModule() {
-  const [santiyeler, setSantiyeler] = useState<any[]>([]);
+  const [santiyeler, setSantiyeler] = useState<SantiyeRow[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selected, setSelected] = useState<SantiyeRow | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.from("santiyeler").select("*").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setSantiyeler(data);
+      if (data) setSantiyeler(data as SantiyeRow[]);
       setLoading(false);
     });
   }, []);
 
   const filtered = santiyeler.filter(s => (s.ad || "").toLowerCase().includes(search.toLowerCase()));
 
-  const getFiles = (santiye: any): FileItem[] => {
+  const getFiles = (santiye: SantiyeRow): FileItem[] => {
     return SANIYE_DOSYA_ALANLARI.map(a => ({
-      id: a.column, name: a.label, url: santiye[a.column] || null,
+      id: a.column, name: a.label, url: santiye[a.column as keyof SantiyeRow] || null,
     }));
   };
 
@@ -593,7 +580,7 @@ function SantiyeModule() {
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === s.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
               <Building2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{s.ad}</span>
-              <span className="text-xs text-gray-400 ml-auto">{SANIYE_DOSYA_ALANLARI.filter(a => s[a.column]).length}/{SANIYE_DOSYA_ALANLARI.length} dosya</span>
+              <span className="text-xs text-gray-400 ml-auto">{SANIYE_DOSYA_ALANLARI.filter(a => s[a.column as keyof SantiyeRow]).length}/{SANIYE_DOSYA_ALANLARI.length} dosya</span>
             </button>
           ))}
           {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Şantiye bulunamadı</div>}
@@ -612,28 +599,27 @@ function SantiyeModule() {
 
 // ─── TAŞERON MODULE ────────────────────────────────────────────────
 function TaseronModule() {
-  const [taseronlar, setTaseronlar] = useState<any[]>([]);
+  const [taseronlar, setTaseronlar] = useState<TaseronRow[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
-  const [belgeler, setBelgeler] = useState<any[]>([]);
+  const [selected, setSelected] = useState<TaseronRow | null>(null);
+  const [belgeler, setBelgeler] = useState<BelgeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filesLoading, setFilesLoading] = useState(false);
 
   useEffect(() => {
     supabase.from("taseronlar").select("id, firma_adi, durum").eq("durum", "aktif").order("firma_adi").then(({ data }) => {
-      if (data) setTaseronlar(data);
+      if (data) setTaseronlar(data as TaseronRow[]);
       setLoading(false);
     });
   }, []);
 
   useEffect(() => {
     if (!selected) return;
-    setFilesLoading(true);
     supabase.from("personel").select("id").eq("taseron_id", selected.id).then(async ({ data: personelList }) => {
       if (!personelList || personelList.length === 0) { setBelgeler([]); setFilesLoading(false); return; }
       const pids = personelList.map(p => p.id);
       const { data } = await supabase.from("personel_belgeleri").select("*").in("personel_id", pids).is("silinme_tarihi", null);
-      setBelgeler(data || []);
+      setBelgeler((data || []) as BelgeRow[]);
       setFilesLoading(false);
     });
   }, [selected]);
@@ -646,8 +632,8 @@ function TaseronModule() {
       .map(b => ({
         id: b.id,
         name: b.dosya_adi || b.belge_tipi,
-        url: b.dosya_url,
-        date: b.eklenme_tarihi,
+        url: b.dosya_url || null,
+        date: b.eklenme_tarihi || undefined,
         extra: b.belge_tipi?.replace(/_/g, " "),
       }));
   };
@@ -658,7 +644,7 @@ function TaseronModule() {
         <SearchInput value={search} onChange={setSearch} placeholder="Taşeron firma adı ile ara..." />
         <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
           {filtered.map(t => (
-            <button key={t.id} onClick={() => { setSelected(t); setSearch(t.firma_adi); }}
+            <button key={t.id} onClick={() => { setSelected(t); setSearch(t.firma_adi || ""); }}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-left transition ${selected?.id === t.id ? "bg-green-50 text-green-700 border border-green-200" : "hover:bg-gray-50 text-gray-700"}`}>
               <HardHat className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{t.firma_adi}</span>
@@ -684,19 +670,17 @@ function TaseronModule() {
 
 // ─── EĞİTİM MODULE ─────────────────────────────────────────────────
 function EgitimModule() {
-  const [dosyalar, setDosyalar] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dosyalar, setDosyalar] = useState<EgitimDosyaRow[]>([]);
 
   useEffect(() => {
     supabase.from("egitim_dosyalari").select("*, egitimler:egitim_kaydi_id (egitim_adi, egitim_tarihi)").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setDosyalar(data);
-      setLoading(false);
+      if (data) setDosyalar(data as EgitimDosyaRow[]);
     });
   }, []);
 
   const files: FileItem[] = dosyalar.filter(d => d.dosya_url).map(d => ({
-    id: d.id, name: d.dosya_adi || "Eğitim Dosyası", url: d.dosya_url, date: d.created_at,
-    extra: d.egitimler?.egitim_adi,
+    id: d.id, name: d.dosya_adi || "Eğitim Dosyası", url: d.dosya_url || null, date: d.created_at || undefined,
+    extra: d.egitimler?.egitim_adi || undefined,
   }));
 
   return (
@@ -708,19 +692,17 @@ function EgitimModule() {
 
 // ─── EKİPMAN MODULE ────────────────────────────────────────────────
 function EkipmanModule() {
-  const [dosyalar, setDosyalar] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dosyalar, setDosyalar] = useState<EkipmanDosyaRow[]>([]);
 
   useEffect(() => {
     supabase.from("ekipman_dosyalari").select("*, ekipmanlar:ekipman_id (adi, turu)").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setDosyalar(data);
-      setLoading(false);
+      if (data) setDosyalar(data as EkipmanDosyaRow[]);
     });
   }, []);
 
   const files: FileItem[] = dosyalar.filter(d => d.dosya_url).map(d => ({
-    id: d.id, name: d.dosya_adi || "Ekipman Dosyası", url: d.dosya_url, date: d.created_at,
-    extra: d.ekipmanlar?.adi,
+    id: d.id, name: d.dosya_adi || "Ekipman Dosyası", url: d.dosya_url || null, date: d.created_at || undefined,
+    extra: d.ekipmanlar?.adi || undefined,
   }));
 
   return (
@@ -732,14 +714,14 @@ function EkipmanModule() {
 
 // ─── İŞ KAZASI MODULE ──────────────────────────────────────────────
 function KazaModule() {
-  const [kazalar, setKazalar] = useState<any[]>([]);
+  const [kazalar, setKazalar] = useState<KazaRow[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selected, setSelected] = useState<KazaRow | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.from("is_kazalari").select("*, personel:personel_id (ad, soyad)").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setKazalar(data);
+      if (data) setKazalar(data as KazaRow[]);
       setLoading(false);
     });
   }, []);
@@ -749,9 +731,9 @@ function KazaModule() {
     return ad.includes(search.toLowerCase()) || (k.dosya_no || "").toLowerCase().includes(search.toLowerCase());
   });
 
-  const getFiles = (kaza: any): FileItem[] => {
+  const getFiles = (kaza: KazaRow): FileItem[] => {
     return KAZA_DOSYA_ALANLARI.map(a => ({
-      id: a.column, name: a.label, url: kaza[a.column] || null,
+      id: a.column, name: a.label, url: (kaza[a.column as keyof KazaRow] as string | null) || null,
     }));
   };
 
@@ -780,7 +762,7 @@ function KazaModule() {
               <AlertTriangle className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{k.personel?.ad} {k.personel?.soyad}</span>
               {k.dosya_no && <span className="text-xs text-gray-400 ml-auto">#{k.dosya_no}</span>}
-              <span className="text-xs text-gray-400 ml-auto">{KAZA_DOSYA_ALANLARI.filter(a => k[a.column]).length}/{KAZA_DOSYA_ALANLARI.length} dosya</span>
+              <span className="text-xs text-gray-400 ml-auto">{KAZA_DOSYA_ALANLARI.filter(a => k[a.column as keyof KazaRow]).length}/{KAZA_DOSYA_ALANLARI.length} dosya</span>
             </button>
           ))}
           {filtered.length === 0 && !loading && <div className="text-center py-4 text-gray-400 text-sm">Kaza bulunamadı</div>}
@@ -799,25 +781,24 @@ function KazaModule() {
 
 // ─── İHTAR MODULE ──────────────────────────────────────────────────
 function IhtarModule() {
-  const [ihtarlar, setIhtarlar] = useState<any[]>([]);
+  const [ihtarlar, setIhtarlar] = useState<IhtarRow[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
-  const [dosyalar, setDosyalar] = useState<any[]>([]);
+  const [selected, setSelected] = useState<IhtarRow | null>(null);
+  const [dosyalar, setDosyalar] = useState<IhtarDosyaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filesLoading, setFilesLoading] = useState(false);
 
   useEffect(() => {
     supabase.from("ihtarlar").select("id, personel:personel_id (ad, soyad), tarih, ihtar_nedeni").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setIhtarlar(data);
+      if (data) setIhtarlar(data as IhtarRow[]);
       setLoading(false);
     });
   }, []);
 
   useEffect(() => {
     if (!selected) return;
-    setFilesLoading(true);
     supabase.from("ihtar_dosyalari").select("*").eq("ihtar_id", selected.id).is("silinme_tarihi", null).then(({ data }) => {
-      setDosyalar(data || []);
+      setDosyalar((data || []) as IhtarDosyaRow[]);
       setFilesLoading(false);
     });
   }, [selected]);
@@ -829,8 +810,8 @@ function IhtarModule() {
 
   const getFiles = (): FileItem[] => {
     return dosyalar.filter(d => d.dosya_url).map(d => ({
-      id: d.id, name: d.dosya_adi || "İhtar Dosyası", url: d.dosya_url, date: d.eklenme_tarihi,
-      extra: d.neden,
+      id: d.id, name: d.dosya_adi || "İhtar Dosyası", url: d.dosya_url || null, date: d.eklenme_tarihi || undefined,
+      extra: d.neden || undefined,
     }));
   };
 
@@ -867,22 +848,20 @@ function IhtarModule() {
 
 // ─── DÖKÜMAN MODULE ────────────────────────────────────────────────
 function DokumanModule() {
-  const [dokumanlar, setDokumanlar] = useState<any[]>([]);
+  const [dokumanlar, setDokumanlar] = useState<DokumanRow[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.from("dokuman_kontrol").select("*").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setDokumanlar(data);
-      setLoading(false);
+      if (data) setDokumanlar(data as DokumanRow[]);
     });
   }, []);
 
   const filtered = dokumanlar.filter(d => (d.dokuman_adi || "").toLowerCase().includes(search.toLowerCase()));
 
   const files: FileItem[] = filtered.filter(d => d.dosya_url).map(d => ({
-    id: d.id, name: d.dokuman_adi, url: d.dosya_url, date: d.created_at,
-    extra: d.dokuman_no,
+    id: d.id, name: d.dokuman_adi || "Döküman", url: d.dosya_url || null, date: d.created_at || undefined,
+    extra: d.dokuman_no || undefined,
   }));
 
   return (
