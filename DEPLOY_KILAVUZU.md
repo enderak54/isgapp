@@ -69,6 +69,25 @@ npx supabase migration repair --status reverted <version>
 npx supabase migration repair --status applied <version>
 ```
 
+## Self-Host (Docker) Dağıtımı
+
+Tam Supabase stack + isgapp uygulaması tek Docker Compose dosyasından ayağa kalkar.
+Ayrıntılar için [`self-host/README.md`](self-host/README.md).
+
+```bash
+cd self-host
+sh setup.sh          # .env + tüm sırlar + stack başlatma
+```
+
+- **Şema**: `init.sql` (canlı DB'den alınmış 55 isgapp tablosu + storage bucket/policy + GRANT'lar).
+  İlk açılışta `db` container'ı tarafından otomatik uygulanır. **Veri taşınmaz.**
+- **Kolla hariç**: telemetry, cihazlar, kamera vb. 17 kolla tablosu şemada yok.
+- **Erişim**: isgapp `:3000`, Studio `:8000`, REST `:8000/rest/v1`, pooler `:5432/:6543`.
+- **Yedek**: `sh backup.sh` (pg_dump + storage tar; cron örneği README'de).
+- **Geri yükleme**: `docker compose down` → `pg_restore` → `tar -xzf` → `docker compose up -d`.
+
+> Üretime geçmeden önce RLS'i `authenticated` rolüne çevirin (Şu an dev modunda `public`).
+
 ## Önemli Bağımlılıklar
 
 - Node.js v24.x

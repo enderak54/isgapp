@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+let supabaseOrigin = "";
+try {
+  supabaseOrigin = new URL(SUPABASE_URL).origin;
+} catch {
+  supabaseOrigin = "";
+}
+
 const RATE_LIMIT_MAP = new Map<string, { count: number; resetTime: number }>();
 
 setInterval(() => {
@@ -74,19 +82,28 @@ export function proxy(request: NextRequest) {
   // Set CSRF cookie if not present
   if (!request.cookies.has("csrf-token")) {
     const token = generateCsrfToken();
+    const proto = (request.headers.get("x-forwarded-proto") || request.nextUrl.protocol).replace(/:$/, "");
     response.cookies.set("csrf-token", token, {
       httpOnly: true,
       sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && proto === "https",
       path: "/",
       maxAge: 3600,
     });
   }
 
+  // Allow the configured Supabase origin (hosted or self-hosted) in CSP so that
+  // API calls and storage previews are not blocked when Supabase runs on a
+  // different origin than the app (e.g. self-host kong on :8000).
+  const connectSrc = ["'self'", "https://*.supabase.co", "https://api.github.com"];
+  if (supabaseOrigin) connectSrc.push(supabaseOrigin);
+  const imgSrc = ["'self'", "data:", "blob:"];
+  if (supabaseOrigin) imgSrc.push(supabaseOrigin);
+
   response.headers.set("X-DNS-Prefetch-Control", "off");
   response.headers.set(
     "Content-Security-Policy",
-    `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://api.github.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
+    `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src ${imgSrc.join(" ")}; connect-src ${connectSrc.join(" ")}; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
   );
 
   return response;
