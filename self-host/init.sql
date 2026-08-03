@@ -4103,3 +4103,35 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, aut
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA storage TO anon, authenticated, service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
+-- ------------------------------------------------------------
+-- 4) GİRİŞ SİSTEMİ TABLOLARI (app_users / app_sessions)
+--    RLS deny-all: policy EKİLMEZ, anon key satır göremez.
+--    Auth API route'ları doğrudan pg (DATABASE_URL) ile erişir.
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.app_users (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    username text NOT NULL UNIQUE,
+    password_hash text NOT NULL,
+    salt text NOT NULL,
+    ad_soyad text,
+    rol text NOT NULL DEFAULT 'kullanici',
+    aktif boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    last_login_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS public.app_sessions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES public.app_users(id) ON DELETE CASCADE,
+    token text NOT NULL UNIQUE,
+    expires_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_sessions_token ON public.app_sessions(token);
+CREATE INDEX IF NOT EXISTS idx_app_sessions_user ON public.app_sessions(user_id);
+
+ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_sessions ENABLE ROW LEVEL SECURITY;

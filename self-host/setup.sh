@@ -120,11 +120,28 @@ docker compose build isgapp
 log "Stack başlatılıyor"
 docker compose up -d
 
+# --- Migrasyon takip dosyası ----------------------------------------------
+# init.sql tüm mevcut migrasyonları içerir; güncelleme script'i (update.sh)
+# yalnızca bu dosyada OLMAYAN migrasyonları uygular.
+if [ -d ../supabase/migrations ]; then
+    : > .applied_migrations
+    for mig in $(ls ../supabase/migrations/*.sql | sort); do
+        name=$(basename "$mig")
+        [ "$name" = "ALL_PENDING.sql" ] && continue
+        echo "$name" >> .applied_migrations
+    done
+    log "Migrasyon durumu kaydedildi ($(wc -l < .applied_migrations) dosya uygulanmış sayıldı)"
+fi
+
 echo ""
 echo "Kurulum tamamlandı. Erişim adresleri:"
-echo "  isgapp (uygulama):  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)"
+echo "  isgapp (uygulama):  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)/giris"
 echo "  Studio (dashboard): $public_url"
 echo "  REST API:           ${public_url}/rest/v1"
+echo ""
+echo "Kullanıcı oluşturma (ilk giriş için zorunlu):"
+echo "  node ../scripts/create-user.js --username kullanici --password SIFRE --ad \"Ad Soyad\" --rol admin"
+echo "  (ya da: npm run create-user -- --username kullanici --password SIFRE --rol admin)"
 echo ""
 echo "Durumu izleme:  docker compose ps"
 echo "Log izleme:     docker compose logs -f"

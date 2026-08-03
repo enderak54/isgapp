@@ -21,6 +21,9 @@ setInterval(() => {
 const CSRF_HEADER = "x-csrf-token";
 const CSRF_SKIP_PATHS = ["/api/commits", "/api/csrf-token", "/api/validate-file"];
 
+const SESSION_COOKIE = "isg_session";
+const AUTH_SKIP_PATHS = ["/giris", "/api/auth", "/api/csrf-token"];
+
 function generateCsrfToken(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let token = "";
@@ -48,6 +51,21 @@ export function proxy(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || request.headers.get("x-real-ip")
     || "unknown";
+
+  // Session koruması: giriş yapılmadan uygulama sayfalarına ve API'lere erişim engellenir.
+  const hasSession = request.cookies.has(SESSION_COOKIE);
+  const isAuthPath = AUTH_SKIP_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isAssetPath = pathname.startsWith("/_next") || pathname.startsWith("/favicon.ico");
+
+  if (!hasSession && !isAuthPath && !isAssetPath) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Giriş gerekli" }, { status: 401 });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/giris";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   if (pathname.startsWith("/api/") && !pathname.startsWith("/api/commits")) {
     const now = Date.now();

@@ -6,6 +6,7 @@ dosyasından ayağa kaldırmak için gereken her şeyi içerir.
 - **Supabase**: tam stack (Studio, Kong, Auth, PostgREST, Realtime, Storage, Edge Functions, Supavisor)
 - **isgapp**: Next.js uygulaması (kendi servisi olarak çalışır)
 - **Şema**: `init.sql` — canlı veritabanından alınan isgapp tabloları (veri taşınmaz, yalnızca şema)
+- **Giriş**: kullanıcı adı + şifre (uygulama-seviyesi auth) — kurulum sonrası ilk kullanıcıyı `create-user` ile açın
 
 > ⚠️ **Veri taşınmaz.** Yalnızca şema kurulur; veriler boş başlar.
 
@@ -63,6 +64,60 @@ Studio'ya giriş: `.env` içindeki `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD`.
 
 ---
 
+## Güncelleme (isgapp)
+
+Self-host kurulumunuzu repo'daki yeni sürüme taşımak için:
+
+```bash
+cd self-host
+sh update.sh                 # yedek al + git pull + yeni migrasyonlar + isgapp rebuild
+sh update.sh -n              # yedek almadan
+```
+
+`update.sh` sırayla şunları yapar:
+
+1. **Yedek alır** (`backup.sh` — güncelleme öncesi her zaman)
+2. **Repo'yu günceller** (`git pull --ff-only`)
+3. **Yeni DB migrasyonlarını uygular** — `supabase/migrations/*.sql` içinden yalnızca
+   `.applied_migrations` dosyasında olmayanlar, sırayla `psql` ile.
+4. **isgapp imajını yeniden derler** ve stack'i günceller.
+
+> **Migrasyon takibi:** Kurulumda `init.sql` mevcut tüm migrasyonları kapsar;
+> `setup.sh` hepsini `.applied_migrations`'a kaydeder. Sonraki sürümlerde
+> yalnızca **yeni eklenen** migrasyon dosyaları uygulanır. Bu dosya kuruluma
+> özgüdür ve git'e alınmaz.
+>
+> ⚠️ `.applied_migrations` yoksa (elle kurulan eski kurulum), ilk çalıştırmada
+> mevcut migrasyonlar "uygulanmış" sayılır; yalnızca yeni dosyalar işlenir.
+> Kurulumdaki `init.sql`'den daha eski bir migrasyon eksikse elle uygulanmalıdır.
+
+---
+
+## Giriş (Kullanıcı Adı + Şifre)
+
+Uygulama açılışında kullanıcı adı/şifre ister (`/giris`). Auth, uygulama-seviyesidir:
+- `app_users` / `app_sessions` tabloları **RLS deny-all** (anon key erişemez); şifreler `scrypt` ile hash'lenir.
+- Auth API'leri (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`) doğrudan PostgreSQL
+  (`DATABASE_URL`) üzerinden çalışır; oturum httpOnly cookie (`isg_session`, 7 gün).
+- Tüm uygulama sayfaları ve API'ler giriş gerektirir (`proxy.ts`); `/giris` ve `/api/auth/*` public'tir.
+- Her `POST/PUT/PATCH/DELETE` isteğinde CSRF doğrulaması devam eder.
+
+İlk kullanıcıyı oluşturun (kurulumdan sonra, repo kökünde):
+
+```bash
+npm run create-user -- --username kullanici --password "GucluSifre123" --ad "Ad Soyad" --rol admin
+```
+
+Self-host'ta DB'ye doğrudan bağlantı için `DATABASE_URL` kullanılır (compose'da otomatik:
+`postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres`). Harici bir DB'ye bağlanacaksanız
+`.env` içinde `DATABASE_URL`'i açıkça ayarlayın.
+
+Kullanıcı yönetimi (şifre sıfırlama, rol değiştirme) SQL ile yapılabilir — örn. Studio (Supabase) üzerinden
+`public.app_users` tablosunda, ancak **şifre hash'i doğrudan değiştirmeyin**; `create-user` benzeri bir
+script ile yeni kullanıcı ekleyin.
+
+---
+
 ## Yedekleme
 
 ```bash
@@ -106,10 +161,11 @@ docker compose up -d
 
 ### Bilinen güvenlik açıkları (STANDARDS.md'den)
 
-- **RLS PUBLİC (dev modu)**: tüm tablolar `USING (true)` policy'si ile herkese açık.
+- **RLS PUBLİC (dev modu)**: isgapp veri tabloları `USING (true)` policy'si ile herkese açık.
   Üretime geçmeden önce `auth.role() = 'authenticated'` tabanlı policy'ler uygulayın.
+  NOT: `app_users` / `app_sessions` tabloları bu kapsamda DEĞİLDİR — onlar deny-all'dır.
 - **Storage bucket'ları public**: yukarıdaki storage policy'leri `public` rolüne açık.
-- Bu pakette login/auth akışı YOKTUR; isgapp anon key ile çalışır.
+- Uygulama girişi kullanıcı adı/şifre ile korunur (`/giris`); veri API'si yine anon key ile çalışır.
 
 ---
 

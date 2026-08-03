@@ -1,6 +1,6 @@
 {
   "name": "isgapp",
-  "version": "1.1.24",
+  "version": "1.1.25",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "migrate": "node scripts/migrate.js",
+    "create-user": "node scripts/create-user.js",
     "bump": "node scripts/bump-version.js",
     "bump:minor": "node scripts/bump-version.js minor",
     "bump:major": "node scripts/bump-version.js major"
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

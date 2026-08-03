@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/auth-provider";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import {
   Briefcase, Users, GraduationCap, Shield, FolderOpen, FileText,
   Building2, Building, UserCog, Wrench, AlertTriangle, LayoutDashboard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Scale,
   ClipboardCheck, Siren, RotateCcw, Eye, FileCheck, Award, TrendingUp,
   AlertOctagon, ScrollText, Menu, X, Target, MessageCircle, Lock, Brain, Monitor, Activity,
+  LogOut, User as UserIcon,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -52,6 +55,8 @@ const ekModulItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [ekModulOpen, setEkModulOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -199,6 +204,16 @@ export default function Sidebar() {
       </nav>
       
       <div className="p-2 border-t border-gray-100">
+        {user && (
+          <div className="flex items-center gap-2 px-2 py-2 text-gray-600">
+            <UserIcon className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && (
+              <span className="text-xs font-medium truncate">
+                {user.ad_soyad || user.username}
+              </span>
+            )}
+          </div>
+        )}
         <Link
           href="/ayarlar"
           onClick={() => mobile && setMobileOpen(false)}
@@ -209,6 +224,18 @@ export default function Sidebar() {
           <Settings className="w-4 h-4 flex-shrink-0" />
           {(!collapsed || mobile) && <span className="text-xs font-medium">Ayarlar</span>}
         </Link>
+        <button
+          onClick={async () => {
+            try {
+              await fetchWithCsrf("/api/auth/logout", { method: "POST" });
+            } catch {}
+            router.replace("/giris");
+          }}
+          className="w-full flex items-center gap-1 px-2 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          {(!collapsed || mobile) && <span className="text-xs font-medium">Çıkış</span>}
+        </button>
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}

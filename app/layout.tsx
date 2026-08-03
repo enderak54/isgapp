@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Sidebar from "@/components/sidebar";
 import ThemeProvider from "@/components/theme-provider";
+import AppShell from "@/components/app-shell";
 import SkipLink from "@/components/skip-link";
 import "./globals.css";
 
@@ -20,12 +20,7 @@ export default function RootLayout({
       <body className="h-full flex flex-col">
         <SkipLink />
         <ThemeProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main id="main-content" className="flex-1 min-w-0 p-4 md:p-6">
-              {children}
-            </main>
-          </div>
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>
