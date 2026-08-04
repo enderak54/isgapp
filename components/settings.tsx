@@ -9,6 +9,7 @@ import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Pal
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 import { useTheme } from "@/components/theme-provider";
 import CollapsibleCard from "@/components/settings/CollapsibleCard";
+import KullaniciYonetimi from "@/components/settings/KullaniciYonetimi";
 
 const colorOptions = [
   { key: "", label: "Gri", class: "", bg: "#6b7280" },
@@ -984,6 +985,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </CollapsibleCard>
+
+        <KullaniciYonetimi />
 
         <CollapsibleCard title="Sürüm Takip" description="GitHub commit geçmişi" isOpen={showVersion} onToggle={() => setShowVersion(!showVersion)}>
           <div className="space-y-1 max-h-80 overflow-y-auto">
