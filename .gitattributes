@@ -1,0 +1,16 @@
+# Line-ending normalisation (critical for self-host scripts)
+# Shell scripts, SQL migrations, compose files and Dockerfile MUST stay LF on
+# every platform, otherwise CRLF breaks containers' entrypoints and bash runs.
+
+* text=auto
+
+*.sh text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.exs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+Dockerfile text eol=lf
+.env.example text eol=lf

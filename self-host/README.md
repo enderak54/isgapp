@@ -14,19 +14,39 @@ dosyasından ayağa kaldırmak için gereken her şeyi içerir.
 
 ## Gereksinimler
 
-- Linux sunucu (Debian/Ubuntu veya RHEL ailesi önerilir) veya Docker Desktop
-- **Docker Engine** (20.10+) + **Compose plugin** v2
+**Desteklenen platformlar:**
+
+- **Linux sunucu** (Debian/Ubuntu veya RHEL ailesi önerilir)
+- **Windows 10/11** — Docker Desktop + **Git Bash** (Git for Windows kurulumuyla gelir; komutlar `sh` ile çalıştırılır)
+
+Her iki platformda da:
+
+- **Docker Engine** (20.10+) + **Compose plugin** v2 (Windows'ta Docker Desktop)
 - **4–8 GB RAM** (Supabase stack için önerilen minimum), 20+ GB disk
-- `openssl`, `git`, `jq` (key üretimi için)
+- `openssl` (Windows'ta Git Bash içinde gelir)
+- `node >= 16` **veya** Docker (`add-new-auth-keys.sh` key üretimi için; node yoksa docker fallback kullanır)
+- `git`, `npm` (ilk kullanıcıyı `create-user` script'i ile açmak için)
+
+> 💡 **isgapp imajı hedef makinede derlenir.** `docker compose build isgapp`
+> kaynak koddan build eder — hazır imaj indirilmez, tedarik zinciri riski yoktur.
+> Bu nedenle `git clone` ile tüm repo hedef makineye alınır.
 
 ---
 
 ## Kurulum (önerilen)
 
 ```bash
-cd self-host
+# 1) Repo'yu hedef makineye alın
+git clone https://github.com/enderak54/isgapp.git
+cd isgapp/self-host
+
+# 2) Kurulumu başlatın
 sh setup.sh          # interaktif kurulum (key üretimi + stack başlatma)
 ```
+
+- **Linux:** komutları normal terminalden çalıştırın.
+- **Windows:** Docker Desktop'ı başlatın ve komutları **Git Bash**'ten çalıştırın
+  (`sh setup.sh` — `setup.sh` değil; doğrudan çalıştırmak Windows'ta çalışmaz).
 
 `setup.sh` şunları yapar:
 
@@ -34,7 +54,7 @@ sh setup.sh          # interaktif kurulum (key üretimi + stack başlatma)
 2. Tüm sırları üretir: `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`,
    `SERVICE_ROLE_KEY`, asimetrik key çifti + opak API key'ler, `BACKUP_API_KEY`
 3. URL'leri sorar (varsayılan: `http://localhost:8000` ve `http://localhost:3000`)
-4. Docker imajlarını çeker, isgapp'i derler ve stack'i başlatır
+4. Docker imajlarını çeker, **isgapp'i kaynak koddan derler** ve stack'i başlatır
 
 ### Manuel kurulum
 
@@ -74,6 +94,8 @@ sh update.sh                 # yedek al + git pull + yeni migrasyonlar + isgapp 
 sh update.sh -n              # yedek almadan
 ```
 
+Windows'ta yine **Git Bash**'ten `sh update.sh` çalıştırın.
+
 `update.sh` sırayla şunları yapar:
 
 1. **Yedek alır** (`backup.sh` — güncelleme öncesi her zaman)
@@ -102,11 +124,16 @@ Uygulama açılışında kullanıcı adı/şifre ister (`/giris`). Auth, uygulam
 - Tüm uygulama sayfaları ve API'ler giriş gerektirir (`proxy.ts`); `/giris` ve `/api/auth/*` public'tir.
 - Her `POST/PUT/PATCH/DELETE` isteğinde CSRF doğrulaması devam eder.
 
-İlk kullanıcıyı oluşturun (kurulumdan sonra, repo kökünde):
+İlk kullanıcıyı oluşturun (kurulumdan sonra, repo kökünde — `node` + `npm` gerekir):
 
 ```bash
+npm install                 # ilk seferde bağımlılıklar
 npm run create-user -- --username kullanici --password "GucluSifre123" --ad "Ad Soyad" --rol admin
 ```
+
+> `create-user` script'i `DATABASE_URL`'i önce `.env.local`'dan, yoksa `self-host/.env`'den okur.
+> Self-host kurulumunda `self-host/.env`'deki DB bağlantısını otomatik kullanır.
+> İsterseniz doğrudan: `node scripts/create-user.js --db-url "postgresql://postgres:SIFRE@localhost:5432/postgres" --username kullanici --password SIFRE --rol admin`
 
 Self-host'ta DB'ye doğrudan bağlantı için `DATABASE_URL` kullanılır (compose'da otomatik:
 `postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres`). Harici bir DB'ye bağlanacaksanız
