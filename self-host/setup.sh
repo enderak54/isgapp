@@ -120,6 +120,29 @@ docker compose build isgapp
 log "Stack başlatılıyor"
 docker compose up -d
 
+# --- Storage setup ---------------------------------------------------------
+# storage.buckets / storage.objects tablolarını storage-api servisi ayağa
+# kalkınca oluşturur. isgapp bucket + policy'leri (storage-setup.sql) bu
+# tablolar hazır olduktan SONRA uygulanır (idempotent).
+log "Storage bucket ve policy'leri uygulanıyor (storage hazır olana kadar bekleniyor)"
+storage_ready=0
+for i in $(seq 1 90); do
+    if docker compose exec -T db psql -U postgres -d postgres -Atc \
+        "SELECT to_regclass('storage.buckets') IS NOT NULL" 2>/dev/null | grep -q '^t$'; then
+        storage_ready=1
+        break
+    fi
+    sleep 2
+done
+if [ "$storage_ready" = "1" ]; then
+    docker compose exec -T db psql -U postgres -d postgres \
+        -v ON_ERROR_STOP=1 < storage-setup.sql \
+        && log "Storage bucket ve policy'leri uygulandı" \
+        || warn "storage-setup.sql uygulanırken hata oluştu; log: docker compose logs db"
+else
+    warn "storage.buckets zamanında hazır olmadı; storage-setup.sql atlandı. Tekrar için: sh update.sh"
+fi
+
 # --- Migrasyon takip dosyası ----------------------------------------------
 # init.sql tüm mevcut migrasyonları içerir; güncelleme script'i (update.sh)
 # yalnızca bu dosyada OLMAYAN migrasyonları uygular.

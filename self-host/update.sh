@@ -128,6 +128,28 @@ docker compose build isgapp
 log "Stack güncelleniyor"
 docker compose up -d
 
+# --- 6. Storage setup (idempotent) -----------------------------------------
+# Bucket + objects policy'lerini, storage tabloları hazır olduktan sonra
+# uygula. Kurulum yeni ise tablolar storage-api tarafından bu an oluşur.
+log "Storage bucket ve policy'leri güncelleniyor (storage hazır olana kadar bekleniyor)"
+storage_ready=0
+for i in $(seq 1 90); do
+    if docker compose exec -T db psql -U postgres -d postgres -Atc \
+        "SELECT to_regclass('storage.buckets') IS NOT NULL" 2>/dev/null | grep -q '^t$'; then
+        storage_ready=1
+        break
+    fi
+    sleep 2
+done
+if [ "$storage_ready" = "1" ]; then
+    docker compose exec -T db psql -U postgres -d postgres \
+        -v ON_ERROR_STOP=1 < storage-setup.sql \
+        && log "Storage bucket ve policy'leri güncellendi" \
+        || warn "storage-setup.sql uygulanırken hata oluştu; log: docker compose logs db"
+else
+    warn "storage.buckets zamanında hazır olmadı; storage-setup.sql atlandı."
+fi
+
 echo ""
 echo "Güncelleme tamamlandı."
 echo "Durum:  docker compose ps"
