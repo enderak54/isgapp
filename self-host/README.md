@@ -35,6 +35,9 @@ Her iki platformda da:
 
 ## Kurulum (önerilen)
 
+> 📖 **Adım adım, sorun gidermeli ayrıntılı rehber: [KURULUM.md](KURULUM.md)**
+> (Windows WSL2 + Docker Desktop ve Linux kurulumunu uçtan uca, her adımın doğrulamasıyla anlatır.)
+
 ```bash
 # 1) Repo'yu hedef makineye alın
 git clone https://github.com/enderak54/isgapp.git
