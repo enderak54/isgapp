@@ -135,7 +135,7 @@ log "Storage bucket ve policy'leri güncelleniyor (storage hazır olana kadar be
 storage_ready=0
 for i in $(seq 1 90); do
     if docker compose exec -T db psql -U postgres -d postgres -Atc \
-        "SELECT to_regclass('storage.buckets') IS NOT NULL" 2>/dev/null | grep -q '^t$'; then
+        "SELECT to_regclass('storage.buckets') IS NOT NULL AND to_regclass('storage.objects') IS NOT NULL" 2>/dev/null | grep -q '^t$'; then
         storage_ready=1
         break
     fi
@@ -147,7 +147,7 @@ if [ "$storage_ready" = "1" ]; then
         && log "Storage bucket ve policy'leri güncellendi" \
         || warn "storage-setup.sql uygulanırken hata oluştu; log: docker compose logs db"
 else
-    warn "storage.buckets zamanında hazır olmadı; storage-setup.sql atlandı."
+    warn "storage.buckets/storage.objects zamanında hazır olmadı; storage-setup.sql atlandı."
 fi
 
 # --- 7. Referans veri seed (idempotent) ------------------------------------
