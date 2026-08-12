@@ -151,10 +151,10 @@ else
 fi
 
 # --- 7. Referans veri seed (idempotent) ------------------------------------
-# Sabit/referans verileri yükler: myk_egitim_listesi, ayarlar,
-# bildirim_kanallari. Zaten var olan anahtarları atlar; yeni eklenenleri
-# ekler. Bu sayede güncellemelerde referans veriler de güncel kalır.
-log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar, bildirim_kanallari)"
+# Sabit/referans verileri yükler: myk_egitim_listesi, ayarlar.
+# Zaten var olan anahtarları atlar; yeni eklenenleri ekler.
+# Bu sayede güncellemelerde referans veriler de güncel kalır.
+log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar)"
 docker compose exec -T db psql -U postgres -d postgres \
     -v ON_ERROR_STOP=1 < seed-reference-data.sql \
     && log "Referans veri seed uygulandı" \

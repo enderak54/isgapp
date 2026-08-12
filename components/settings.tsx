@@ -229,6 +229,7 @@ export default function SettingsPage() {
     fetchCommits();
     fetchMenuOrder();
     fetchAIEntries();
+    fetchHatList();
     fetchUyariAyarlari();
       fetchMykZorunlu();
       fetchZorunluAlanlar();
@@ -447,6 +448,16 @@ export default function SettingsPage() {
     const { data } = await supabase.from("ayarlar").select("value").eq("key", "ai_entries").single();
     if (data?.value) {
       try { setAiEntries(JSON.parse(data.value)); } catch { setAiEntries([]); }
+    }
+  };
+
+  const fetchHatList = async () => {
+    const { data } = await supabase.from("ayarlar").select("value").eq("key", "hat_listesi").single();
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) setHatList(parsed.filter((h: any) => typeof h === "string"));
+      } catch { setHatList([]); }
     }
   };
 

@@ -145,9 +145,9 @@ fi
 
 # --- Referans veri seed ----------------------------------------------------
 # Sabit/referans verileri yükler: myk_egitim_listesi (MYK kataloğu), ayarlar
-# (modül açma/kapama, uyarı günleri, menü sırası) ve bildirim_kanallari.
+# (modül açma/kapama, uyarı günleri, menü sırası, hat listesi).
 # Idempotent: tekrar çalıştırılması güvenlidir.
-log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar, bildirim_kanallari)"
+log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar)"
 docker compose exec -T db psql -U postgres -d postgres \
     -v ON_ERROR_STOP=1 < seed-reference-data.sql \
     && log "Referans veri seed uygulandı" \
