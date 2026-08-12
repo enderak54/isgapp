@@ -14,6 +14,10 @@
 
 set -e
 
+# Git Bash / MSYS: konteyner içi yolları (/app/...) Windows yoluna çevirmeyi engelle
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"
 
