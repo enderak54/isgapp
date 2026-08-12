@@ -13,8 +13,13 @@
 // Şifre minimum 8 karakter olmalıdır.
 
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env.local") });
-require("dotenv").config({ path: path.join(__dirname, "..", "self-host", ".env") });
+try {
+  require("dotenv").config({ path: path.join(__dirname, "..", ".env.local") });
+  require("dotenv").config({ path: path.join(__dirname, "..", "self-host", ".env") });
+} catch (e) {
+  // dotenv kurulu değilse (örn. konteyner içinde çalışırken) yoksay;
+  // DATABASE_URL zaten ortam değişkeni olarak gelir.
+}
 const { Pool } = require("pg");
 const { randomBytes, scryptSync, timingSafeEqual } = require("crypto");
 
