@@ -8,7 +8,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { sanitize, validateTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import Link from "next/link";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
@@ -107,6 +107,7 @@ export default function PersonnelForm() {
   };
 
   useEffect(() => {
+    loadFileSizeExemptAreas();
     fetchEkipler();
     fetchSantiyeler();
     fetchTaseronlar();
@@ -254,7 +255,7 @@ export default function PersonnelForm() {
   };
 
   const addFiles = (field: string, files: File[]) => {
-    const validated = files.map(f => validateFile(f)).filter(v => v.valid);
+    const validated = files.map(f => validateFile(f, "personel-belgeleri")).filter(v => v.valid);
     const validFiles = files.filter((_, i) => validated[i]?.valid);
     if (validated.length !== files.length) {
       setStatus({ type: "error", message: "Bazı dosyalar boyut veya tür nedeniyle reddedildi." });
@@ -286,7 +287,7 @@ export default function PersonnelForm() {
     const filesForUpload = pendingFiles.filter(f => f.field && BELGE_TIPLERI[f.field]);
     if (filesForUpload.length === 0) return;
     for (const pf of filesForUpload) {
-      const serverValidation = await validateFileServer(pf.file);
+      const serverValidation = await validateFileServer(pf.file, "personel-belgeleri");
       if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
       const fileExt = getFileExt(pf.file.name);
       const fileName = `${personelId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;

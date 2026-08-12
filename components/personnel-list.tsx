@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import Link from "next/link";
 import { EGITIM_FIELDS, isExpired, isWarningNeeded } from "@/lib/egitim-uyari";
 import { displayDate } from "@/lib/tarih";
-import { sanitizeFileName, validateFileServer } from "@/lib/file-validation";
+import { sanitizeFileName, validateFileServer, loadFileSizeExemptAreas } from "@/lib/file-validation";
 
 const toDisplay = (d: string) => d ? d.split("-").reverse().join(".") : "";
 const toDb = (d: string) => d ? d.split(".").reverse().join("-") : "";
@@ -130,6 +130,7 @@ export default function PersonnelList() {
   };
 
   useEffect(() => {
+    loadFileSizeExemptAreas();
     fetchPersonnel();
     fetchEkipler();
     fetchSantiyeler();
@@ -365,7 +366,7 @@ export default function PersonnelList() {
     if (!editingPerson || pendingFiles.length === 0) return;
     for (const pf of pendingFiles) {
       if (!BELGE_TIPLERI[pf.field]) continue;
-      const serverValidation = await validateFileServer(pf.file);
+      const serverValidation = await validateFileServer(pf.file, "personel-belgeleri");
       if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
       const fileExt = getFileExt(pf.file.name);
       const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;

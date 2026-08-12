@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import Link from "next/link";
 import { Building, Plus, Edit, Trash2, Search, X, Save, Lock, Unlock, ArrowLeft, Users, CheckSquare, Upload } from "lucide-react";
 
@@ -136,7 +136,7 @@ export default function Taseronlar() {
     if (data) setSantiyeler(data);
   };
 
-  useEffect(() => { fetchTaseronlar(); fetchSantiyeler(); }, []);
+  useEffect(() => { loadFileSizeExemptAreas(); fetchTaseronlar(); fetchSantiyeler(); }, []);
 
   useEffect(() => {
     supabase.from("ayarlar").select("value").eq("key", "personel_zorunlu_alanalar").single().then(({ data }) => {
@@ -304,7 +304,7 @@ export default function Taseronlar() {
         let dosyaBoyut: number | null = null;
         const file = fileUploads[du.tip];
         if (file) {
-          const serverValidation = await validateFileServer(file);
+          const serverValidation = await validateFileServer(file, "personel-belgeleri");
           if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
           const ext = file.name.split(".").pop() || "";
           const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
@@ -350,7 +350,7 @@ export default function Taseronlar() {
         let dosyaBoyut: number | null = null;
         const file = fileUploads[`operator_${i}`];
         if (file) {
-          const serverValidation = await validateFileServer(file);
+          const serverValidation = await validateFileServer(file, "personel-belgeleri");
           if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
           const ext = file.name.split(".").pop() || "";
           const fileName = `${editingPerson.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
@@ -776,7 +776,7 @@ export default function Taseronlar() {
                         <span className="text-xs"><strong>{s.tip}</strong> {s.tarih && `(${displayDate(s.tarih)})`}</span>
                         <div className="flex items-center gap-1">
                           <div className="relative">
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[`operator_${i}`]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [`operator_${i}`]: f })); } }} />
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[`operator_${i}`]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f, "personel-belgeleri"); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [`operator_${i}`]: f })); } }} />
                             <div className="flex items-center gap-1 p-1 border rounded text-xs bg-gray-50 min-w-[80px]">
                               <Upload className="w-3 h-3 text-gray-400" />
                               <span className="truncate text-gray-500 max-w-[60px]">{fileUploads[`operator_${i}`]?.name || "Dosya"}</span>
@@ -808,7 +808,7 @@ export default function Taseronlar() {
                       <div className="flex-shrink-0">
                         <label className="text-[10px] text-gray-500 block">Dosya</label>
                         <div className="relative">
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[key]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [key]: f })); } }} />
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="absolute inset-0 opacity-0 w-full cursor-pointer" title={fileUploads[key]?.name || "Dosya seç"} onChange={e => { const f = e.target.files?.[0]; if (f) { const v = validateFile(f, "personel-belgeleri"); if (!v.valid) { alert(v.error); return; } setFileUploads(prev => ({ ...prev, [key]: f })); } }} />
                           <div className="flex items-center gap-1 p-1.5 border rounded text-xs bg-gray-50 min-w-[100px]">
                             <Upload className="w-3 h-3 text-gray-400" />
                             <span className="truncate text-gray-500 max-w-[80px]">{fileUploads[key]?.name || "Seç"}</span>

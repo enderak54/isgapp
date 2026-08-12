@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { maskTC } from "@/lib/security";
 import { displayDate } from "@/lib/tarih";
 import { logAudit } from "@/lib/audit";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import { Search, FolderOpen, File, FileText, Eye, Download, User, Folder, Upload, Image as ImageIcon, FileText as FileDoc, Building2, HardHat, BookOpen, Wrench, AlertTriangle, FileWarning, ClipboardList } from "lucide-react";
 
 const MODULE_TABS = [
@@ -103,6 +103,7 @@ interface DokumanRow { id: string; dokuman_adi?: string | null; dokuman_no?: str
 
 export default function PersonelDosyasi() {
   const [activeModule, setActiveModule] = useState("personel");
+  useEffect(() => { loadFileSizeExemptAreas(); }, []);
   return (
     <div className="flex-1 min-h-screen bg-gray-50 flex flex-col">
       <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -135,16 +136,16 @@ export default function PersonelDosyasi() {
   );
 }
 
-function FileCard({ item, onUpload }: { item: FileItem; onUpload?: (item: FileItem, file: File) => Promise<void> }) {
+function FileCard({ item, onUpload, area }: { item: FileItem; onUpload?: (item: FileItem, file: File) => Promise<void>; area?: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !onUpload) return;
-    const validation = validateFile(file);
+    const validation = validateFile(file, area);
     if (!validation.valid) { alert(validation.error); return; }
-    const serverValidation = await validateFileServer(file);
+    const serverValidation = await validateFileServer(file, area);
     if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); return; }
     setUploading(true);
     try {
@@ -197,11 +198,11 @@ function FileCard({ item, onUpload }: { item: FileItem; onUpload?: (item: FileIt
   );
 }
 
-function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır.", onUpload }: { files: FileItem[]; emptyText?: string; onUpload?: (item: FileItem, file: File) => Promise<void> }) {
+function FileGrid({ files, emptyText = "Henüz dosya bulunmamaktadır.", onUpload, area }: { files: FileItem[]; emptyText?: string; onUpload?: (item: FileItem, file: File) => Promise<void>; area?: string }) {
   if (files.length === 0) return <div className="text-center py-10 text-gray-400 text-sm">{emptyText}</div>;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {files.map((item, idx) => <FileCard key={idx} item={item} onUpload={onUpload} />)}
+      {files.map((item, idx) => <FileCard key={idx} item={item} onUpload={onUpload} area={area} />)}
     </div>
   );
 }
@@ -213,9 +214,9 @@ function TalimatCard({ item, onFileUploaded }: { item: FileItem; onFileUploaded:
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const validation = validateFile(file);
+    const validation = validateFile(file, "personel-belgeleri");
     if (!validation.valid) { alert(validation.error); return; }
-    const serverValidation = await validateFileServer(file);
+    const serverValidation = await validateFileServer(file, "personel-belgeleri");
     if (!serverValidation.valid) { alert(serverValidation.error || "Sunucu doğrulaması başarısız"); return; }
     setUploading(true);
     try {
@@ -518,7 +519,7 @@ function PersonelModule() {
                         <span className="text-[10px] text-gray-400">({folderFiles.length})</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} onUpload={handleItemUpload} />)}
+                        {folderFiles.map((item, idx) => folder.key === "talimat" ? <TalimatCard key={idx} item={item} onFileUploaded={refreshTalimatlar} /> : <FileCard key={idx} item={item} onUpload={handleItemUpload} area="personel-belgeleri" />)}
                       </div>
                     </div>
                   );
@@ -593,7 +594,7 @@ function SantiyeModule() {
       {selected && (
         <div className="mt-4">
           <PanelCard title={`${selected.ad} — Dosyalar`} count={SANIYE_DOSYA_ALANLARI.length}>
-            <FileGrid files={getFiles(selected)} emptyText="Bu şantiyeye ait dosya bulunmamaktadır." onUpload={uploadSantiyeDosyasi} />
+            <FileGrid files={getFiles(selected)} emptyText="Bu şantiyeye ait dosya bulunmamaktadır." onUpload={uploadSantiyeDosyasi} area="santiye-dosyalari" />
           </PanelCard>
         </div>
       )}
@@ -775,7 +776,7 @@ function KazaModule() {
       {selected && (
         <div className="mt-4">
           <PanelCard title={`${selected.personel?.ad} ${selected.personel?.soyad} — Dosyalar`} count={KAZA_DOSYA_ALANLARI.length}>
-            <FileGrid files={getFiles(selected)} emptyText="Bu kazaya ait dosya bulunmamaktadır." onUpload={uploadKazaDosyasi} />
+            <FileGrid files={getFiles(selected)} emptyText="Bu kazaya ait dosya bulunmamaktadır." onUpload={uploadKazaDosyasi} area="kaza-dosyalari" />
           </PanelCard>
         </div>
       )}

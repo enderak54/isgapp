@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm, maskTC } from "@/lib/security";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate, formatDate } from "@/lib/tarih";
 import {
@@ -71,7 +71,7 @@ export default function IsKazalari() {
     onleyici_onlemler: "",
   };
 
-  useEffect(() => { fetchKazalar(); fetchPersonel(); }, []);
+  useEffect(() => { loadFileSizeExemptAreas(); fetchKazalar(); fetchPersonel(); }, []);
 
   const fetchKazalar = async () => {
     const { data } = await supabase
@@ -92,7 +92,7 @@ export default function IsKazalari() {
 
   const uploadFile = async (file: File, kazaId: string, dosyaTipi: string): Promise<string | null> => {
     try {
-      const serverValidation = await validateFileServer(file);
+      const serverValidation = await validateFileServer(file, "kaza-dosyalari");
       if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); return null; }
       const ext = file.name.split(".").pop() || "";
       const fileName = `${kazaId}/${dosyaTipi}_${Date.now()}_${sanitizeFileName(file.name)}`;
@@ -227,7 +227,7 @@ export default function IsKazalari() {
     const key = `${kazaId}_${tip.key}`;
     setUploadingFile(key);
     try {
-      const serverValidation = await validateFileServer(file);
+      const serverValidation = await validateFileServer(file, "kaza-dosyalari");
       if (!serverValidation.valid) { setEditStatus({ type: "error", message: serverValidation.error || "Sunucu doğrulaması başarısız" }); return; }
       const ext = file.name.split(".").pop() || "";
       const fileName = `${kazaId}/${tip.key}_${Date.now()}_${sanitizeFileName(file.name)}`;
@@ -502,7 +502,7 @@ export default function IsKazalari() {
                             onChange={(e) => {
                               const f = e.target.files?.[0];
                               if (f) {
-                                const res = validateFile(f);
+                                const res = validateFile(f, "kaza-dosyalari");
                                 if (res.valid) setPendingFiles({ ...pendingFiles, [dt.key]: f });
                                 else alert(res.error);
                               }
@@ -679,7 +679,7 @@ export default function IsKazalari() {
                                     onChange={(e) => {
                                       const f = e.target.files?.[0];
                                       if (f) {
-                                        const res = validateFile(f);
+                                        const res = validateFile(f, "kaza-dosyalari");
                                         if (res.valid) handleInlineUpload(k.id, dt, f);
                                         else alert(res.error);
                                       }

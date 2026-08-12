@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
+import { FILE_UPLOAD_AREAS, FILE_SIZE_EXEMPT_SETTINGS_KEY } from "@/lib/file-validation";
 import { useTheme } from "@/components/theme-provider";
 import CollapsibleCard from "@/components/settings/CollapsibleCard";
 import KullaniciYonetimi from "@/components/settings/KullaniciYonetimi";
@@ -183,6 +184,19 @@ export default function SettingsPage() {
   const [hatListSaving, setHatListSaving] = useState(false);
   const [hatNew, setHatNew] = useState("");
 
+  const [showDosyaBoyutu, setShowDosyaBoyutu] = useState(false);
+  const [dosyaBoyutuHaric, setDosyaBoyutuHaric] = useState<string[]>([]);
+  const [dosyaBoyutuSaving, setDosyaBoyutuSaving] = useState(false);
+
+  const DOSYA_ALANLARI = [
+    { key: FILE_UPLOAD_AREAS.personel, label: "Personel Belgeleri" },
+    { key: FILE_UPLOAD_AREAS.egitim, label: "Eğitim Dosyaları" },
+    { key: FILE_UPLOAD_AREAS.ekipman, label: "Ekipman Dosyaları" },
+    { key: FILE_UPLOAD_AREAS.ihtar, label: "İhtar Dosyaları" },
+    { key: FILE_UPLOAD_AREAS.kaza, label: "Kaza Dosyaları" },
+    { key: FILE_UPLOAD_AREAS.santiye, label: "Şantiye Dosyaları" },
+  ];
+
   const ALL_TABLES: { key: string; label: string; grup: "kritik" | "modul" | "diger" }[] = [
     { key: "personel", label: "Personel", grup: "kritik" },
     { key: "personel_belgeleri", label: "Personel Belgeleri", grup: "kritik" },
@@ -235,6 +249,7 @@ export default function SettingsPage() {
       fetchZorunluAlanlar();
       fetchTaseronData();
       fetchNotAyarlari();
+    fetchDosyaBoyutuHaric();
   }, []);
 
   const fetchUyariAyarlari = async () => {
@@ -458,6 +473,30 @@ export default function SettingsPage() {
         const parsed = JSON.parse(data.value);
         if (Array.isArray(parsed)) setHatList(parsed.filter((h: any) => typeof h === "string"));
       } catch { setHatList([]); }
+    }
+  };
+
+  const fetchDosyaBoyutuHaric = async () => {
+    const { data } = await supabase.from("ayarlar").select("value").eq("key", FILE_SIZE_EXEMPT_SETTINGS_KEY).single();
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) setDosyaBoyutuHaric(parsed.filter((a: any) => typeof a === "string"));
+      } catch { setDosyaBoyutuHaric([]); }
+    }
+  };
+
+  const saveDosyaBoyutuHaric = async () => {
+    setDosyaBoyutuSaving(true);
+    setStatus(null);
+    try {
+      await supabase.from("ayarlar").upsert({ key: FILE_SIZE_EXEMPT_SETTINGS_KEY, value: JSON.stringify(dosyaBoyutuHaric), type: "system", description: "Dosya boyutu sınırının uygulanmayacağı alanlar" }, { onConflict: "key" });
+      await logAudit("ayarlar", "INSERT", FILE_SIZE_EXEMPT_SETTINGS_KEY, null, dosyaBoyutuHaric);
+      setStatus({ type: "success", message: "Dosya boyutu sınırı ayarları kaydedildi!" });
+    } catch (e: any) {
+      setStatus({ type: "error", message: e.message || "Dosya boyutu sınırı ayarları kaydedilemedi" });
+    } finally {
+      setDosyaBoyutuSaving(false);
     }
   };
 
@@ -993,6 +1032,32 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-end pt-3">
               <button onClick={saveHatList} disabled={hatListSaving} className="btn btn-primary text-sm">{hatListSaving ? "Kaydediliyor..." : "Kaydet"}</button>
+            </div>
+          </div>
+        </CollapsibleCard>
+
+        <CollapsibleCard title="Dosya Boyutu Sınırı" description="10MB sınırının uygulanmayacağı alanlar (seçilen alanlarda sınırsız yükleme)" isOpen={showDosyaBoyutu} onToggle={() => setShowDosyaBoyutu(!showDosyaBoyutu)} onSave={saveDosyaBoyutuHaric} saving={dosyaBoyutuSaving}>
+          <div>
+            <p className="text-xs text-gray-500 mb-3">İşaretlenen alanlarda 10MB dosya boyutu sınırı uygulanmaz. İşaretlenmeyen alanlar 10MB ile sınırlı kalır.</p>
+            <div className="space-y-2">
+              {DOSYA_ALANLARI.map(alan => (
+                <label key={alan.key} className="flex items-center gap-3 py-2 px-3 rounded border cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dosyaBoyutuHaric.includes(alan.key)}
+                    onChange={() => setDosyaBoyutuHaric(prev => prev.includes(alan.key) ? prev.filter(k => k !== alan.key) : [...prev, alan.key])}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-sm text-gray-700 flex-1">{alan.label}</span>
+                  <span className="text-xs text-gray-400">{dosyaBoyutuHaric.includes(alan.key) ? "Sınırsız" : "10MB"}</span>
+                </label>
+              ))}
+              {dosyaBoyutuHaric.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-2">Tüm alanlarda 10MB sınırı uygulanıyor.</p>
+              )}
+            </div>
+            <div className="flex justify-end pt-3">
+              <button onClick={saveDosyaBoyutuHaric} disabled={dosyaBoyutuSaving} className="btn btn-primary text-sm">{dosyaBoyutuSaving ? "Kaydediliyor..." : "Kaydet"}</button>
             </div>
           </div>
         </CollapsibleCard>

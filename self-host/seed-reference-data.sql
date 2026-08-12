@@ -3,9 +3,10 @@
 -- -----------------------------------------------------------------------------
 -- Kurulum/güncelleme sonrası uygulanır (setup.sh / update.sh):
 --   1. myk_egitim_listesi    (290 kayıt) — MYK eğitim/meslek kataloğu
---   2. ayarlar               (40 kayıt)  — modül açıp kapatma, uyarı günleri,
+--   2. ayarlar               (41 kayıt)  — modül açıp kapatma, uyarı günleri,
 --                                          menü sırası, zorunlu alanlar,
---                                          hat (telefon operatörü) listesi
+--                                          hat (telefon operatörü) listesi,
+--                                          dosya boyutu muafiyeti
 -- Idempotent: aynı anahtarla tekrar çalıştırılması güvenlidir.
 -- NOT: myk_egitim_listesi id'leri korunur çünkü ayarlar.myk_zorunlu_ids ve
 --      personel_myk_egitimleri bu ID'lere referans verir.
@@ -308,7 +309,7 @@ INSERT INTO public.myk_egitim_listesi (id, ad, aktif) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 2) ayarlar (39 kayıt)
+-- 2) ayarlar (41 kayıt)
 -- ----------------------------------------------------------------------------
 INSERT INTO public.ayarlar (id, key, value, type, description) VALUES
 ('7aece108-5ae5-4ac8-89cc-78f7b7d72cf0', 'acil', 'true', 'module', 'Acil durum senaryoları ve tatbikat'),
@@ -350,5 +351,6 @@ INSERT INTO public.ayarlar (id, key, value, type, description) VALUES
 ('c55e4b2c-ae73-4eb4-9682-871d9a2b0ded', 'yasal', 'true', 'module', 'Yasal gereklilikler ve uyum takibi'),
 ('ba084ba5-14a4-4684-923f-656da7d7d26f', 'yetkinlik', 'true', 'module', 'Personel yetkinlik ve sertifika'),
 ('ef564254-c437-4b4d-bb3d-897a8ee0f23e', 'ygg', 'true', 'module', 'Üst yönetim değerlendirme'),
-('8d4f1c9a-2a6e-4b7f-9c1d-3e5a8b0f6d2c', 'hat_listesi', '["Turkcell","Vodafone","Türk Telekom","Netgsm","Bimcell","Teknosacell","Pttcell","Diğer"]', 'system', 'Telefon hat operatörleri listesi')
+('8d4f1c9a-2a6e-4b7f-9c1d-3e5a8b0f6d2c', 'hat_listesi', '["Turkcell","Vodafone","Türk Telekom","Netgsm","Bimcell","Teknosacell","Pttcell","Diğer"]', 'system', 'Telefon hat operatörleri listesi'),
+('a3d20f15-7b6c-4f9a-8e4b-2c51e7d0a9e6', 'dosya_boyut_haric_alanlar', '[]', 'system', 'Dosya boyutu sınırının uygulanmayacağı alanlar')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, type = EXCLUDED.type, description = EXCLUDED.description;

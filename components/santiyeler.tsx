@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
 import {
@@ -44,7 +44,7 @@ export default function Santiyeler() {
     acil_durum_ekipleri_dosyasi: "", tatbikat_dosyasi: "",
   });
 
-  useEffect(() => { fetchSantiyeler(); }, []);
+  useEffect(() => { loadFileSizeExemptAreas(); fetchSantiyeler(); }, []);
 
   const fetchSantiyeler = async () => {
     try {
@@ -59,7 +59,7 @@ export default function Santiyeler() {
 
   const uploadFile = async (file: File, santiyeId: string, dosyaTipi: string): Promise<string | null> => {
     try {
-      const serverValidation = await validateFileServer(file);
+      const serverValidation = await validateFileServer(file, "santiye-dosyalari");
       if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); return null; }
       const fileName = `${santiyeId}/${dosyaTipi}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, file);
@@ -107,7 +107,7 @@ export default function Santiyeler() {
         for (const dt of DOSYA_TIPLERI) {
           const pendingFile = pendingFiles[dt.column];
           if (pendingFile) {
-            const serverValidation = await validateFileServer(pendingFile);
+            const serverValidation = await validateFileServer(pendingFile, "santiye-dosyalari");
             if (!serverValidation.valid) { console.error(serverValidation.error || "Sunucu doğrulaması başarısız"); continue; }
             const ext = pendingFile.name.split(".").pop() || "";
             const fileName = `${santiyeId}/${dt.key}_${Date.now()}_${sanitizeFileName(pendingFile.name)}`;
@@ -136,7 +136,7 @@ export default function Santiyeler() {
     const key = `${santiyeId}_${tip.key}`;
     setUploadingFile(key);
     try {
-      const serverValidation = await validateFileServer(file);
+      const serverValidation = await validateFileServer(file, "santiye-dosyalari");
       if (!serverValidation.valid) { setEditStatus({ type: "error", message: serverValidation.error || "Sunucu doğrulaması başarısız" }); return; }
       const fileName = `${santiyeId}/${tip.key}_${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from("santiye-dosyalari").upload(fileName, file);
@@ -294,7 +294,7 @@ export default function Santiyeler() {
                             onChange={(e) => {
                               const f = e.target.files?.[0];
                               if (f) {
-                                const res = validateFile(f);
+                                const res = validateFile(f, "santiye-dosyalari");
                                 if (res.valid) {
                                   setPendingFiles(prev => ({ ...prev, [dt.column]: f }));
                                   setForm({ ...form, [dt.column]: f.name });
@@ -389,7 +389,7 @@ export default function Santiyeler() {
                                   onChange={(e) => {
                                     const f = e.target.files?.[0];
                                     if (f) {
-                                      const res = validateFile(f);
+                                      const res = validateFile(f, "santiye-dosyalari");
                                       if (res.valid) handleInlineUpload(s.id, dt, f);
                                       else alert(res.error);
                                     }

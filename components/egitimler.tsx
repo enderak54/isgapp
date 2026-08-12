@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
 import { displayDate } from "@/lib/tarih";
-import { validateFile, validateFileServer, sanitizeFileName } from "@/lib/file-validation";
+import { validateFile, validateFileServer, sanitizeFileName, loadFileSizeExemptAreas } from "@/lib/file-validation";
 import { GraduationCap, Plus, Edit, Trash2, Search, X, Save, Calendar, BookOpen, UserCheck, Settings, UserPlus, Lock, Unlock, Upload, Paperclip, Download } from "lucide-react";
 
 const emptyForm = {
@@ -57,7 +57,7 @@ export default function Egitimler() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const revokePendingPreviews = () => { pendingFiles.forEach(pf => { if (pf.preview) URL.revokeObjectURL(pf.preview); }); setPendingFiles([]); };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { loadFileSizeExemptAreas(); fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -182,7 +182,7 @@ export default function Egitimler() {
 
       const upErrors: string[] = [];
       for (const pf of pendingFiles) {
-        const serverValidation = await validateFileServer(pf.file);
+        const serverValidation = await validateFileServer(pf.file, "egitim-dosyalari");
         if (!serverValidation.valid) { upErrors.push(`${pf.file.name}: ${serverValidation.error || "Sunucu doğrulaması başarısız"}`); continue; }
         const fileName = `${kayitId}/${Date.now()}_${sanitizeFileName(pf.file.name)}`;
         const { error: upErr } = await supabase.storage.from("egitim-dosyalari").upload(fileName, pf.file);
@@ -492,11 +492,11 @@ export default function Egitimler() {
                   className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${uploadDragOver ? "border-purple-400 bg-purple-50" : "border-gray-300 hover:border-gray-400"}`}
                   onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setUploadDragOver(true); }}
                   onDragLeave={e => { e.preventDefault(); setUploadDragOver(false); }}
-                  onDrop={e => { e.preventDefault(); setUploadDragOver(false); const files = Array.from(e.dataTransfer.files); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); }}
+                  onDrop={e => { e.preventDefault(); setUploadDragOver(false); const files = Array.from(e.dataTransfer.files); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f, "egitim-dosyalari"); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); }}
                 >
                   <Upload className="w-8 h-8 text-gray-300 mx-auto mb-1" />
                   <p className="text-xs text-gray-500">Resim veya PDF sürükleyin veya tıklayın</p>
-                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt" className="hidden" id="egitim-dosya-input" onChange={e => { const files = Array.from(e.target.files || []); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); e.target.value = ""; }} />
+                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt" className="hidden" id="egitim-dosya-input" onChange={e => { const files = Array.from(e.target.files || []); const errors: string[] = []; const valid: File[] = []; for (const f of files) { const res = validateFile(f, "egitim-dosyalari"); if (res.valid) valid.push(f); else if (res.error) errors.push(`${f.name}: ${res.error}`); } if (errors.length) setUploadStatus(errors.join(" | ")); setPendingFiles(prev => [...prev, ...valid.map(file => ({ file, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined }))]); e.target.value = ""; }} />
                   <button type="button" onClick={() => document.getElementById("egitim-dosya-input")?.click()} className="text-xs text-purple-600 hover:underline mt-1">Dosya Seç</button>
                 </div>
                 {uploadStatus && <p className="text-xs text-red-500 mt-1">{uploadStatus}</p>}

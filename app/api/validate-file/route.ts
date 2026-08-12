@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAX_FILE_SIZE, ALL_ALLOWED_TYPES } from "@/lib/file-validation";
+import { createClient } from "@supabase/supabase-js";
+import { MAX_FILE_SIZE, ALL_ALLOWED_TYPES, FILE_SIZE_EXEMPT_SETTINGS_KEY } from "@/lib/file-validation";
 
 const MAGIC_BYTES: { type: string; signatures: Array<Array<number | "skip">> }[] = [
   {
@@ -67,12 +68,29 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const area = (formData.get("area") as string | null) || undefined;
 
     if (!file) {
       return NextResponse.json({ valid: false, error: "Dosya gönderilmedi" }, { status: 400 });
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    // Sunucu tarafında muaf alan listesini DB'den oku (authoritative kontrol).
+    let sizeExempt = false;
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data } = await supabase.from("ayarlar").select("value").eq("key", FILE_SIZE_EXEMPT_SETTINGS_KEY).maybeSingle();
+      const list = data?.value ? JSON.parse(data.value) : [];
+      if (Array.isArray(list) && area) {
+        sizeExempt = list.includes(area);
+      }
+    } catch {
+      // Ayar okunamazsa güvenli varsayılan: sınır uygulanır.
+    }
+
+    if (!sizeExempt && file.size > MAX_FILE_SIZE) {
       return NextResponse.json({
         valid: false,
         error: `Dosya boyutu 10MB'dan büyük olamaz (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
