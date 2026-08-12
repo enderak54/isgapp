@@ -153,6 +153,32 @@ docker compose exec -T db psql -U postgres -d postgres \
     && log "Referans veri seed uygulandı" \
     || warn "seed-reference-data.sql uygulanırken hata oluştu; log: docker compose logs db"
 
+# --- Admin kullanıcı -------------------------------------------------------
+# İlk kurulumda varsayılan admin kullanıcıyı otomatik oluşturur (yonetici rolü).
+# Kullanıcı zaten varsa atlar; .env içindeki ADMIN_USERNAME/ADMIN_PASSWORD ile
+# değiştirilebilir. Şifre 8 karakterden kısa ise create-user.js uyarır.
+ADMIN_USERNAME=$(grep '^ADMIN_USERNAME=' .env | cut -d= -f2- | tr -d '\r')
+ADMIN_PASSWORD=$(grep '^ADMIN_PASSWORD=' .env | cut -d= -f2- | tr -d '\r')
+[ -z "$ADMIN_USERNAME" ] && ADMIN_USERNAME="yonetici"
+[ -z "$ADMIN_PASSWORD" ] && ADMIN_PASSWORD="yonetici54"
+
+log "Admin kullanıcı kontrol ediliyor ($ADMIN_USERNAME)"
+admin_exists=$(docker compose exec -T db psql -U postgres -d postgres -Atc \
+    "SELECT 1 FROM app_users WHERE username = '${ADMIN_USERNAME}'" 2>/dev/null || true)
+if [ "$admin_exists" = "1" ]; then
+    log "Admin kullanıcı '$ADMIN_USERNAME' zaten var, atlanıyor"
+else
+    log "Admin kullanıcı oluşturuluyor: '$ADMIN_USERNAME' (rol: admin)"
+    docker compose cp ../scripts/create-user.js isgapp:/app/create-user.js
+    if docker compose exec -T isgapp node /app/create-user.js \
+        --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" \
+        --ad "Yönetici" --rol admin; then
+        log "Admin kullanıcı oluşturuldu"
+    else
+        warn "Admin kullanıcı oluşturulamadı; elle: sh create-user.sh --username $ADMIN_USERNAME --password ... --rol admin"
+    fi
+fi
+
 # --- Migrasyon takip dosyası ----------------------------------------------
 # init.sql tüm mevcut migrasyonları içerir; güncelleme script'i (update.sh)
 # yalnızca bu dosyada OLMAYAN migrasyonları uygular.
@@ -172,7 +198,11 @@ echo "  isgapp (uygulama):  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | 
 echo "  Studio (dashboard): $public_url"
 echo "  REST API:           ${public_url}/rest/v1"
 echo ""
-echo "Kullanıcı oluşturma (ilk giriş için zorunlu):"
+echo "Kullanıcı girişi (kurulumda otomatik oluşturuldu):"
+echo "  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)/giris"
+echo "  Kullanıcı adı: $ADMIN_USERNAME   Şifre: (ADMIN_PASSWORD .env içinde)"
+echo ""
+echo "Yeni kullanıcı eklemek için:"
 echo "  node ../scripts/create-user.js --username kullanici --password SIFRE --ad \"Ad Soyad\" --rol admin"
 echo "  (ya da: npm run create-user -- --username kullanici --password SIFRE --rol admin)"
 echo ""

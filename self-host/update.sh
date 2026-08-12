@@ -160,6 +160,31 @@ docker compose exec -T db psql -U postgres -d postgres \
     && log "Referans veri seed uygulandı" \
     || warn "seed-reference-data.sql uygulanırken hata oluştu; log: docker compose logs db"
 
+# --- 8. Admin kullanıcı (idempotent) ----------------------------------------
+# Kurulumda/güncellemede varsayılan admin kullanıcıyı yoksa oluşturur.
+# .env içindeki ADMIN_USERNAME/ADMIN_PASSWORD ile değiştirilebilir.
+ADMIN_USERNAME=$(grep '^ADMIN_USERNAME=' .env | cut -d= -f2- | tr -d '\r')
+ADMIN_PASSWORD=$(grep '^ADMIN_PASSWORD=' .env | cut -d= -f2- | tr -d '\r')
+[ -z "$ADMIN_USERNAME" ] && ADMIN_USERNAME="yonetici"
+[ -z "$ADMIN_PASSWORD" ] && ADMIN_PASSWORD="yonetici54"
+
+log "Admin kullanıcı kontrol ediliyor ($ADMIN_USERNAME)"
+admin_exists=$(docker compose exec -T db psql -U postgres -d postgres -Atc \
+    "SELECT 1 FROM app_users WHERE username = '${ADMIN_USERNAME}'" 2>/dev/null || true)
+if [ "$admin_exists" = "1" ]; then
+    log "Admin kullanıcı '$ADMIN_USERNAME' zaten var, atlanıyor"
+else
+    log "Admin kullanıcı oluşturuluyor: '$ADMIN_USERNAME' (rol: admin)"
+    docker compose cp ../scripts/create-user.js isgapp:/app/create-user.js
+    if docker compose exec -T isgapp node /app/create-user.js \
+        --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" \
+        --ad "Yönetici" --rol admin; then
+        log "Admin kullanıcı oluşturuldu"
+    else
+        warn "Admin kullanıcı oluşturulamadı; elle: sh create-user.sh --username $ADMIN_USERNAME --password ... --rol admin"
+    fi
+fi
+
 echo ""
 echo "Güncelleme tamamlandı."
 echo "Durum:  docker compose ps"
