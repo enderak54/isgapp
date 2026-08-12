@@ -18,7 +18,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"
 
 [ -f .env ] || { echo "HATA: .env bulunamadı. Önce kurulumu çalıştırın: sh setup.sh" >&2; exit 1; }
-docker compose ps isgapp >/dev/null 2>&1 | grep -q "Up" || { echo "HATA: isgapp konteyneri çalışmıyor. Önce: docker compose up -d" >&2; exit 1; }
+docker compose ps isgapp --format '{{.Status}}' 2>/dev/null | grep -q "Up" || { echo "HATA: isgapp konteyneri çalışmıyor. Önce: docker compose up -d" >&2; exit 1; }
 
 # /app'te kopyala ki require("pg") container'ın node_modules'unu bulabilsin
 docker compose cp ../scripts/create-user.js isgapp:/app/create-user.js
