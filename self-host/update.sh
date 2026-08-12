@@ -150,6 +150,16 @@ else
     warn "storage.buckets zamanında hazır olmadı; storage-setup.sql atlandı."
 fi
 
+# --- 7. Referans veri seed (idempotent) ------------------------------------
+# Sabit/referans verileri yükler: myk_egitim_listesi, ayarlar,
+# bildirim_kanallari. Zaten var olan anahtarları atlar; yeni eklenenleri
+# ekler. Bu sayede güncellemelerde referans veriler de güncel kalır.
+log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar, bildirim_kanallari)"
+docker compose exec -T db psql -U postgres -d postgres \
+    -v ON_ERROR_STOP=1 < seed-reference-data.sql \
+    && log "Referans veri seed uygulandı" \
+    || warn "seed-reference-data.sql uygulanırken hata oluştu; log: docker compose logs db"
+
 echo ""
 echo "Güncelleme tamamlandı."
 echo "Durum:  docker compose ps"

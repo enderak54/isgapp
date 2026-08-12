@@ -143,6 +143,16 @@ else
     warn "storage.buckets zamanında hazır olmadı; storage-setup.sql atlandı. Tekrar için: sh update.sh"
 fi
 
+# --- Referans veri seed ----------------------------------------------------
+# Sabit/referans verileri yükler: myk_egitim_listesi (MYK kataloğu), ayarlar
+# (modül açma/kapama, uyarı günleri, menü sırası) ve bildirim_kanallari.
+# Idempotent: tekrar çalıştırılması güvenlidir.
+log "Referans veri seed uygulanıyor (myk_egitim_listesi, ayarlar, bildirim_kanallari)"
+docker compose exec -T db psql -U postgres -d postgres \
+    -v ON_ERROR_STOP=1 < seed-reference-data.sql \
+    && log "Referans veri seed uygulandı" \
+    || warn "seed-reference-data.sql uygulanırken hata oluştu; log: docker compose logs db"
+
 # --- Migrasyon takip dosyası ----------------------------------------------
 # init.sql tüm mevcut migrasyonları içerir; güncelleme script'i (update.sh)
 # yalnızca bu dosyada OLMAYAN migrasyonları uygular.
