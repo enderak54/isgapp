@@ -613,12 +613,38 @@ services:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8000}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${ANON_KEY}}
       BACKUP_API_KEY: ${BACKUP_API_KEY:-}
+      UPDATER_API_KEY: ${UPDATER_API_KEY:-}
+      UPDATER_URL: ${UPDATER_URL:-http://isgapp-updater:9100}
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres}
     ports:
       - "${ISGAPP_HTTP_PORT:-3000}:3000"
     networks:
       default:
 
+  # ===== isgapp-updater =====
+  # Uygulama içinden (Ayarlar > Sürüm Takip > Güncelle) güncelleme tetikleyicisi.
+  # Profil ile çalışır: varsayılan `docker compose up -d` bu servise dokunmaz,
+  # böylece update.sh kendisini güncellerken bu konteyner kesintiye uğramaz.
+  # Güvenlik: hiçbir portu host'a yayınlamaz; yalnızca isgapp ağ içinden
+  # UPDATER_API_KEY ile erişir. Docker socket erişimi için root çalışır.
+  isgapp-updater:
+    container_name: isgapp-updater
+    build:
+      context: ./updater
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    profiles: ["updater"]
+    environment:
+      UPDATER_API_KEY: ${UPDATER_API_KEY:-}
+      UPDATER_PORT: "9100"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../:/repo
+      - updater-data:/data
+    networks:
+      default:
+
 volumes:
   db-config:
   deno-cache:
+  updater-data:

@@ -67,6 +67,17 @@ docker compose version >/dev/null 2>&1 || die "docker compose plugin gerekli."
 docker info >/dev/null 2>&1 || die "Docker daemon çalışmıyor."
 [ -f .env ] || die ".env bulunamadı. Önce kurulumu çalıştırın: sh setup.sh"
 
+# UPDATER_API_KEY henüz yoksa üret (isgapp-updater güncelleme uç noktası için)
+if grep -q '^UPDATER_API_KEY=your-updater-api-key' .env || ! grep -q '^UPDATER_API_KEY=' .env; then
+    log "UPDATER_API_KEY üretiliyor"
+    updater_api_key=$(openssl rand -hex 24)
+    sed -i.old -e "s|^UPDATER_API_KEY=.*$|UPDATER_API_KEY=${updater_api_key}|" .env || true
+    if ! grep -q '^UPDATER_API_KEY=' .env; then
+        printf 'UPDATER_API_KEY=%s\n' "$updater_api_key" >> .env
+    fi
+    rm -f .env.old
+fi
+
 if ! docker compose ps db >/dev/null 2>&1 | grep -q "Up"; then
     die "db servisi çalışmıyor. Önce: docker compose up -d db"
 fi
@@ -120,8 +131,11 @@ fi
 
 # --- 4. isgapp derleme -----------------------------------------------------
 
-log "isgapp imajı yeniden derleniyor"
+log "isgapp ve isgapp-updater imajları yeniden derleniyor"
 docker compose build isgapp
+# updater kod değişiklikleri de imaja işlesin (konteyner profilde olduğundan
+# `docker compose up -d` buna dokunmaz; yeni imaj bir sonraki başlatmada kullanılır)
+docker compose build isgapp-updater || warn "isgapp-updater build'i başarısız; elle: docker compose --profile updater up -d --build isgapp-updater"
 
 # --- 5. Stack güncelleme ---------------------------------------------------
 

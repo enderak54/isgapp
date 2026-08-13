@@ -147,6 +147,9 @@ export default function SettingsPage() {
   const [versions, setVersions] = useState<any[]>([]);
   const [commits, setCommits] = useState<any[]>([]);
   const [commitsLoading, setCommitsLoading] = useState(false);
+  const [updateState, setUpdateState] = useState<{ running: boolean; startedAt: string | null; finishedAt: string | null; exitCode: number | null; lastLine: string }>({ running: false, startedAt: null, finishedAt: null, exitCode: null, lastLine: "" });
+  const [updateLog, setUpdateLog] = useState("");
+  const [updateChecking, setUpdateChecking] = useState(false);
   const [menuItems, setMenuItems] = useState<{ key: string; label: string; grup: "main" | "ek" }[]>([]);
   const [menuSaving, setMenuSaving] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -277,6 +280,86 @@ export default function SettingsPage() {
     }
     setCommitsLoading(false);
   };
+
+  const fetchUpdateStatus = async () => {
+    try {
+      const res = await fetch("/api/update/status");
+      if (res.ok) {
+        const data = await res.json();
+        setUpdateState({
+          running: !!data.running,
+          startedAt: data.startedAt || null,
+          finishedAt: data.finishedAt || null,
+          exitCode: data.exitCode ?? null,
+          lastLine: data.lastLine || "",
+        });
+        return !!data.running;
+      }
+    } catch (err) {
+      console.error("Güncelleme durumu alınamadı:", err);
+    }
+    return false;
+  };
+
+  const fetchUpdateLog = async () => {
+    try {
+      const res = await fetch("/api/update?lines=200");
+      if (res.ok) {
+        const data = await res.json();
+        setUpdateLog(data.log || "");
+      }
+    } catch (err) {
+      console.error("Güncelleme logu alınamadı:", err);
+    }
+  };
+
+  const startUpdate = async () => {
+    if (!window.confirm("Sistem güncellemesi başlatılacak. Önce yedek alınır, ardından sistem güncellenip yeniden başlatılır. Devam edilsin mi?")) return;
+    setUpdateChecking(true);
+    try {
+      const res = await fetch("/api/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus({ type: "error", message: data.error || data.message || "Güncelleme başlatılamadı" });
+      } else {
+        setStatus({ type: "info", message: data.message || "Güncelleme başlatıldı" });
+        setUpdateLog("");
+        await fetchUpdateStatus();
+        await fetchUpdateLog();
+      }
+    } catch (err: any) {
+      setStatus({ type: "error", message: err.message || "Güncelleme servisine ulaşılamadı" });
+    }
+    setUpdateChecking(false);
+  };
+
+  const cancelUpdate = async () => {
+    try {
+      const res = await fetch("/api/update?action=cancel", { method: "POST", headers: { "Content-Type": "application/json" } });
+      await fetchUpdateStatus();
+      if (res.ok) {
+        const data = await res.json();
+        setStatus({ type: "info", message: data.message || "Güncelleme durduruluyor" });
+      }
+    } catch (err) {
+      console.error("Güncelleme durdurma hatası:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!showVersion) return;
+    fetchUpdateStatus();
+    fetchUpdateLog();
+    const poll = setInterval(async () => {
+      const running = await fetchUpdateStatus();
+      if (running) await fetchUpdateLog();
+    }, 4000);
+    return () => clearInterval(poll);
+  }, [showVersion]);
 
   const allMenuLabels: Record<string, string> = {
     dashboard: "ISG Takip", personel: "Personel", myk: "MYK", operator: "Operator",
@@ -1065,6 +1148,33 @@ export default function SettingsPage() {
         <KullaniciYonetimi />
 
         <CollapsibleCard title="Sürüm Takip" description="GitHub commit geçmişi" isOpen={showVersion} onToggle={() => setShowVersion(!showVersion)}>
+          <div className="mb-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-gray-600">
+                <p className="font-semibold text-gray-800 mb-1">Sistem Güncelleme</p>
+                <p>Önce yedek alınır, sonra git pull + migrasyon + imaj derleme + yeniden başlatma yapılır.</p>
+                {updateState.lastLine && (
+                  <p className={`mt-1 font-mono ${updateState.running ? "text-blue-600" : updateState.exitCode === 0 ? "text-green-600" : "text-red-600"}`}>
+                    {updateState.lastLine}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {updateState.running ? (
+                  <button onClick={cancelUpdate} className="btn text-sm" style={{ background: "#f3f4f6", color: "#374151" }}>
+                    <Loader className="w-4 h-4 animate-spin" /> Durdur
+                  </button>
+                ) : (
+                  <button onClick={startUpdate} disabled={updateChecking} className="btn btn-primary text-sm">
+                    {updateChecking ? "Başlatılıyor..." : <><Download className="w-4 h-4" /> Güncelle</>}
+                  </button>
+                )}
+              </div>
+            </div>
+            {updateLog && (
+              <pre className="mt-3 max-h-48 overflow-auto text-[11px] leading-relaxed bg-gray-900 text-green-400 p-3 rounded-lg font-mono whitespace-pre-wrap">{updateLog}</pre>
+            )}
+          </div>
           <div className="space-y-1 max-h-80 overflow-y-auto">
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 px-2">
               <GitBranch className="w-3.5 h-3.5" />

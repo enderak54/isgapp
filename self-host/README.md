@@ -44,20 +44,24 @@ git clone https://github.com/enderak54/isgapp.git
 cd isgapp/self-host
 
 # 2) Kurulumu başlatın
-sh setup.sh          # interaktif kurulum (key üretimi + stack başlatma)
+sh kur.sh           # tam otomatik (Docker eksikse Linux'ta kurar)
+sh setup.sh         # yalnızca stack kurulumu (Docker'ın hazır olduğu varsayılır)
 ```
 
-- **Linux:** komutları normal terminalden çalıştırın.
-- **Windows:** Docker Desktop'ı başlatın ve komutları **Git Bash**'ten çalıştırın
-  (`sh setup.sh` — `setup.sh` değil; doğrudan çalıştırmak Windows'ta çalışmaz).
+- **Linux:** `kur.sh` Docker/Compose plugin/git/openssl eksikse otomatik kurar ve
+  `setup.sh -y` ile kurulumu tamamlar (hiçbir soru sormaz).
+- **Windows:** Docker Desktop kuruluysa `sh kur.sh` devam eder; değilse kurulum
+  komutunu gösterir. Windows'ta her şeyi **Git Bash**'ten çalıştırın
+  (`sh kur.sh` — `kur.sh` değil; doğrudan çalıştırmak Windows'ta çalışmaz).
 
 `setup.sh` şunları yapar:
 
 1. `.env` oluşturur (`.env.example`'dan kopyalar)
 2. Tüm sırları üretir: `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`,
-   `SERVICE_ROLE_KEY`, asimetrik key çifti + opak API key'ler, `BACKUP_API_KEY`
+   `SERVICE_ROLE_KEY`, asimetrik key çifti + opak API key'ler, `BACKUP_API_KEY`,
+   `UPDATER_API_KEY`
 3. URL'leri sorar (varsayılan: `http://localhost:8000` ve `http://localhost:3000`)
-4. Docker imajlarını çeker, **isgapp'i kaynak koddan derler** ve stack'i başlatır
+4. Docker imajlarını çeker, **isgapp ve isgapp-updater'i kaynak koddan derler** ve stack'i başlatır
 
 ### Manuel kurulum
 
@@ -89,7 +93,19 @@ Studio'ya giriş: `.env` içindeki `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD`.
 
 ## Güncelleme (isgapp)
 
-Self-host kurulumunuzu repo'daki yeni sürüme taşımak için:
+Self-host kurulumunuzu repo'daki yeni sürüme taşımak için **iki yol** vardır:
+
+### 1. Uygulama içinden (Ayarlar > Sürüm Takip > Güncelle)
+
+Giriş yapın, **Ayarlar → Sürüm Takip → Güncelle**'ye basın. `isgapp-updater`
+servisi `update.sh`'ı çalıştırır: önce yedek alır, sonra günceller ve yeniden
+başlatır. İlerlemeyi aynı karttan izleyebilirsiniz.
+
+> **Gereksinim:** kurulumda `isgapp-updater` servisinin ayağa kalkması gerekir
+> (`setup.sh` bunu otomatik yapar). Eski kurulumları taşımak için bir kez:
+> `docker compose build isgapp-updater && docker compose --profile updater up -d isgapp-updater`
+
+### 2. Terminalden
 
 ```bash
 cd self-host
@@ -105,7 +121,7 @@ Windows'ta yine **Git Bash**'ten `sh update.sh` çalıştırın.
 2. **Repo'yu günceller** (`git pull --ff-only`)
 3. **Yeni DB migrasyonlarını uygular** — `supabase/migrations/*.sql` içinden yalnızca
    `.applied_migrations` dosyasında olmayanlar, sırayla `psql` ile.
-4. **isgapp imajını yeniden derler** ve stack'i günceller.
+4. **isgapp ve isgapp-updater imajlarını yeniden derler** ve stack'i günceller.
 
 > **Migrasyon takibi:** Kurulumda `init.sql` mevcut tüm migrasyonları kapsar;
 > `setup.sh` hepsini `.applied_migrations`'a kaydeder. Sonraki sürümlerde

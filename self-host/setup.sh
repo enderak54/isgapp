@@ -82,6 +82,16 @@ else
     log "BACKUP_API_KEY zaten ayarlanmış, atlanıyor"
 fi
 
+# UPDATER_API_KEY henüz yoksa üret (isgapp-updater güncelleme uç noktası için)
+if grep -q '^UPDATER_API_KEY=your-updater-api-key' .env; then
+    log "UPDATER_API_KEY üretiliyor"
+    updater_api_key=$(openssl rand -hex 24)
+    sed -i.old -e "s|^UPDATER_API_KEY=.*$|UPDATER_API_KEY=${updater_api_key}|" .env
+    rm -f .env.old
+else
+    log "UPDATER_API_KEY zaten ayarlanmış, atlanıyor"
+fi
+
 # --- URL'ler ---------------------------------------------------------------
 
 # İnteraktif olmayan modda varsayılanları kullan
@@ -114,11 +124,17 @@ fi
 log "Docker imajları çekiliyor (ilk seferde uzun sürebilir)"
 docker compose --progress quiet pull || warn "docker compose pull başarısız; 'docker compose pull' ile tekrar deneyin."
 
-log "isgapp imajı derleniyor"
+log "isgapp ve isgapp-updater imajları derleniyor"
 docker compose build isgapp
+docker compose build isgapp-updater
 
 log "Stack başlatılıyor"
 docker compose up -d
+
+# isgapp-updater profil ile çalışır; açıkça başlatılır.
+# (Güncelleme sırasında `docker compose up -d` bu servise dokunmaz.)
+log "isgapp-updater başlatılıyor"
+docker compose --profile updater up -d isgapp-updater
 
 # --- Storage setup ---------------------------------------------------------
 # storage.buckets / storage.objects tablolarını storage-api servisi ayağa

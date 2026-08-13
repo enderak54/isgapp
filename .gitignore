@@ -37,6 +37,8 @@ yarn-error.log*
 
 # self-host per-install state
 self-host/.applied_migrations
+self-host/backups/
+self-host/volumes/
 
 # vercel
 .vercel
