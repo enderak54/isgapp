@@ -38,14 +38,33 @@ Her iki platformda da:
 > 📖 **Adım adım, sorun gidermeli ayrıntılı rehber: [KURULUM.md](KURULUM.md)**
 > (Windows WSL2 + Docker Desktop ve Linux kurulumunu uçtan uca, her adımın doğrulamasıyla anlatır.)
 
+**A) Tek-komut kurulum (herhangi bir bilgisayar — önerilen):**
+
 ```bash
-# 1) Repo'yu hedef makineye alın
+# Windows 10/11: Git Bash'ten, Linux/macOS: terminalden
+curl -fsSL https://raw.githubusercontent.com/enderak54/isgapp/main/install.sh | sh
+# veya indirdikten sonra:
+sh install.sh -y
+```
+`install.sh` repo yoksa `git clone` yapar, varsa günceller ve `self-host/kur.sh` ile tam otomatik kurar.
+
+**B) Manuel klon + kur.sh:**
+
+```bash
 git clone https://github.com/enderak54/isgapp.git
 cd isgapp/self-host
-
-# 2) Kurulumu başlatın
 sh kur.sh           # tam otomatik (Docker eksikse Linux'ta kurar)
 sh setup.sh         # yalnızca stack kurulumu (Docker'ın hazır olduğu varsayılır)
+```
+
+**C) Offline (USB) kurulum — interneti olmayan bilgisayar için:**
+
+```bash
+# Kaynak bilgisayarda paket oluştur:
+sh self-host/make-package.sh   # -> isgapp-vX.Y.Z-offline.zip (repo kökünde)
+# Zip'i USB ile hedefe taşı, aç ve kur:
+unzip isgapp-v*.zip && cd isgapp-*/ && sh install.sh
+# Windows'ta zip'i açıp install.bat cift tik da olur
 ```
 
 - **Linux:** `kur.sh` Docker/Compose plugin/git/openssl eksikse otomatik kurar ve

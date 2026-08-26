@@ -40,6 +40,10 @@ self-host/.applied_migrations
 self-host/backups/
 self-host/volumes/
 
+# offline paketler (make-package.sh)
+isgapp-*.zip
+isgapp-*.tar.gz
+
 # vercel
 .vercel
 
