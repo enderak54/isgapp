@@ -113,11 +113,11 @@ if command -v df >/dev/null 2>&1; then
         warn "Disk alanı düşük ($avail_kb KB) — yedek/güncelleme için en az 1GB önerilir"
     fi
 fi
-# Git durumu (MSYS yol çevirmesi geçici kapatılır — Windows Git Bash uyumu)
+# Git durumu (MSYS yol çevirmesi git için açılır — Windows Git Bash uyumu)
 if [ -d "$REPO_ROOT/.git" ]; then
-    if ! MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" diff --quiet 2>/dev/null; then
+    if ! MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" diff --quiet 2>/dev/null; then
         warn "Repo'da commitlenmemiş değişiklikler var — güncelleme öncesi commit/stash önerilir"
-        MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" status --short 2>/dev/null | head -10 | while read -r line; do warn "  $line"; done
+        MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" status --short 2>/dev/null | head -10 | while read -r line; do warn "  $line"; done
     fi
 fi
 # Mevcut veri sayımı (sonradan karşılaştırma için)
@@ -152,12 +152,12 @@ fi
 log "Repo güncelleniyor: $REPO_ROOT"
 if [ "$DRY_RUN" = "1" ]; then
     log "[DRY-RUN] git pull --ff-only atlandı; önizleme:"
-    MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" fetch --dry-run 2>&1 | head -20 || true
-    LOCAL_HEAD=$(MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
-    REMOTE_HEAD=$(MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short origin/main 2>/dev/null || echo "?")
+    MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" fetch --dry-run 2>&1 | head -20 || true
+    LOCAL_HEAD=$(MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
+    REMOTE_HEAD=$(MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short origin/main 2>/dev/null || echo "?")
     log "[DRY-RUN] Lokal HEAD: $LOCAL_HEAD -> Uzak HEAD: $REMOTE_HEAD"
 else
-    MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" pull --ff-only
+    MSYS_NO_PATHCONV=0 MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" pull --ff-only
 fi
 
 # --- 3. Yeni migrasyonlar --------------------------------------------------
