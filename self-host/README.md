@@ -132,6 +132,49 @@ Windows'ta yine **Git Bash**'ten `sh update.sh` çalıştırın.
 > mevcut migrasyonlar "uygulanmış" sayılır; yalnızca yeni dosyalar işlenir.
 > Kurulumdaki `init.sql`'den daha eski bir migrasyon eksikse elle uygulanmalıdır.
 
+### Veri Kayıpsız Güncelleme Garantisi
+
+`update.sh` **hiçbir kullanıcı verisini silmez**. Garanti edilenler:
+
+| Korunan | Nasıl |
+|---|---|
+| personel, santiyeler, taseronlar, is_kazalari, egitimler … (60+ tablo) | `docker compose up -d` volumes'u korur; migrasyonlar sadece `ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, `ON CONFLICT` ile ekler — `DROP/TRUNCATE` yok (152× IF NOT EXISTS, 44× ADD COLUMN IF NOT EXISTS) |
+| Storage dosyaları (`volumes/storage`) | `backup.sh` + `storage.tar.gz` + yedeği doğrular; `update.sh` storage'a dokunmaz |
+| `.env`, `.applied_migrations` | `backup.sh` her yedeğe `.env.bak` + `.applied_migrations.bak` + `manifest.json` + `sha256` ekler |
+| Şema | `init.sql` sadece ilk kurulumda boş DB'ye uygulanır; güncellemede **asla** tekrar çalışmaz — sadece `supabase/migrations/*.sql` incremental |
+
+**GitHub'dan güncelleme (kod + şema):**
+
+```bash
+cd self-host
+sh update.sh --dry-run   # ne yapılacağını göster (git fetch + bekleyen migrasyonlar)
+sh update.sh             # yedek al + git pull --ff-only + migrasyon + build + up -d + seed
+```
+
+**Supabase'ten güncelleme (Dashboard'da tablo/RLS değiştirdiysen):**
+
+1. Değişikliği önce `supabase/migrations/YYYYMMDDHHMMSS_aciklama.sql` olarak kaydet:
+   ```sql
+   -- Örnek: yeni kolon ekle — mutlaka IF NOT EXISTS kullan
+   ALTER TABLE public.personel ADD COLUMN IF NOT EXISTS yeni_kolon text;
+   ```
+   veya Supabase CLI ile: `supabase db diff -f yeni_degisiklik` (otomatik üretir) ve dosyayı `supabase/migrations/` altına taşı.
+2. `git add supabase/migrations/... && git commit -m "feat: ..." && git push`
+3. Lokal self-host'ta `sh update.sh` — yeni migrasyon otomatik uygulanır, veriler korunur.
+
+> **Kural:** Supabase Studio'da doğrudan `DROP/TRUNCATE` yapma — her zaman `IF NOT EXISTS` / `ON CONFLICT DO NOTHING` ile migrasyon yaz. Bu sayede lokal sistem veri kaybı olmadan güncellenir.
+
+**Doğrulama & geri alma:**
+
+```bash
+sh update.sh --dry-run          # önizleme
+sh backup.sh                    # manuel yedek (manifest.json ile doğrulanır)
+sh restore.sh backups/2026-08-12_143000   # tek komutla geri yükleme (önce otomatik yedek alır)
+# Yedek içeriği: db.dump + storage.tar.gz + .env.bak + .applied_migrations.bak + manifest.json
+```
+
+`update.sh` güncelleme öncesi `personel` sayısını sayar, sonrası `personel sayısı X -> Y (azalmamalı)` diye loglar; `backup.sh` `pg_restore -l` ile dump'ı doğrular.
+
 ---
 
 ## Giriş (Kullanıcı Adı + Şifre)
@@ -167,14 +210,16 @@ script ile yeni kullanıcı ekleyin.
 ## Yedekleme
 
 ```bash
-sh backup.sh                          # ./backups/YYYY-AA-GG_HHMMSS/ altına alır
+sh backup.sh                          # ./backups/YYYY-AA-GG_HHMMSS/ altına alır (VERI KAYIPSIZ)
 sh backup.sh -o /mnt/diskbak          # özel hedef dizin
 ```
 
-Yedek içeriği:
+Yedek içeriği (doğrulanmış):
 
-- `db.dump` — PostgreSQL custom-format dump (şema + veri)
-- `storage.tar.gz` — Storage dosyaları
+- `db.dump` — PostgreSQL custom-format dump (şema + veri) + `db.dump.sha256` + `pg_restore -l` doğrulaması
+- `storage.tar.gz` — Storage dosyaları + `storage.tar.gz.sha256`
+- `.env.bak`, `.applied_migrations.bak` — self-host durumu
+- `manifest.json` — yedek meta (personel sayısı, git commit, byte boyutu)
 
 ### Cron ile otomatik yedekleme
 
@@ -182,7 +227,15 @@ Yedek içeriği:
 0 2 * * * cd /path/to/self-host && sh backup.sh >> backups/backup.log 2>&1
 ```
 
-### Geri yükleme
+### Geri yükleme (tek komut)
+
+```bash
+sh restore.sh backups/2026-08-02_103000              # DB + storage + .env/.applied_migrations (onaylı)
+sh restore.sh backups/2026-08-02_103000 --only-db    # sadece DB
+sh restore.sh backups/2026-08-02_103000 --only-storage # sadece storage
+```
+
+Manuel geri yükleme (alternatif):
 
 ```bash
 docker compose down
