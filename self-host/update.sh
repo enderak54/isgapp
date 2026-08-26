@@ -96,8 +96,10 @@ if grep -q '^UPDATER_API_KEY=your-updater-api-key' .env || ! grep -q '^UPDATER_A
     rm -f .env.old
 fi
 
-if ! docker compose ps db >/dev/null 2>&1 | grep -q "Up"; then
-    die "db servisi çalışmıyor. Önce: docker compose up -d db"
+if ! docker inspect -f '{{.State.Running}}' supabase-db 2>/dev/null | grep -q "true"; then
+    if ! docker compose ps db 2>/dev/null | grep -q "Up"; then
+        die "db servisi çalışmıyor. Önce: docker compose up -d db"
+    fi
 fi
 
 # --- 0. Ön kontroller (veri kaybı önlemi) -----------------------------------
