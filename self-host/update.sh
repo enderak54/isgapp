@@ -69,13 +69,13 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ "$DRY_RUN" = "1" ]; then
-    log "=== DRY-RUN MODU — hiçbir değişiklik yapılmayacak ==="
-fi
-
 log()  { printf "===> %s\n" "$*"; }
 warn() { printf "UYARI: %s\n" "$*" >&2; }
 die()  { printf "HATA: %s\n" "$*" >&2; exit 1; }
+
+if [ "$DRY_RUN" = "1" ]; then
+    log "=== DRY-RUN MODU — hiçbir değişiklik yapılmayacak ==="
+fi
 
 # --- Ön koşullar -----------------------------------------------------------
 
