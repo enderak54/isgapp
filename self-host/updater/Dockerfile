@@ -7,7 +7,7 @@ FROM node:20-alpine
 
 RUN apk add --no-cache \
     docker-cli \
-    docker-compose \
+    docker-cli-compose \
     git \
     openssh-client \
     curl

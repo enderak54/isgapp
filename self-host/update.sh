@@ -29,6 +29,10 @@
 
 set -e
 
+# Windows 10/11 Git Bash: /app, /tmp gibi konteyner yollarını Windows yoluna çevirme.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"
 REPO_ROOT=$(dirname "$SCRIPT_DIR")
@@ -108,7 +112,8 @@ if [ -d "$MIG_DIR" ]; then
     fi
 
     applied=0
-    for mig in $(ls "$MIG_DIR"/*.sql | sort); do
+    for mig in "$MIG_DIR"/*.sql; do
+        [ -e "$mig" ] || continue
         name=$(basename "$mig")
         case "$name" in
             ALL_PENDING.sql) continue ;;  # yardımcı dosya, migrasyon değil

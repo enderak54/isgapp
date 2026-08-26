@@ -22,6 +22,10 @@
 
 set -e
 
+# Windows 10/11 Git Bash: setup.sh içindeki /app, /tmp yolları için gerekirse
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 ASSUME_YES=0
 
 print_help() {
@@ -219,6 +223,6 @@ echo ""
 echo "=============================================================="
 echo " KURULUM TAMAMLANDI"
 echo "=============================================================="
-echo " Uygulama:   http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)/giris"
+echo " Uygulama:   http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2- | tr -d '\r')/giris"
 echo " Güncelleme: sh update.sh  (veya Ayarlar > Sürüm Takip > Güncelle)"
 echo "=============================================================="

@@ -8,6 +8,7 @@ import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Settings, Save, CheckCircle, AlertCircle, AlertTriangle, Sun, Moon, Palette, ChevronDown, ChevronRight, GitBranch, Plus, X, Tag, Calendar, User, Clock, Menu, GripVertical, Cpu, ExternalLink, Code, Brain, Download, HardDrive, Database, FileArchive, Loader } from "lucide-react";
 import { EGITIM_FIELDS } from "@/lib/egitim-uyari";
 import { FILE_UPLOAD_AREAS, FILE_SIZE_EXEMPT_SETTINGS_KEY } from "@/lib/file-validation";
+import { displayDate } from "@/lib/tarih";
 import { useTheme } from "@/components/theme-provider";
 import CollapsibleCard from "@/components/settings/CollapsibleCard";
 import KullaniciYonetimi from "@/components/settings/KullaniciYonetimi";
@@ -317,7 +318,7 @@ export default function SettingsPage() {
     if (!window.confirm("Sistem güncellemesi başlatılacak. Önce yedek alınır, ardından sistem güncellenip yeniden başlatılır. Devam edilsin mi?")) return;
     setUpdateChecking(true);
     try {
-      const res = await fetch("/api/update", {
+      const res = await fetchWithCsrf("/api/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -333,20 +334,24 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       setStatus({ type: "error", message: err.message || "Güncelleme servisine ulaşılamadı" });
+    } finally {
+      setUpdateChecking(false);
     }
-    setUpdateChecking(false);
   };
 
   const cancelUpdate = async () => {
     try {
-      const res = await fetch("/api/update?action=cancel", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetchWithCsrf("/api/update?action=cancel", { method: "POST", headers: { "Content-Type": "application/json" } });
       await fetchUpdateStatus();
-      if (res.ok) {
-        const data = await res.json();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setStatus({ type: "error", message: data.error || "Güncelleme durdurulamadı" });
+      } else {
+        const data = await res.json().catch(() => ({}));
         setStatus({ type: "info", message: data.message || "Güncelleme durduruluyor" });
       }
-    } catch (err) {
-      console.error("Güncelleme durdurma hatası:", err);
+    } catch (err: any) {
+      setStatus({ type: "error", message: err.message || "Güncelleme durdurulamadı" });
     }
   };
 
@@ -1189,7 +1194,7 @@ export default function SettingsPage() {
                 <div key={c.sha} className="flex items-start gap-2 py-2 px-2 rounded hover:bg-gray-50 text-xs">
                   <span className="font-mono text-gray-400 flex-shrink-0 w-16">{c.sha.substring(0, 7)}</span>
                   <span className="text-gray-700 flex-1 min-w-0">{c.commit.message.split("\n")[0]}</span>
-                  <span className="text-gray-400 flex-shrink-0 whitespace-nowrap">{new Date(c.commit.author.date).toLocaleDateString("tr-TR")}</span>
+                  <span className="text-gray-400 flex-shrink-0 whitespace-nowrap">{displayDate(c.commit.author.date)}</span>
                 </div>
               ))
             )}

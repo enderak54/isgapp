@@ -21,6 +21,10 @@
 
 set -e
 
+# Windows 10/11 Git Bash: /app, /tmp gibi konteyner yollarını Windows yoluna çevirme.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 ASSUME_YES=0
 
 print_help() {
@@ -200,22 +204,25 @@ fi
 # yalnızca bu dosyada OLMAYAN migrasyonları uygular.
 if [ -d ../supabase/migrations ]; then
     : > .applied_migrations
-    for mig in $(ls ../supabase/migrations/*.sql | sort); do
+    for mig in ../supabase/migrations/*.sql; do
+        [ -e "$mig" ] || continue
         name=$(basename "$mig")
         [ "$name" = "ALL_PENDING.sql" ] && continue
         echo "$name" >> .applied_migrations
     done
+    # Deterministik sıra için sırala
+    sort -o .applied_migrations .applied_migrations 2>/dev/null || true
     log "Migrasyon durumu kaydedildi ($(wc -l < .applied_migrations) dosya uygulanmış sayıldı)"
 fi
 
 echo ""
 echo "Kurulum tamamlandı. Erişim adresleri:"
-echo "  isgapp (uygulama):  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)/giris"
+echo "  isgapp (uygulama):  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2- | tr -d '\r')/giris"
 echo "  Studio (dashboard): $public_url"
 echo "  REST API:           ${public_url}/rest/v1"
 echo ""
 echo "Kullanıcı girişi (kurulumda otomatik oluşturuldu):"
-echo "  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2-)/giris"
+echo "  http://localhost:$(grep '^ISGAPP_HTTP_PORT=' .env | cut -d= -f2- | tr -d '\r')/giris"
 echo "  Kullanıcı adı: $ADMIN_USERNAME   Şifre: (ADMIN_PASSWORD .env içinde)"
 echo ""
 echo "Yeni kullanıcı eklemek için:"
