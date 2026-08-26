@@ -71,9 +71,13 @@ command -v docker >/dev/null 2>&1 || die "docker gerekli."
 docker compose version >/dev/null 2>&1 || die "docker compose plugin gerekli."
 docker info >/dev/null 2>&1 || die "Docker daemon çalışmıyor."
 
-# db servisi ayakta mı?
-if ! docker compose ps db >/dev/null 2>&1 | grep -q "Up"; then
-    die "db servisi çalışmıyor. Önce: docker compose up -d db"
+# db servisi ayakta mı? (Windows Git Bash + docker inspect fallback)
+if ! docker inspect -f '{{.State.Running}}' supabase-db 2>/dev/null | grep -q "true"; then
+    if ! docker ps --filter "name=supabase-db" --filter "status=running" --format "{{.Names}}" 2>/dev/null | grep -q "supabase-db"; then
+        if ! docker compose ps db 2>/dev/null | grep -q "Up"; then
+            die "db servisi çalışmıyor. Önce: docker compose up -d db"
+        fi
+    fi
 fi
 
 # .env'den şifreyi oku

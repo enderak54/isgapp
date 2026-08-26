@@ -97,8 +97,10 @@ if grep -q '^UPDATER_API_KEY=your-updater-api-key' .env || ! grep -q '^UPDATER_A
 fi
 
 if ! docker inspect -f '{{.State.Running}}' supabase-db 2>/dev/null | grep -q "true"; then
-    if ! docker compose ps db 2>/dev/null | grep -q "Up"; then
-        die "db servisi çalışmıyor. Önce: docker compose up -d db"
+    if ! docker ps --filter "name=supabase-db" --filter "status=running" --format "{{.Names}}" 2>/dev/null | grep -q "supabase-db"; then
+        if ! docker compose ps db 2>/dev/null | grep -q "Up"; then
+            die "db servisi çalışmıyor. Önce: docker compose up -d db"
+        fi
     fi
 fi
 
@@ -111,11 +113,11 @@ if command -v df >/dev/null 2>&1; then
         warn "Disk alanı düşük ($avail_kb KB) — yedek/güncelleme için en az 1GB önerilir"
     fi
 fi
-# Git durumu
+# Git durumu (MSYS yol çevirmesi geçici kapatılır — Windows Git Bash uyumu)
 if [ -d "$REPO_ROOT/.git" ]; then
-    if ! git -C "$REPO_ROOT" diff --quiet 2>/dev/null; then
+    if ! MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" diff --quiet 2>/dev/null; then
         warn "Repo'da commitlenmemiş değişiklikler var — güncelleme öncesi commit/stash önerilir"
-        git -C "$REPO_ROOT" status --short | head -10 | while read -r line; do warn "  $line"; done
+        MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" status --short 2>/dev/null | head -10 | while read -r line; do warn "  $line"; done
     fi
 fi
 # Mevcut veri sayımı (sonradan karşılaştırma için)
@@ -150,12 +152,12 @@ fi
 log "Repo güncelleniyor: $REPO_ROOT"
 if [ "$DRY_RUN" = "1" ]; then
     log "[DRY-RUN] git pull --ff-only atlandı; önizleme:"
-    git -C "$REPO_ROOT" fetch --dry-run 2>&1 | head -20 || true
-    LOCAL_HEAD=$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
-    REMOTE_HEAD=$(git -C "$REPO_ROOT" rev-parse --short origin/main 2>/dev/null || echo "?")
+    MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" fetch --dry-run 2>&1 | head -20 || true
+    LOCAL_HEAD=$(MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
+    REMOTE_HEAD=$(MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" rev-parse --short origin/main 2>/dev/null || echo "?")
     log "[DRY-RUN] Lokal HEAD: $LOCAL_HEAD -> Uzak HEAD: $REMOTE_HEAD"
 else
-    git -C "$REPO_ROOT" pull --ff-only
+    MSYS2_ARG_CONV_EXCL="" git -C "$REPO_ROOT" pull --ff-only
 fi
 
 # --- 3. Yeni migrasyonlar --------------------------------------------------
