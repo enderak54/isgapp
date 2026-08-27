@@ -296,8 +296,16 @@ export default function SettingsPage() {
         });
         return !!data.running;
       }
+      // 502/503 = isgapp yeniden başlatılıyor (docker compose up -d)
+      if (res.status === 502 || res.status === 503) {
+        setUpdateState(prev => ({ ...prev, running: true, lastLine: "Uygulama yeniden başlatılıyor, lütfen bekleyin..." }));
+        return true;
+      }
     } catch (err) {
+      // Ağ hatası = isgapp restart sırasında — çalışıyor kabul et, yeniden dene
       console.error("Güncelleme durumu alınamadı:", err);
+      setUpdateState(prev => prev.running ? { ...prev, lastLine: "Bağlantı kesildi — yeniden deneniyor..." } : prev);
+      return true;
     }
     return false;
   };
@@ -356,15 +364,14 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (!showVersion) return;
+    // Güncelleme arka planda devam eder — kart kapalı olsa da poll sürer
     fetchUpdateStatus();
-    fetchUpdateLog();
     const poll = setInterval(async () => {
       const running = await fetchUpdateStatus();
       if (running) await fetchUpdateLog();
     }, 4000);
     return () => clearInterval(poll);
-  }, [showVersion]);
+  }, []);
 
   const allMenuLabels: Record<string, string> = {
     dashboard: "ISG Takip", personel: "Personel", myk: "MYK", operator: "Operator",
@@ -1150,6 +1157,13 @@ export default function SettingsPage() {
           </div>
         </CollapsibleCard>
 
+        {updateState.running && (
+          <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-2 text-sm text-blue-700">
+            <Loader className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span>Güncelleme devam ediyor — {updateState.lastLine || "lütfen bekleyin..."}</span>
+          </div>
+        )}
+
         <KullaniciYonetimi />
 
         <CollapsibleCard title="Sürüm Takip" description="GitHub commit geçmişi" isOpen={showVersion} onToggle={() => setShowVersion(!showVersion)}>
@@ -1158,6 +1172,7 @@ export default function SettingsPage() {
               <div className="text-xs text-gray-600">
                 <p className="font-semibold text-gray-800 mb-1">Sistem Güncelleme</p>
                 <p>Önce yedek alınır, sonra git pull + migrasyon + imaj derleme + yeniden başlatma yapılır.</p>
+                <p className="text-[10px] text-gray-400 mt-1">Güncelleme arka planda devam eder — ekranı kapatıp sonra tekrar açabilirsiniz.</p>
                 {updateState.lastLine && (
                   <p className={`mt-1 font-mono ${updateState.running ? "text-blue-600" : updateState.exitCode === 0 ? "text-green-600" : "text-red-600"}`}>
                     {updateState.lastLine}
