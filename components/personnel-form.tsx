@@ -208,7 +208,7 @@ export default function PersonnelForm() {
       else if (!form.yuksekteSure) newErrors.yuksekteSure = "Süre seçiniz";
     }
     if (activeZorunluAlanlar.includes("myk")) {
-      const hasMyk = mykKayitlar.length > 0 || form.myk;
+      const hasMyk = mykKayitlar.length > 0 || !!form.myk || pendingFiles.some(f => f.field === "myk");
       if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
     }
     if (activeZorunluAlanlar.includes("sertifika")) {
@@ -300,15 +300,18 @@ export default function PersonnelForm() {
         d.setFullYear(d.getFullYear() + parseInt(form.gorevlendirmeSure));
         sonGecerlilik = d.toISOString().split("T")[0];
       }
-      if (pf.field === "myk" && activeZorunluAlanlar.includes("myk")) {
+      if (pf.field === "myk") {
         const mykKayit = mykKayitlar[0];
-        if (!mykKayit?.alis_tarihi || !mykKayit.gecerlilik_suresi) {
-          setStatus({ type: "error", message: "MYK sertifikası için tarih bilgisi zorunludur. Önce MYK eğitim kaydını (tarih + süre) ekleyin." });
-          continue;
+        if (mykKayit?.alis_tarihi && mykKayit.gecerlilik_suresi) {
+          const d = new Date(mykKayit.alis_tarihi);
+          d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
+          sonGecerlilik = d.toISOString().split("T")[0];
+        } else if (form.myk && form.mykSure) {
+          const d = new Date(form.myk);
+          d.setFullYear(d.getFullYear() + parseInt(form.mykSure));
+          sonGecerlilik = d.toISOString().split("T")[0];
         }
-        const d = new Date(mykKayit.alis_tarihi);
-        d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
-        sonGecerlilik = d.toISOString().split("T")[0];
+        // Dosya tek başına da geçerli — sonGecerlilik null ise belgesiz kaydedilir
       }
       const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
         personel_id: personelId,
