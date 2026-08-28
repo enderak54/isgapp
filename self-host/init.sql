@@ -959,7 +959,7 @@ CREATE TABLE public.personel_belgeleri (
     red_aciklama text,
     onaylayan_id uuid,
     onay_tarihi timestamp with time zone,
-    CONSTRAINT personel_belgeleri_belge_tipi_check CHECK ((belge_tipi = ANY (ARRAY['isg_egitim'::text, 'yuksekte_calisma'::text, 'myk'::text, 'operator_belgesi'::text, 'kkd'::text, 'oryantasyon'::text, 'saglik_raporu'::text, 'diger'::text])))
+    CONSTRAINT personel_belgeleri_belge_tipi_check CHECK ((belge_tipi = ANY (ARRAY['isg_egitim'::text, 'yuksekte_calisma'::text, 'myk'::text, 'operator_belgesi'::text, 'kkd'::text, 'oryantasyon'::text, 'saglik_raporu'::text, 'diger'::text, 'diploma'::text])))
 );
 
 
