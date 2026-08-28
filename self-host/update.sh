@@ -189,8 +189,12 @@ if [ -d "$MIG_DIR" ]; then
         # Windows Git Bash: absolute /c/... -> C:\c: hatası, relative kullan
         rel_mig="../supabase/migrations/$name"
         docker compose cp "$rel_mig" db:/tmp/isgapp_mig.sql
-        docker compose exec -T db psql -U postgres -d postgres \
-            -v ON_ERROR_STOP=1 -f /tmp/isgapp_mig.sql
+        # Tablo sahibi supabase_admin olabilir (Windows self-host) — postgres ile dene, olmazsa supabase_admin ile dene
+        if ! docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /tmp/isgapp_mig.sql 2>&1; then
+            warn "postgres ile migrasyon başarısız, supabase_admin ile deneniyor: $name"
+            POSTGRES_PASSWORD=$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2- | tr -d '\r')
+            docker compose exec -T db bash -c "PGPASSWORD='$POSTGRES_PASSWORD' psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f /tmp/isgapp_mig.sql"
+        fi
         docker compose exec -T db rm -f /tmp/isgapp_mig.sql
         echo "$name" >> "$STATE_FILE"
         applied=$((applied + 1))
