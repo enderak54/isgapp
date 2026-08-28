@@ -315,7 +315,7 @@ export default function PersonnelList() {
   };
 
   const belgeTipiLabel = (tip: string) => {
-    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", yuksekte_calisamaz: "Yüksekte Çalışamaz", gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz", diger: "Diğer", diploma: "Diploma" };
+    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", yuksekte_calisamaz: "Yüksekte Çalışamaz", gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz", diger: "Diğer", diploma: "Diploma/Sertifika" };
     return labels[tip] || tip;
   };
 
@@ -1321,7 +1321,7 @@ export default function PersonnelList() {
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma ve Diğer Sertifikalar (Süresiz)</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma/Sertifika (Süresiz)</h4>
                 <div className="flex items-center gap-1.5">
                   <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>

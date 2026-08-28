@@ -41,7 +41,7 @@ const BELGE_TIPI_LABEL: Record<string, string> = {
   operator_belgesi: "Operatör Belgesi", kkd: "KKD Zimmet", oryantasyon: "Oryantasyon", sertifika: "Sertifika",
   saglik_raporu: "Sağlık Raporu", yuksekte_calisamaz: "Yüksekte Çalışamaz",
   gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz",
-  gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil", diploma: "Diploma",
+  gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil", diploma: "Diploma/Sertifika",
 };
 
 const DOSYA_TURU_LABEL: Record<string, string> = {
