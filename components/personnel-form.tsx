@@ -742,36 +742,30 @@ export default function PersonnelForm() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Diploma ve Diğer Sertifikalar (Süresiz — MYK/İSG dışı) */}
-          <div className="card p-4">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-gray-400" />
-              Diploma ve Diğer Sertifikalar (Süresiz)
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
-                <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
-              </div>
-              <p className="text-[10px] text-gray-400">Evrak adını yazıp PDF ekleyin. Süre istenmez, sadece ad + dosya kaydedilir.</p>
-              {pendingFiles.filter(f => f.field === "diploma").length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {pendingFiles.filter(f => f.field === "diploma").map((pf) => {
-                    const globalIdx = pendingFiles.indexOf(pf);
-                    return (
-                      <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
-                        <FileDoc className="w-3 h-3 text-amber-500" />
-                        <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
-                        <span className="text-gray-400">({pf.file.name})</span>
-                        <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
-                      </div>
-                    );
-                  })}
+              {/* Diploma ve Diğer Sertifikalar — orta alan altında (kaydırmasız) */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-3 h-3 text-gray-400" />Diploma ve Diğer Sertifikalar (Süresiz)</h4>
+                <div className="flex items-center gap-1.5">
+                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
+                  <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
                 </div>
-              )}
-            </div>
+                <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez.</p>
+                {pendingFiles.filter(f => f.field === "diploma").length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {pendingFiles.filter(f => f.field === "diploma").map((pf) => {
+                      const globalIdx = pendingFiles.indexOf(pf);
+                      return (
+                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
+                          <FileDoc className="w-3 h-3 text-amber-500" />
+                          <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
+                          <span className="text-gray-400">({pf.file.name})</span>
+                          <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
           </div>
 
           {/* Sağlık */}
