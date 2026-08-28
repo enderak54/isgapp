@@ -315,7 +315,7 @@ export default function PersonnelList() {
   };
 
   const belgeTipiLabel = (tip: string) => {
-    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", yuksekte_calisamaz: "Yüksekte Çalışamaz", gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz", diger: "Diğer" };
+    const labels: Record<string, string> = { isg_egitim: "İSG Eğitim", yuksekte_calisma: "Yüksekte Çalışma", myk: "MYK", operator_belgesi: "Operatör Belgesi", kkd: "KKD", oryantasyon: "Oryantasyon", saglik_raporu: "Sağlık Raporu", sertifika: "Sertifika", yuksekte_calisamaz: "Yüksekte Çalışamaz", gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz", diger: "Diğer", diploma: "Diploma" };
     return labels[tip] || tip;
   };
 
@@ -1416,7 +1416,7 @@ export default function PersonnelList() {
               {editBelgeler.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Mevcut Belgeler ({editBelgeler.length})</h4>
-                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika", "yuksekte_calisamaz", "gece_calisamaz", "vardiyali_calisamaz"].map(tip => {
+                  {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika", "yuksekte_calisamaz", "gece_calisamaz", "vardiyali_calisamaz", "diploma"].map(tip => {
                     const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
                     if (tipFiles.length === 0) return null;
                     return (
@@ -1428,8 +1428,8 @@ export default function PersonnelList() {
                               <a href={b.dosya_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
                                 {isImage(b.dosya_url) ? <img src={b.dosya_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-amber-50 flex items-center justify-center flex-shrink-0"><FileDoc className="w-4 h-4 text-amber-500" /></div>}
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-gray-800 truncate">{b.dosya_adi}</p>
-                                  <p className="text-[10px] text-gray-400">{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
+                              <p className="text-xs font-medium text-gray-800 truncate">{b.aciklama || b.dosya_adi}</p>
+                              <p className="text-[10px] text-gray-400">{b.aciklama ? `${b.dosya_adi} • ` : ""}{b.dosya_boyut ? formatBytes(b.dosya_boyut) : ""}</p>
                                 </div>
                               </a>
                               <div className="flex items-center gap-1">
@@ -1445,7 +1445,7 @@ export default function PersonnelList() {
                     );
                   })}
                   {(() => {
-                    const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika"].includes(b.belge_tipi));
+                    const otherFiles = editBelgeler.filter((b: any) => !["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika", "diploma"].includes(b.belge_tipi));
                     if (otherFiles.length === 0) return null;
                     return (
                       <div className="mb-2">
