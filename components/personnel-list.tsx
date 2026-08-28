@@ -1116,7 +1116,7 @@ export default function PersonnelList() {
               <h3 className="text-base font-semibold text-gray-800">Personel Düzenle</h3>
               <button onClick={() => { setEditingPerson(null); setPendingFiles([]); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 grid grid-cols-3 gap-6">
               {editStatus && (
                 <div className={`p-3 rounded-lg flex items-center gap-2 text-sm ${editStatus.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                   {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -1414,7 +1414,7 @@ export default function PersonnelList() {
 
               {/* Existing Files - Grouped by Type */}
               {editBelgeler.length > 0 && (
-                <div className="pt-2 border-t border-gray-100">
+                <div className="pt-2 border-t border-gray-100 col-span-3">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1"><Paperclip className="w-4 h-4" /> Mevcut Belgeler ({editBelgeler.length})</h4>
                   {["isg_egitim", "yuksekte_calisma", "myk", "operator_belgesi", "kkd", "oryantasyon", "saglik_raporu", "sertifika", "yuksekte_calisamaz", "gece_calisamaz", "vardiyali_calisamaz", "diploma"].map(tip => {
                     const tipFiles = editBelgeler.filter((b: any) => b.belge_tipi === tip);
@@ -1475,7 +1475,7 @@ export default function PersonnelList() {
 
               {/* Pending Files — diploma hariç (ayrı kartta) */}
               {pendingFiles.filter(f => f.field !== "diploma").length > 0 && (
-                <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg col-span-3">
                   <p className="text-xs font-medium text-blue-700 mb-1">Yeni Dosyalar ({pendingFiles.filter(f => f.field !== "diploma").length})</p>
                   <div className="flex flex-wrap gap-2">
                     {pendingFiles.filter(f => f.field !== "diploma").map((pf) => {
@@ -1492,7 +1492,7 @@ export default function PersonnelList() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 col-span-3">
                 <button onClick={() => { setEditingPerson(null); setPendingFiles([]); }} className="btn text-sm" style={{background:"#f3f4f6",color:"#374151"}}>İptal</button>
                 <button onClick={saveEdit} disabled={editLoading} className="btn btn-primary text-sm"><Save className="w-4 h-4" /> {editLoading ? "Kaydediliyor..." : "Kaydet"}</button>
               </div>
