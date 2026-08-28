@@ -33,7 +33,7 @@ const BELGE_TIPI_TO_FOLDER: Record<string, string> = {
   isg_egitim: "isg_egitim", yuksekte_calisma: "isg_egitim", myk: "isg_egitim",
   operator_belgesi: "isg_egitim", kkd: "isg_egitim", oryantasyon: "isg_egitim", sertifika: "isg_egitim",
   saglik_raporu: "saglik", yuksekte_calisamaz: "saglik", gece_calisamaz: "saglik", vardiyali_calisamaz: "saglik",
-  gorevlendirme: "diger", adli_sicil: "diger",
+  gorevlendirme: "diger", adli_sicil: "diger", diploma: "diger",
 };
 
 const BELGE_TIPI_LABEL: Record<string, string> = {
@@ -41,7 +41,7 @@ const BELGE_TIPI_LABEL: Record<string, string> = {
   operator_belgesi: "Operatör Belgesi", kkd: "KKD Zimmet", oryantasyon: "Oryantasyon", sertifika: "Sertifika",
   saglik_raporu: "Sağlık Raporu", yuksekte_calisamaz: "Yüksekte Çalışamaz",
   gece_calisamaz: "Gece Çalışamaz", vardiyali_calisamaz: "Vardiyalı Çalışamaz",
-  gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil",
+  gorevlendirme: "Görevlendirme", adli_sicil: "Adli Sicil", diploma: "Diploma",
 };
 
 const DOSYA_TURU_LABEL: Record<string, string> = {
@@ -89,7 +89,7 @@ interface FileItem {
 }
 
 interface PersonelRow { id: string; kimlik_no?: string | null; ad: string; soyad: string; }
-interface BelgeRow { id: string; belge_tipi: string; dosya_url?: string | null; dosya_adi?: string | null; eklenme_tarihi?: string | null; }
+interface BelgeRow { id: string; belge_tipi: string; dosya_url?: string | null; dosya_adi?: string | null; aciklama?: string | null; eklenme_tarihi?: string | null; }
 interface DosyaRow { id: string; belge_turu?: string | null; belge_adi?: string | null; tarih?: string | null; dosya_url?: string | null; }
 interface TalimatRow { id: string; talimat_adi?: string | null; tarih?: string | null; eklenme_tarihi?: string | null; dosya_url?: string | null; dosya_adi?: string | null; }
 interface SantiyeRow { id: string; ad?: string | null; yapi_ruhsati_dosyasi?: string | null; is_sozlesme_dosyasi?: string | null; risk_analizi_dosyasi?: string | null; calisan_temsilcisi_dosyasi?: string | null; destek_elemani_dosyasi?: string | null; yapilacak_isler_dosyasi?: string | null; acil_durum_plani_dosyasi?: string | null; acil_durum_ekipleri_dosyasi?: string | null; tatbikat_dosyasi?: string | null; }
@@ -349,7 +349,7 @@ function PersonelModule() {
       .filter(tur => BELGE_TURU_TO_FOLDER[tur] === folderKey && !existingTurler.has(tur))
       .map(tur => ({ id: `_new_dosya_${tur}`, name: DOSYA_TURU_LABEL[tur], url: null, _source: "dosya" as const, _newTipi: tur }));
     return [
-      ...fromBelgeler.map(b => ({ id: b.id, name: b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url || null, date: b.eklenme_tarihi || undefined, _source: "belge" as const })),
+      ...fromBelgeler.map(b => ({ id: b.id, name: (b as any).aciklama || b.dosya_adi || BELGE_TIPI_LABEL[b.belge_tipi] || b.belge_tipi, url: b.dosya_url || null, date: b.eklenme_tarihi || undefined, _source: "belge" as const })),
       ...fromDosyalar.map(d => ({ id: d.id, name: d.belge_adi || DOSYA_TURU_LABEL[d.belge_turu || ""] || "Dosya", url: d.dosya_url || null, date: d.tarih || undefined, _source: "dosya" as const })),
       ...emptyBelgeSlots,
       ...emptyDosyaSlots,
