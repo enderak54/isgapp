@@ -215,7 +215,7 @@ if [ "$DRY_RUN" = "1" ]; then
     log "[DRY-RUN] docker compose build isgapp (atlandı)"
     log "[DRY-RUN] docker compose build isgapp-updater (atlandı)"
 else
-    docker compose build isgapp
+    docker compose build --no-cache isgapp
     # updater kod değişiklikleri de imaja işlesin (konteyner profilde olduğundan
     # `docker compose up -d` buna dokunmaz; yeni imaj bir sonraki başlatmada kullanılır)
     docker compose build isgapp-updater || warn "isgapp-updater build'i başarısız; elle: docker compose --profile updater up -d --build isgapp-updater"
