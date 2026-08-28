@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, AlertTriangle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, AlertTriangle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon, Award } from "lucide-react";
 import * as XLSX from "xlsx";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
@@ -37,6 +37,7 @@ const BELGE_TIPLERI: Record<string, string> = {
   gece_calisamaz: "gece_calisamaz",
   vardiyaliCalisamaz: "vardiyali_calisamaz",
   vardiyali_calisamaz: "vardiyali_calisamaz",
+  diploma: "diploma",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -54,6 +55,7 @@ interface PendingFile {
   field: string;
   file: File;
   preview?: string;
+  label?: string;
 }
 
 export default function PersonnelList() {
@@ -92,6 +94,7 @@ export default function PersonnelList() {
   const [mykSecimTarih, setMykSecimTarih] = useState("");
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
+  const [diplomaAd, setDiplomaAd] = useState("");
   const [ekipler, setEkipler] = useState<any[]>([]);
   const [santiyeler, setSantiyeler] = useState<any[]>([]);
   const [selectedSantiyeler, setSelectedSantiyeler] = useState<string[]>([]);
@@ -263,6 +266,7 @@ export default function PersonnelList() {
       acil_durum_telefon: p.acil_durum_telefon || "",
     });
     setPendingFiles([]);
+    setDiplomaAd("");
     setEditBelgeler([]);
     setEditStatus(null);
     setLockedFiles(new Set());
@@ -339,12 +343,21 @@ export default function PersonnelList() {
 
   const addFiles = (field: string, files: File[]) => {
     const valid = files.filter(f => ALLOWED_TYPES.includes(f.type));
+    if (valid.length !== files.length) {
+      // sessizce filtrele, hata banneri gerekmez
+    }
+    if (field === "diploma" && !diplomaAd.trim()) {
+      setEditStatus({ type: "error", message: "Önce evrak adını yazın." });
+      return;
+    }
     const newFiles: PendingFile[] = valid.map(f => ({
       field,
       file: f,
       preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
+      label: field === "diploma" ? diplomaAd.trim() : undefined,
     }));
     setPendingFiles(prev => [...prev, ...newFiles]);
+    if (field === "diploma") setDiplomaAd("");
   };
 
   const removePendingFile = (index: number) => {
@@ -374,17 +387,20 @@ export default function PersonnelList() {
       if (uploadError) { console.error("Upload error:", uploadError); continue; }
       const { data: urlData } = supabase.storage.from("personel-belgeleri").getPublicUrl(fileName);
       let sonGecerlilik: string | null = null;
-      if (pf.field === "myk" && activeZorunluAlanlar.includes("myk")) {
+      if (pf.field === "myk") {
         const mykKayit = mykKayitlar[0];
-        if (!mykKayit?.alis_tarihi || !mykKayit.gecerlilik_suresi) {
-          setEditStatus({ type: "error", message: "MYK sertifikası için tarih bilgisi zorunludur. Önce MYK eğitim kaydını (tarih + süre) ekleyin." });
-          continue;
+        if (mykKayit?.alis_tarihi && mykKayit.gecerlilik_suresi) {
+          const d = new Date(mykKayit.alis_tarihi);
+          d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
+          sonGecerlilik = d.toISOString().split("T")[0];
+        } else if ((editingPerson as any)?.myk_tarihi && (editingPerson as any)?.myk_gecerlilik_suresi) {
+          const d = new Date((editingPerson as any).myk_tarihi);
+          d.setFullYear(d.getFullYear() + parseInt((editingPerson as any).myk_gecerlilik_suresi));
+          sonGecerlilik = d.toISOString().split("T")[0];
         }
-        const d = new Date(mykKayit.alis_tarihi);
-        d.setFullYear(d.getFullYear() + parseInt(mykKayit.gecerlilik_suresi));
-        sonGecerlilik = d.toISOString().split("T")[0];
       }
       const { data: belgeData } = await supabase.from("personel_belgeleri").insert({
+        aciklama: (pf as any).label || null,
         personel_id: editingPerson.id,
         belge_tipi: BELGE_TIPLERI[pf.field],
         dosya_url: urlData.publicUrl,
@@ -1095,12 +1111,12 @@ export default function PersonnelList() {
       {/* Edit Modal */}
       {editingPerson && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => { setEditingPerson(null); setPendingFiles([]); }}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
               <h3 className="text-base font-semibold text-gray-800">Personel Düzenle</h3>
               <button onClick={() => { setEditingPerson(null); setPendingFiles([]); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-4 space-y-2">
+            <div className="p-6 space-y-4">
               {editStatus && (
                 <div className={`p-3 rounded-lg flex items-center gap-2 text-sm ${editStatus.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                   {editStatus.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -1305,6 +1321,30 @@ export default function PersonnelList() {
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma ve Diğer Sertifikalar (Süresiz)</h4>
+                <div className="flex items-center gap-1.5">
+                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
+                  <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez, sadece ad + dosya kaydedilir.</p>
+                {pendingFiles.filter(f => f.field === "diploma").length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {pendingFiles.filter(f => f.field === "diploma").map((pf) => {
+                      const globalIdx = pendingFiles.indexOf(pf);
+                      return (
+                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
+                          <FileDoc className="w-3 h-3 text-amber-500" />
+                          <span className="font-medium text-gray-700">{(pf as any).label || pf.file.name}</span>
+                          <span className="text-gray-400">({pf.file.name})</span>
+                          <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Sağlık</h4>
                 <div className="space-y-2">
                   <div className="flex items-center gap-1">
@@ -1433,18 +1473,21 @@ export default function PersonnelList() {
                 </div>
               )}
 
-              {/* Pending Files */}
-              {pendingFiles.length > 0 && (
+              {/* Pending Files — diploma hariç (ayrı kartta) */}
+              {pendingFiles.filter(f => f.field !== "diploma").length > 0 && (
                 <div className="p-2 bg-blue-50 border border-blue-100 rounded-lg">
-                  <p className="text-xs font-medium text-blue-700 mb-1">Yeni Dosyalar ({pendingFiles.length})</p>
+                  <p className="text-xs font-medium text-blue-700 mb-1">Yeni Dosyalar ({pendingFiles.filter(f => f.field !== "diploma").length})</p>
                   <div className="flex flex-wrap gap-2">
-                    {pendingFiles.map((pf, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-white rounded text-xs">
-                        {pf.preview ? <ImageIcon className="w-3 h-3 text-blue-500" /> : <FileDoc className="w-3 h-3 text-amber-500" />}
-                        <span className="truncate max-w-24">{pf.file.name}</span>
-                        <button onClick={() => removePendingFile(i)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
-                      </div>
-                    ))}
+                    {pendingFiles.filter(f => f.field !== "diploma").map((pf) => {
+                      const globalIdx = pendingFiles.indexOf(pf);
+                      return (
+                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-white rounded text-xs">
+                          {pf.preview ? <ImageIcon className="w-3 h-3 text-blue-500" /> : <FileDoc className="w-3 h-3 text-amber-500" />}
+                          <span className="truncate max-w-24">{pf.file.name}</span>
+                          <button onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
