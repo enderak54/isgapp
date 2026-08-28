@@ -227,7 +227,10 @@ log "Stack güncelleniyor"
 if [ "$DRY_RUN" = "1" ]; then
     log "[DRY-RUN] docker compose up -d (atlandı — hiçbir konteyner yeniden oluşturulmayacak)"
 else
-    docker compose up -d
+    if ! docker compose up -d 2>&1; then
+        warn "docker compose up -d hata verdi (kong unhealthy olabilir), isgapp tek başına ayağa kaldırılıyor"
+        docker compose up -d --no-deps isgapp || warn "isgapp başlatılamadı — docker compose logs isgapp ile kontrol edin"
+    fi
 fi
 
 # --- 6. Storage setup (idempotent) -----------------------------------------
