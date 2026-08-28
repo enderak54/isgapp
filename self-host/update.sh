@@ -186,7 +186,9 @@ if [ -d "$MIG_DIR" ]; then
             continue
         fi
         log "Migrasyon uygulanıyor: $name (VERI KAYIPSIZ — IF NOT EXISTS / ON CONFLICT)"
-        docker compose cp "$mig" db:/tmp/isgapp_mig.sql
+        # Windows Git Bash: absolute /c/... -> C:\c: hatası, relative kullan
+        rel_mig="../supabase/migrations/$name"
+        docker compose cp "$rel_mig" db:/tmp/isgapp_mig.sql
         docker compose exec -T db psql -U postgres -d postgres \
             -v ON_ERROR_STOP=1 -f /tmp/isgapp_mig.sql
         docker compose exec -T db rm -f /tmp/isgapp_mig.sql
