@@ -373,6 +373,17 @@ export default function SettingsPage() {
     return () => clearInterval(poll);
   }, []);
 
+  useEffect(() => {
+    if (!updateState.running && updateState.finishedAt) {
+      if (updateState.exitCode === 0) {
+        setStatus({ type: "success", message: "Güncelleme tamamlandı — sayfayı yenileyin (F5)" });
+        fetchUpdateLog();
+      } else if (updateState.exitCode !== null) {
+        setStatus({ type: "error", message: `Güncelleme hata ile bitti (çıkış: ${updateState.exitCode}) — log’u kontrol edin` });
+      }
+    }
+  }, [updateState.running, updateState.exitCode, updateState.finishedAt]);
+
   const allMenuLabels: Record<string, string> = {
     dashboard: "ISG Takip", personel: "Personel", myk: "MYK", operator: "Operator",
     dosya: "Dosya", talimatlar: "Talimat Takibi", santiyeler: "Santiyeler",
