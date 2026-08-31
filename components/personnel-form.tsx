@@ -81,6 +81,7 @@ export default function PersonnelForm() {
   const [mykSecimSure, setMykSecimSure] = useState("");
   const [mykShowAll, setMykShowAll] = useState(false);
   const [diplomaAd, setDiplomaAd] = useState("");
+  const [sertifikaAd, setSertifikaAd] = useState("");
   const [zorunluAlanlar, setZorunluAlanlar] = useState<string[]>(["kimlikNo", "ad", "soyad", "myk"]);
   const [taseronPersonelZorunlu, setTaseronPersonelZorunlu] = useState<string[]>([]);
   const [activeZorunluAlanlar, setActiveZorunluAlanlar] = useState<string[]>([]);
@@ -215,8 +216,8 @@ export default function PersonnelForm() {
       if (!hasMyk) newErrors.myk = "En az bir MYK eğitimi ekleyin";
     }
     if (activeZorunluAlanlar.includes("sertifika")) {
-      if (!form.sertifika) newErrors.sertifika = "Zorunludur";
-      else if (!form.sertifikaSure) newErrors.sertifikaSure = "Süre seçiniz";
+      const hasSertifika = pendingFiles.some(f => f.field === "sertifika") || !!form.sertifika;
+      if (!hasSertifika) newErrors.sertifika = "En az bir sertifika ekleyin";
     }
     if (activeZorunluAlanlar.includes("operatorBelgesi")) {
       if (!form.operatorBelgesi) newErrors.operatorBelgesi = "Zorunludur";
@@ -263,7 +264,7 @@ export default function PersonnelForm() {
     if (validated.length !== files.length) {
       setStatus({ type: "error", message: "Bazı dosyalar boyut veya tür nedeniyle reddedildi." });
     }
-    if (field === "diploma" && !diplomaAd.trim()) {
+    if ((field === "diploma" && !diplomaAd.trim()) || (field === "sertifika" && !sertifikaAd.trim())) {
       setStatus({ type: "error", message: "Önce evrak adını yazın." });
       return;
     }
@@ -271,10 +272,11 @@ export default function PersonnelForm() {
       field,
       file: f,
       preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
-      label: field === "diploma" ? diplomaAd.trim() : undefined,
+      label: field === "diploma" ? diplomaAd.trim() : field === "sertifika" ? sertifikaAd.trim() : undefined,
     }));
     setPendingFiles(prev => [...prev, ...newFiles]);
     if (field === "diploma") setDiplomaAd("");
+    if (field === "sertifika") setSertifikaAd("");
   };
 
   const removePendingFile = (index: number) => {
@@ -427,6 +429,7 @@ export default function PersonnelForm() {
       });
       setMykKayitlar([]);
       setDiplomaAd("");
+      setSertifikaAd("");
       setSelectedSantiyeler([]);
       pendingFiles.forEach(f => { if (f.preview) URL.revokeObjectURL(f.preview); });
       setPendingFiles([]);
@@ -749,22 +752,6 @@ export default function PersonnelForm() {
                   <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez.</p>
-                {pendingFiles.filter(f => f.field === "diploma").length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {pendingFiles.filter(f => f.field === "diploma").map((pf) => {
-                      const globalIdx = pendingFiles.indexOf(pf);
-                      return (
-                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
-                          <FileDoc className="w-3 h-3 text-amber-500" />
-                          <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
-                          <span className="text-gray-400">({pf.file.name})</span>
-                          <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
           </div>
 
@@ -817,21 +804,29 @@ export default function PersonnelForm() {
                 )}
                 {errors.myk && <p className="text-xs text-red-500 mt-1">{errors.myk}</p>}
               </div>
-              {/* Sertifika */}
+              {/* Sertifika (Süresiz) */}
               <div className="pt-3 border-t border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-600 mb-1">Sertifika {isReq("sertifika") && <span className="text-red-500">*</span>}</h4>
-                <div className="flex items-center gap-1">
-                  <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.sertifika as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("sertifika", toDb(v)); setErrors((p) => ({ ...p, sertifika: "" })); }} className={`input text-xs flex-1 ${errors.sertifika ? "border-red-500" : ""}`} />
-                  <select value={form.sertifikaSure as string} onChange={(e) => { handleChange("sertifikaSure", e.target.value); setErrors((p) => ({ ...p, sertifikaSure: "" })); }} className={`input text-xs ${errors.sertifikaSure ? "border-red-500" : ""}`} style={{ width: "3.5rem" }}>
-                    <option value="">yıl</option>
-                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                  <button type="button" onClick={() => setUploadModalField("sertifika")} className={`p-1 rounded transition relative ${fieldFileCount("sertifika") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    {fieldFileCount("sertifika") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sertifika")}</span>}
-                  </button>
+                <h4 className="text-xs font-semibold text-gray-600 mb-1">Sertifika (Süresiz)</h4>
+                <div className="flex items-center gap-1.5">
+                  <input type="text" value={sertifikaAd} onChange={(e) => setSertifikaAd(e.target.value)} placeholder="Evrak adı (ör. İş Güvenliği Sertifikası)" className="input text-xs flex-1" />
+                  <button type="button" onClick={() => setUploadModalField("sertifika")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
                 </div>
-                {(errors.sertifika || errors.sertifikaSure) && <p className="text-xs text-red-500 mt-1">{errors.sertifika || errors.sertifikaSure}</p>}
+                <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez, birden fazla ekleyebilirsiniz.</p>
+                {pendingFiles.filter(f => f.field === "sertifika").length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {pendingFiles.filter(f => f.field === "sertifika").map((pf) => {
+                      const globalIdx = pendingFiles.indexOf(pf);
+                      return (
+                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
+                          <FileDoc className="w-3 h-3 text-amber-500" />
+                          <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
+                          <span className="text-gray-400">({pf.file.name})</span>
+                          <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               {/* Diploma/Sertifika (Süresiz) */}
               <div className="pt-3 border-t border-gray-100">
