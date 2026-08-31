@@ -760,13 +760,6 @@ export default function PersonnelForm() {
                 </div>
               </div>
             )}
-              {/* Diploma ve Diğer Sertifikalar — orta alan altında (kaydırmasız) */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-3 h-3 text-gray-400" />Diploma/Sertifika (Süresiz)</h4>
-                <div className="flex items-center gap-1.5">
-                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması)" className="input text-xs flex-1" />
-                  <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
-                </div>
               </div>
           </div>
 
@@ -847,7 +840,7 @@ export default function PersonnelForm() {
                   </div>
                 )}
               </div>
-              {/* Diploma/Sertifika (Süresiz) */}
+              {/* Diploma — ayrı */}
               <div className="pt-3 border-t border-gray-100">
                 <h4 className="text-xs font-semibold text-gray-600 mb-1">Diploma</h4>
                 <div className="flex items-center gap-1.5">
