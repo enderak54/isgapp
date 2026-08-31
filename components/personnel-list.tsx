@@ -1234,7 +1234,7 @@ export default function PersonnelList() {
                   {[
                     { label: "İSG", field: "isg_egitim_tarihi", sureField: "isg_egitim_gecerlilik_suresi" },
                     { label: "Yüksekte", field: "yuksekte_calisma_tarihi", sureField: "yuksekte_calisma_gecerlilik_suresi" },
-                    { label: "Sertifika", field: "sertifika_tarihi", sureField: "sertifika_gecerlilik_suresi" },
+  
                     { label: "Operatör", field: "operator_belgesi_tarihi", sureField: "operator_belgesi_gecerlilik_suresi" },
                     { label: "KKD", field: "kkd_tarihi", sureField: "kkd_gecerlilik_suresi" },
                     { label: "Oryantasyon", field: "oryantasyon_tarihi", sureField: "oryantasyon_gecerlilik_suresi" },
@@ -1255,7 +1255,7 @@ export default function PersonnelList() {
                 </div>
               </div>
 
-              <div className="pt-2 mt-2 border-t border-gray-100">
+              <div className="pt-2 mt-2 border-t border-gray-100 col-span-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">MYK Eğitim Kayıtları
                   <button type="button" onClick={() => setUploadModalField("myk")} className={`ml-1.5 p-1 rounded transition relative inline-flex align-middle ${pendingFiles.filter(f => f.field === "myk").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
                     <Paperclip className="w-3.5 h-3.5" />
@@ -1320,7 +1320,22 @@ export default function PersonnelList() {
                 )}
               </div>
 
-              <div className="pt-2 mt-2 border-t border-gray-100">
+              <div className="pt-2 mt-2 border-t border-gray-100 col-span-3">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika</h4>
+                <div className="flex items-center gap-1">
+                  <input type="date" value={editForm.sertifika_tarihi || ""} onChange={e => setEditForm({...editForm, sertifika_tarihi: e.target.value})} className="input text-xs flex-1" />
+                  <select value={editForm.sertifika_gecerlilik_suresi || ""} onChange={e => setEditForm({...editForm, sertifika_gecerlilik_suresi: e.target.value})} className="input text-xs" style={{ width: "3rem" }}>
+                    <option value="">y</option>
+                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setUploadModalField("sertifika_tarihi")} className={`p-1 rounded transition relative shrink-0 ${pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    {pendingFiles.filter(f => f.field === "sertifika_tarihi").length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{pendingFiles.filter(f => f.field === "sertifika_tarihi").length}</span>}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 mt-2 border-t border-gray-100 col-span-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma/Sertifika (Süresiz)</h4>
                 <div className="flex items-center gap-1.5">
                   <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />

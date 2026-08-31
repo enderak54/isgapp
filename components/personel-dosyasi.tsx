@@ -21,6 +21,7 @@ const MODULE_TABS = [
 
 const FOLDER_CATEGORIES = [
   { key: "isg_egitim", label: "İSG Eğitimleri", icon: FileText, color: "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100" },
+  { key: "mesleki", label: "Mesleki Evrak", icon: FileDoc, color: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" },
   { key: "saglik", label: "Sağlık", icon: FolderOpen, color: "bg-green-50 text-green-600 border-green-200 hover:bg-green-100" },
   { key: "kimlik", label: "Kimlik", icon: File, color: "bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100" },
   { key: "ssk", label: "SSK Belgeleri", icon: FileDoc, color: "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100" },
@@ -30,10 +31,11 @@ const FOLDER_CATEGORIES = [
 ];
 
 const BELGE_TIPI_TO_FOLDER: Record<string, string> = {
-  isg_egitim: "isg_egitim", yuksekte_calisma: "isg_egitim", myk: "isg_egitim",
-  operator_belgesi: "isg_egitim", kkd: "isg_egitim", oryantasyon: "isg_egitim", sertifika: "isg_egitim",
+  isg_egitim: "isg_egitim", yuksekte_calisma: "isg_egitim",
+  operator_belgesi: "isg_egitim", kkd: "isg_egitim", oryantasyon: "isg_egitim",
+  myk: "mesleki", sertifika: "mesleki", diploma: "mesleki",
   saglik_raporu: "saglik", yuksekte_calisamaz: "saglik", gece_calisamaz: "saglik", vardiyali_calisamaz: "saglik",
-  gorevlendirme: "diger", adli_sicil: "diger", diploma: "diger",
+  gorevlendirme: "diger", adli_sicil: "diger",
 };
 
 const BELGE_TIPI_LABEL: Record<string, string> = {

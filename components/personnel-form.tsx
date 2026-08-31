@@ -627,7 +627,7 @@ export default function PersonnelForm() {
               İSG Eğitimler
             </h3>
             <div className="flex flex-col gap-0">
-              {belgeFields.filter(item => !sadeceZorunlu || activeZorunluAlanlar.includes(item.field)).map((item, idx) => {
+              {belgeFields.filter(item => !sadeceZorunlu || activeZorunluAlanlar.includes(item.field)).filter(item => item.field !== "myk" && item.field !== "sertifika").map((item, idx) => {
                 const errField = item.field as keyof typeof errors;
                 const hasErr = errors[errField as string];
                 const fc = fieldFileCount(item.field);
@@ -766,6 +766,98 @@ export default function PersonnelForm() {
                   </div>
                 )}
               </div>
+          </div>
+
+          {/* Mesleki Evrak — MYK, Sertifika, Diploma/Sertifika alt alta ayrı ayrı */}
+          <div className="card p-4 col-span-3">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Award className="w-4 h-4 text-gray-400" />
+              Mesleki Evrak
+            </h3>
+            <div className="space-y-4">
+              {/* MYK */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-600 mb-1">MYK {isReq("myk") && <span className="text-red-500">*</span>}</h4>
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 min-w-0">
+                    <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
+                      <option value="">Eğitim seçiniz</option>
+                      {mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                      {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).length > 0 && <option disabled>──────────</option>}
+                      {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                    </select>
+                  </div>
+                  <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
+                  <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
+                    <option value="">y</option>
+                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
+                  <button type="button" onClick={() => setUploadModalField("myk")} className={`p-1 rounded transition relative ${fieldFileCount("myk") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    {fieldFileCount("myk") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("myk")}</span>}
+                  </button>
+                </div>
+                {mykKayitlar.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {mykKayitlar.map((k, i) => {
+                      const eg = mykEgitimListesi.find(e => e.id === k.myk_egitim_id);
+                      return (
+                        <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
+                          <span className="text-blue-700 truncate max-w-24">{eg?.ad || k.myk_egitim_id}</span>
+                          <span className="text-blue-400">|</span>
+                          <span className="text-blue-600">{k.alis_tarihi || "?"}</span>
+                          <span className="text-blue-400">|</span>
+                          <span className="text-blue-600">{k.gecerlilik_suresi}y</span>
+                          <button type="button" onClick={() => mykKaldir(i)} className="text-red-400 hover:text-red-600 ml-0.5"><X className="w-2.5 h-2.5" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {errors.myk && <p className="text-xs text-red-500 mt-1">{errors.myk}</p>}
+              </div>
+              {/* Sertifika */}
+              <div className="pt-3 border-t border-gray-100">
+                <h4 className="text-xs font-semibold text-gray-600 mb-1">Sertifika {isReq("sertifika") && <span className="text-red-500">*</span>}</h4>
+                <div className="flex items-center gap-1">
+                  <input type="text" inputMode="numeric" placeholder="gg.aa.yyyy" maxLength={10} value={toDisplay(form.sertifika as string)} onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, ""); handleChange("sertifika", toDb(v)); setErrors((p) => ({ ...p, sertifika: "" })); }} className={`input text-xs flex-1 ${errors.sertifika ? "border-red-500" : ""}`} />
+                  <select value={form.sertifikaSure as string} onChange={(e) => { handleChange("sertifikaSure", e.target.value); setErrors((p) => ({ ...p, sertifikaSure: "" })); }} className={`input text-xs ${errors.sertifikaSure ? "border-red-500" : ""}`} style={{ width: "3.5rem" }}>
+                    <option value="">yıl</option>
+                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setUploadModalField("sertifika")} className={`p-1 rounded transition relative ${fieldFileCount("sertifika") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    {fieldFileCount("sertifika") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sertifika")}</span>}
+                  </button>
+                </div>
+                {(errors.sertifika || errors.sertifikaSure) && <p className="text-xs text-red-500 mt-1">{errors.sertifika || errors.sertifikaSure}</p>}
+              </div>
+              {/* Diploma/Sertifika (Süresiz) */}
+              <div className="pt-3 border-t border-gray-100">
+                <h4 className="text-xs font-semibold text-gray-600 mb-1">Diploma/Sertifika (Süresiz)</h4>
+                <div className="flex items-center gap-1.5">
+                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması)" className="input text-xs flex-1" />
+                  <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez, birden fazla ekleyebilirsiniz.</p>
+                {pendingFiles.filter(f => f.field === "diploma").length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {pendingFiles.filter(f => f.field === "diploma").map((pf) => {
+                      const globalIdx = pendingFiles.indexOf(pf);
+                      return (
+                        <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
+                          <FileDoc className="w-3 h-3 text-amber-500" />
+                          <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
+                          <span className="text-gray-400">({pf.file.name})</span>
+                          <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Sağlık */}
