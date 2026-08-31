@@ -47,6 +47,7 @@ interface PendingFile {
   file: File;
   preview?: string;
   label?: string;
+  isMyk?: boolean;
 }
 
 export default function PersonnelForm() {
@@ -335,6 +336,20 @@ export default function PersonnelForm() {
         aciklama: pf.label || null,
       }).select();
       if (belgeData?.[0]) await logAudit("personel_belgeleri", "INSERT", belgeData[0].id, null, belgeData[0]);
+      // MYK kutucuğu seçiliyse aynı dosya MYK menüsünde de görünsün
+      if (pf.isMyk && pf.field !== "myk") {
+        const { data: mykBelge } = await supabase.from("personel_belgeleri").insert({
+          personel_id: personelId,
+          belge_tipi: "myk",
+          dosya_url: urlData.publicUrl,
+          dosya_adi: pf.file.name,
+          dosya_uzantisi: fileExt,
+          dosya_boyut: pf.file.size,
+          son_gecerlilik_tarihi: sonGecerlilik,
+          aciklama: pf.label || null,
+        }).select();
+        if (mykBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", mykBelge[0].id, null, mykBelge[0]);
+      }
     }
     setPendingFiles([]);
   };
@@ -821,6 +836,10 @@ export default function PersonnelForm() {
                           <FileDoc className="w-3 h-3 text-amber-500" />
                           <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
                           <span className="text-gray-400">({pf.file.name})</span>
+                          <label className="flex items-center gap-1 ml-1 text-[10px] text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={!!(pf as any).isMyk} onChange={(e) => { const checked = e.target.checked; setPendingFiles(prev => prev.map((f, idx) => idx === globalIdx ? { ...f, isMyk: checked } : f)); }} className="w-3 h-3" />
+                            MYK
+                          </label>
                           <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
                       );
@@ -845,6 +864,10 @@ export default function PersonnelForm() {
                           <FileDoc className="w-3 h-3 text-amber-500" />
                           <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
                           <span className="text-gray-400">({pf.file.name})</span>
+                          <label className="flex items-center gap-1 ml-1 text-[10px] text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={!!(pf as any).isMyk} onChange={(e) => { const checked = e.target.checked; setPendingFiles(prev => prev.map((f, idx) => idx === globalIdx ? { ...f, isMyk: checked } : f)); }} className="w-3 h-3" />
+                            MYK
+                          </label>
                           <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
                       );

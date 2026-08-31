@@ -413,6 +413,19 @@ export default function PersonnelList() {
         son_gecerlilik_tarihi: sonGecerlilik,
       }).select();
       if (belgeData?.[0]) await logAudit("personel_belgeleri", "INSERT", belgeData[0].id, null, belgeData[0]);
+      if ((pf as any).isMyk && pf.field !== "myk") {
+        const { data: mykBelge } = await supabase.from("personel_belgeleri").insert({
+          personel_id: editingPerson.id,
+          belge_tipi: "myk",
+          dosya_url: urlData.publicUrl,
+          dosya_adi: pf.file.name,
+          dosya_uzantisi: fileExt,
+          dosya_boyut: pf.file.size,
+          son_gecerlilik_tarihi: sonGecerlilik,
+          aciklama: (pf as any).label || null,
+        }).select();
+        if (mykBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", mykBelge[0].id, null, mykBelge[0]);
+      }
     }
     setPendingFiles([]);
     fetchEditBelgeler(editingPerson.id);
@@ -1337,8 +1350,12 @@ export default function PersonnelList() {
                       return (
                         <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
                           <FileDoc className="w-3 h-3 text-amber-500" />
-                          <span className="font-medium text-gray-700">{(pf as any).label || pf.file.name}</span>
+                          <span className="font-medium text-gray-700">{pf.label || pf.file.name}</span>
                           <span className="text-gray-400">({pf.file.name})</span>
+                          <label className="flex items-center gap-1 ml-1 text-[10px] text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={!!(pf as any).isMyk} onChange={(e) => { const checked = e.target.checked; setPendingFiles(prev => prev.map((f, idx) => idx === globalIdx ? { ...f, isMyk: checked } : f)); }} className="w-3 h-3" />
+                            MYK
+                          </label>
                           <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
                       );
@@ -1362,6 +1379,10 @@ export default function PersonnelList() {
                         <div key={globalIdx} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-100 rounded text-xs">
                           <FileDoc className="w-3 h-3 text-amber-500" />
                           <span className="font-medium text-gray-700">{(pf as any).label || pf.file.name}</span>
+                          <label className="flex items-center gap-1 ml-1 text-[10px] text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={!!(pf as any).isMyk} onChange={(e) => { const checked = e.target.checked; setPendingFiles(prev => prev.map((f, idx) => idx === globalIdx ? { ...f, isMyk: checked } : f)); }} className="w-3 h-3" />
+                            MYK
+                          </label>
                           <span className="text-gray-400">({pf.file.name})</span>
                           <button type="button" onClick={() => removePendingFile(globalIdx)} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
