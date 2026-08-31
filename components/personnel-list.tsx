@@ -1280,7 +1280,7 @@ export default function PersonnelList() {
                       <button type="button" onClick={() => setMykShowAll(false)} className="text-[10px] text-blue-500 hover:text-blue-700 mt-0.5">Sadece Zorunlu Göster</button>
                     )}
                   </div>
-                  <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4rem" }} />
+                  <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "7rem" }} />
                   <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
                     <option value="">y</option>
                     {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
@@ -1324,7 +1324,7 @@ export default function PersonnelList() {
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika (Süresiz)</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika</h4>
                 <div className="flex items-center gap-1.5">
                   <input type="text" value={sertifikaAd} onChange={(e) => setSertifikaAd(e.target.value)} placeholder="Evrak adı (ör. İş Güvenliği Sertifikası)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("sertifika")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
@@ -1348,7 +1348,7 @@ export default function PersonnelList() {
               </div>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma/Sertifika (Süresiz)</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma</h4>
                 <div className="flex items-center gap-1.5">
                   <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
