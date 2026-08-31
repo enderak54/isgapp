@@ -1326,7 +1326,7 @@ export default function PersonnelList() {
               <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Sertifika</h4>
                 <div className="flex items-center gap-1.5">
-                  <input type="text" value={sertifikaAd} onChange={(e) => setSertifikaAd(e.target.value)} placeholder="Evrak adı (ör. İş Güvenliği Sertifikası)" className="input text-xs flex-1" />
+                  <input type="text" value={sertifikaAd} onChange={(e) => setSertifikaAd(e.target.value)} placeholder="Evrak adı (ör. Meslek Sertifikası)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("sertifika")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez, birden fazla ekleyebilirsiniz.</p>
@@ -1350,7 +1350,7 @@ export default function PersonnelList() {
               <div className="pt-2 mt-2 border-t border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Diploma</h4>
                 <div className="flex items-center gap-1.5">
-                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması, Forklift Sertifikası)" className="input text-xs flex-1" />
+                  <input type="text" value={diplomaAd} onChange={(e) => setDiplomaAd(e.target.value)} placeholder="Evrak adı (ör. Lise Diploması)" className="input text-xs flex-1" />
                   <button type="button" onClick={() => setUploadModalField("diploma")} className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="PDF Ekle"><Paperclip className="w-3.5 h-3.5" /></button>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1">Evrak adını yazıp PDF ekleyin. Süre istenmez, sadece ad + dosya kaydedilir.</p>
