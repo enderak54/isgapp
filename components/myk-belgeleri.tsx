@@ -257,9 +257,6 @@ export default function MykBelgeleri() {
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 transition">
                                   <Eye className="w-3 h-3" /> {b.dosya_adi || "Sertifika"}
                                 </a>
-                                {!b.son_gecerlilik_tarihi && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700" title="Son geçerlilik tarihi girilmemiş">Tarih eksik</span>
-                                )}
                               </span>
                             ) : null
                           ))}
