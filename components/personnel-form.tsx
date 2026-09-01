@@ -757,12 +757,11 @@ export default function PersonnelForm() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
-              </div>
-            )}
-              </div>
-              {/* Mesleki Evrak — ISG altında, orta sütun */}
-               <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+              )}
+              <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+                 {/* Mesleki Evrak - ISG karti icinde */}
                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Mesleki Evrak</h4>
                  <div className="space-y-4 w-full">
                    {/* MYK */}
@@ -871,6 +870,7 @@ export default function PersonnelForm() {
               </div>
             </div>
           </div>
+            </div>
 
           {/* Sağlık */}
           <div className={`card p-4 ${sadeceZorunlu && !activeZorunluAlanlar.includes("saglikRaporuTarihi") ? "hidden" : ""}`}>
