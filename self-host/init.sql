@@ -956,6 +956,7 @@ CREATE TABLE public.personel_belgeleri (
     silinme_tarihi timestamp with time zone,
     onay_durumu text DEFAULT 'beklemede'::text NOT NULL,
     son_gecerlilik_tarihi date,
+    suresiz_gecerli boolean DEFAULT false NOT NULL,
     red_aciklama text,
     onaylayan_id uuid,
     onay_tarihi timestamp with time zone,

@@ -346,6 +346,7 @@ export default function PersonnelForm() {
           dosya_uzantisi: fileExt,
           dosya_boyut: pf.file.size,
           son_gecerlilik_tarihi: sonGecerlilik,
+          suresiz_gecerli: true,
           aciklama: pf.label || null,
         }).select();
         if (mykBelge?.[0]) await logAudit("personel_belgeleri", "INSERT", mykBelge[0].id, null, mykBelge[0]);
