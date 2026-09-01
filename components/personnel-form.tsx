@@ -762,31 +762,37 @@ export default function PersonnelForm() {
             )}
               </div>
               {/* Mesleki Evrak — ISG altında, orta sütun */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Mesleki Evrak</h4>
-                <div className="space-y-4">
-                  {/* MYK */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-600 mb-1">MYK {isReq("myk") && <span className="text-red-500">*</span>}</h4>
-                <div className="flex items-center gap-1">
-                  <div className="flex-1 min-w-0">
-                    <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
-                      <option value="">Eğitim seçiniz</option>
-                      {mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
-                      {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).length > 0 && <option disabled>──────────</option>}
-                      {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
-                    </select>
-                  </div>
-                  <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
-                  <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
-                    <option value="">y</option>
-                    {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                  <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
-                  <button type="button" onClick={() => setUploadModalField("myk")} className={`p-1 rounded transition relative ${fieldFileCount("myk") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    {fieldFileCount("myk") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("myk")}</span>}
-                  </button>
+               <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+                 <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2"><Award className="w-4 h-4 text-gray-400" />Mesleki Evrak</h4>
+                 <div className="space-y-4 w-full">
+                   {/* MYK */}
+               <div>
+                 <h4 className="text-xs font-semibold text-gray-600 mb-1">MYK {isReq("myk") && <span className="text-red-500">*</span>}</h4>
+                 <div className="flex flex-col gap-1">
+                   <select value={mykSecim} onChange={(e) => setMykSecim(e.target.value)} className="input text-xs w-full">
+                     <option value="">Eğitim seçiniz</option>
+                     {mykEgitimListesi.filter(eg => mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                     {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).length > 0 && <option disabled>──────────</option>}
+                     {mykShowAll && mykEgitimListesi.filter(eg => !mykZorunluIds.includes(eg.id)).map(eg => <option key={eg.id} value={eg.id}>{eg.ad}</option>)}
+                   </select>
+                   {!mykShowAll && mykEgitimListesi.length > mykZorunluIds.length && (
+                     <button type="button" onClick={() => setMykShowAll(true)} className="text-[10px] text-blue-500 hover:text-blue-700 text-left">Tümünü Göster ({mykEgitimListesi.length})</button>
+                   )}
+                   {mykShowAll && (
+                     <button type="button" onClick={() => setMykShowAll(false)} className="text-[10px] text-blue-500 hover:text-blue-700 text-left">Sadece Zorunlu Göster</button>
+                   )}
+                   <div className="flex items-center gap-1">
+                     <input type="date" value={mykSecimTarih} onChange={(e) => setMykSecimTarih(e.target.value)} className="input text-xs" style={{ width: "4.5rem" }} />
+                     <select value={mykSecimSure} onChange={(e) => setMykSecimSure(e.target.value)} className="input text-xs" style={{ width: "2.5rem" }}>
+                       <option value="">y</option>
+                       {sureOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                     </select>
+                     <button type="button" onClick={mykEkle} className="text-blue-600 hover:text-blue-800 p-0.5" title="Ekle"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
+                     <button type="button" onClick={() => setUploadModalField("myk")} className={`p-1 rounded transition relative ${fieldFileCount("myk") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-blue-600"}`} title="Dosya Ekle">
+                       <Paperclip className="w-3.5 h-3.5" />
+                       {fieldFileCount("myk") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("myk")}</span>}
+                     </button>
+                   </div>
                 </div>
                 {mykKayitlar.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">

@@ -1201,6 +1201,12 @@ export default function PersonnelList() {
                   <input type="text" value={editForm.meslek_kodu} onChange={e => setEditForm({...editForm, meslek_kodu: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
                 <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">İşe Giriş</label>
+                  <input type="date" value={editForm.ise_giris_tarihi || ""} onChange={e => setEditForm({...editForm, ise_giris_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">SGK Tarihi</label>
                   <input type="date" value={editForm.sgk_tarihi || ""} onChange={e => setEditForm({...editForm, sgk_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
