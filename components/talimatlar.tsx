@@ -40,7 +40,7 @@ export default function Talimatlar() {
     const [personelRes, matrisRes, ayarRes] = await Promise.all([
       supabase.from("personel").select("id, kimlik_no, ad, soyad, meslek_kodu").eq("arsivde", false).order("ad", { ascending: true }),
       supabase.from("personel_talimat_matrisi").select("*"),
-      supabase.from("ayarlar").select("value").eq("key", "talimat_sutunlari").single(),
+      supabase.from("ayarlar").select("value").eq("key", "talimat_sutunlari").maybeSingle(),
     ]);
     if (personelRes.data) setPersonel(personelRes.data);
     if (matrisRes.data) {
@@ -78,7 +78,8 @@ export default function Talimatlar() {
       setSutunlar(yeni);
       setYeniSutunAdi("");
       setShowYeniSutun(false);
-      await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      const { error: upsertError } = await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      if (upsertError) throw upsertError;
       await logAudit("ayarlar", "INSERT", "talimat_sutunlari", null, { value: JSON.stringify(yeni) });
       setEditStatus({ type: "success", message: "Sütun eklendi" });
     } catch (e: any) {
@@ -96,7 +97,8 @@ export default function Talimatlar() {
       const updated = { ...cellData };
       Object.keys(updated).forEach(k => { if (k.endsWith(`_${ad}`)) delete updated[k]; });
       setCellData(updated);
-      await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      const { error: upsertError } = await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      if (upsertError) throw upsertError;
       await supabase.from("personel_talimat_matrisi").delete().eq("talimat_adi", ad);
       await logAudit("ayarlar", "UPDATE", "talimat_sutunlari", { value: JSON.stringify(oldValue) }, { value: JSON.stringify(yeni) });
       await logAudit("personel_talimat_matrisi", "DELETE", null, { talimat_adi: ad }, null);
