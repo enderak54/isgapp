@@ -61,14 +61,26 @@ warn() { printf "UYARI: %s\n" "$*" >&2; }
 die()  { printf "HATA: %s\n" "$*" >&2; exit 1; }
 
 [ -d "$BACKUP_DIR" ] || die "Yedek dizini bulunamadı: $BACKUP_DIR"
-[ -f .env ] || die ".env bulunamadı. self-host/ dizininde çalıştırın."
+if [ ! -f .env ]; then
+    if [ -f "$BACKUP_DIR/.env.bak" ]; then
+        warn ".env bulunamadı, yedekten geri yükleniyor: $BACKUP_DIR/.env.bak"
+        cp "$BACKUP_DIR/.env.bak" .env
+        log ".env yedekten geri yüklendi"
+    else
+        die ".env bulunamadı. self-host/ dizininde çalıştırın veya yedekte .env.bak olmalı ($BACKUP_DIR/.env.bak)."
+    fi
+fi
 
 command -v docker >/dev/null 2>&1 || die "docker gerekli."
 docker compose version >/dev/null 2>&1 || die "docker compose plugin gerekli."
 docker info >/dev/null 2>&1 || die "Docker daemon çalışmıyor."
 
-if ! docker compose ps db >/dev/null 2>&1 | grep -q "Up"; then
-    die "db servisi çalışmıyor. Önce: docker compose up -d db"
+if ! docker inspect -f '{{.State.Running}}' supabase-db 2>/dev/null | grep -q "true"; then
+    if ! docker ps --filter "name=supabase-db" --filter "status=running" --format "{{.Names}}" 2>/dev/null | grep -q "supabase-db"; then
+        if ! docker compose ps db 2>/dev/null | grep -q "Up"; then
+            die "db servisi çalışmıyor. Önce: docker compose up -d db"
+        fi
+    fi
 fi
 
 # Önce mevcut durumu yedekle (ekstra güvenlik — veri kayıpsız)
@@ -94,6 +106,18 @@ if [ "$ONLY_STORAGE" = "0" ]; then
         if [ "$DUMP_SIZE" -lt 1024 ]; then
             die "db.dump çok küçük ($DUMP_SIZE bayt) — bozuk olabilir"
         fi
+        # İçerik doğrulaması: boş DB yedeği engeli (personel/app_users tablosu yoksa yedek boştur)
+        docker compose cp "$BACKUP_DIR/db.dump" db:/tmp/verify_restore.dump 2>/dev/null || true
+        if docker compose exec -T db pg_restore -l /tmp/verify_restore.dump 2>/dev/null | grep -q "TABLE.*personel\|TABLE.*app_users"; then
+            log "db.dump içerik doğrulaması başarılı (personel/app_users bulundu)"
+        else
+            warn "db.dump içinde personel/app_users tablosu bulunamadı — boş yedek olabilir!"
+            warn "Daha eski bir yedek deneyin: ls -lh backups/*/db.dump | sort -k5 -hr | head"
+            printf "Yine de geri yüklensin mi? [e/H]: "
+            read -r ans_verify
+            case "$ans_verify" in e|E|evet|Evet|EVET) ;; *) echo "İptal edildi."; exit 1;; esac
+        fi
+        docker compose exec -T db rm -f /tmp/verify_restore.dump 2>/dev/null || true
         docker compose cp "$BACKUP_DIR/db.dump" db:/tmp/restore.dump
         # -c --if-exists: varsa temizle, yoksa hata verme; -v ON_ERROR_STOP=1 güvenli mod
         docker compose exec -T db pg_restore -U postgres -d postgres \

@@ -107,6 +107,14 @@ if [ "$DUMP_SIZE" -lt 1024 ]; then
     die "Yedek doğrulaması BAŞARISIZ: db.dump çok küçük ($DUMP_SIZE bayt) — yedek bozuk olabilir"
 fi
 log "Yedek doğrulandı: $DEST/db.dump ($DUMP_SIZE bayt)"
+# Boş DB yedeği engeli: personel/app_users içermiyorsa uyar (40K boş dump da 1024'ü geçer)
+docker compose cp "$DEST/db.dump" db:/tmp/verify.dump 2>/dev/null || true
+if docker compose exec -T db pg_restore -l /tmp/verify.dump 2>/dev/null | grep -q "TABLE.*personel\|TABLE.*app_users"; then
+    log "Yedek içerik doğrulaması başarılı (personel/app_users bulundu)"
+else
+    warn "Yedek içerik UYARI: db.dump içinde personel/app_users tablosu bulunamadı — DB boş olabilir, yedek şüpheli!"
+fi
+docker compose exec -T db rm -f /tmp/verify.dump 2>/dev/null || true
 # pg_restore --list ile içerik doğrula (hızlı, veri yazmaz)
 if docker compose exec -T db pg_restore -l /tmp/isgapp_db.dump >/dev/null 2>&1; then
     : # konteyner içinde kalan dosyayı temizle zaten silindi
