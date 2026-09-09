@@ -71,7 +71,8 @@ export default function Talimatlar() {
 
   const sutunEkle = async () => {
     const name = yeniSutunAdi.trim();
-    if (!name || sutunlar.includes(name)) return;
+    if (!name) { setEditStatus({ type: "error", message: "Talimat adı boş olamaz" }); return; }
+    if (sutunlar.some(s => s.toLowerCase() === name.toLowerCase())) { setEditStatus({ type: "error", message: `"${name}" zaten var` }); return; }
     setEditStatus(null);
     try {
       const yeni = [...sutunlar, name];
