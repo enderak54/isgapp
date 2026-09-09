@@ -521,16 +521,10 @@ export default function PersonnelForm() {
               Personel Bilgileri
             </h3>
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No{isReq("kimlikNo") && <span className="text-red-500 ml-1">*</span>}</label>
-                  <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
-                  {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">İşe Giriş Tarihi</label>
-                  <input type="date" value={form.iseGirisTarihi} onChange={(e) => handleChange("iseGirisTarihi", e.target.value)} className="input" />
-                </div>
+              <div>
+                <label className="text-sm text-gray-600 mb-1.5 block">TC Kimlik No{isReq("kimlikNo") && <span className="text-red-500 ml-1">*</span>}</label>
+                <input type="text" inputMode="numeric" value={form.kimlikNo} onChange={(e) => { handleTcChange(e.target.value); setErrors((p) => ({ ...p, kimlikNo: "" })); }} className={`input ${errors.kimlikNo || tcError ? "border-red-500 focus:ring-red-300" : ""}`} placeholder="11 haneli TC kimlik numarası" />
+                {(errors.kimlikNo || tcError) && <p className="text-xs text-red-500 mt-1">{errors.kimlikNo || tcError}</p>}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -550,14 +544,8 @@ export default function PersonnelForm() {
                   <input type="text" value={form.meslekKodu} onChange={(e) => handleChange("meslekKodu", e.target.value)} className="input" placeholder="Meslek Kodu" />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-600 mb-1.5 block">SGK Tarihi</label>
-                  <div className="flex items-center gap-1">
-                    <input type="date" value={form.sgkTarihi} onChange={(e) => handleChange("sgkTarihi", e.target.value)} className="input flex-1" />
-                    <button type="button" onClick={() => setUploadModalField("sgkTarihi")} className={`p-1.5 rounded transition relative flex-shrink-0 ${fieldFileCount("sgkTarihi") > 0 ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:text-gray-600"}`} title="Dosya Ekle">
-                      <Paperclip className="w-3.5 h-3.5" />
-                      {fieldFileCount("sgkTarihi") > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 text-white text-[8px] rounded-full flex items-center justify-center">{fieldFileCount("sgkTarihi")}</span>}
-                    </button>
-                  </div>
+                  <label className="text-sm text-gray-600 mb-1.5 block">İşe Giriş Tarihi</label>
+                  <input type="date" value={form.iseGirisTarihi} onChange={(e) => handleChange("iseGirisTarihi", e.target.value)} className="input" />
                 </div>
               </div>
               <div>
