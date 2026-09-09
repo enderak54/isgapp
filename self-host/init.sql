@@ -919,6 +919,7 @@ CREATE TABLE public.personel (
     acil_durum_irtibat character varying(255),
     acil_durum_telefon character varying(20),
     sgk_no character varying(11),
+    dogum_tarihi date,
     gorevlendirme_tarihi date,
     gorevlendirme_gecerlilik_suresi integer,
     gorevlendirme_gecerlilik_tarihi date,

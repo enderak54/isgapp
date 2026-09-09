@@ -236,6 +236,7 @@ export default function PersonnelList() {
       taseron_id: p.taseron_id || "",
       meslek_kodu: p.meslek_kodu || "",
       sgk_tarihi: p.sgk_tarihi || "",
+      dogum_tarihi: p.dogum_tarihi || "",
       ise_giris_tarihi: p.ise_giris_tarihi || "",
       isg_egitim_tarihi: p.isg_egitim_tarihi || "",
       yuksekte_calisma_tarihi: p.yuksekte_calisma_tarihi || "",
@@ -465,6 +466,7 @@ export default function PersonnelList() {
         taseron_id: editForm.taseron_id || null,
         meslek_kodu: editForm.meslek_kodu,
         sgk_tarihi: editForm.sgk_tarihi || null,
+        dogum_tarihi: editForm.dogum_tarihi || null,
         ise_giris_tarihi: editForm.ise_giris_tarihi || null,
         isg_egitim_tarihi: editForm.isg_egitim_tarihi || null,
         yuksekte_calisma_tarihi: editForm.yuksekte_calisma_tarihi || null,
@@ -1210,6 +1212,10 @@ export default function PersonnelList() {
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">SGK Tarihi</label>
                   <input type="date" value={editForm.sgk_tarihi || ""} onChange={e => setEditForm({...editForm, sgk_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Doğum Tarihi</label>
+                  <input type="date" value={editForm.dogum_tarihi || ""} onChange={e => setEditForm({...editForm, dogum_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
