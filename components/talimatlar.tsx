@@ -40,7 +40,7 @@ export default function Talimatlar() {
     const [personelRes, matrisRes, ayarRes] = await Promise.all([
       supabase.from("personel").select("id, kimlik_no, ad, soyad, meslek_kodu").eq("arsivde", false).order("ad", { ascending: true }),
       supabase.from("personel_talimat_matrisi").select("*"),
-      supabase.from("ayarlar").select("value").eq("key", "talimat_sutunlari").maybeSingle(),
+      supabase.from("ayarlar").select("value").eq("key", "talimat_sutunlari").limit(1),
     ]);
     if (personelRes.data) setPersonel(personelRes.data);
     if (matrisRes.data) {
@@ -50,8 +50,9 @@ export default function Talimatlar() {
       });
       setCellData(map);
     }
-    if (ayarRes.data?.value) {
-      try { const arr = JSON.parse(ayarRes.data.value); if (Array.isArray(arr) && arr.length > 0) setSutunlar(arr); }
+    const ayarVal = Array.isArray((ayarRes as any).data) ? (ayarRes as any).data[0]?.value : (ayarRes as any).data?.value;
+    if (ayarVal) {
+      try { const arr = JSON.parse(ayarVal); if (Array.isArray(arr) && arr.length > 0) setSutunlar(arr); }
       catch {}
     }
     setLoading(false);
@@ -76,11 +77,11 @@ export default function Talimatlar() {
     setEditStatus(null);
     try {
       const yeni = [...sutunlar, name];
+      const { error: upsertError } = await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
+      if (upsertError) throw upsertError;
       setSutunlar(yeni);
       setYeniSutunAdi("");
       setShowYeniSutun(false);
-      const { error: upsertError } = await supabase.from("ayarlar").upsert({ key: "talimat_sutunlari", value: JSON.stringify(yeni), type: "talimat" }, { onConflict: "key" });
-      if (upsertError) throw upsertError;
       await logAudit("ayarlar", "INSERT", "talimat_sutunlari", null, { value: JSON.stringify(yeni) });
       setEditStatus({ type: "success", message: "Sütun eklendi" });
     } catch (e: any) {
@@ -122,11 +123,18 @@ export default function Talimatlar() {
       const displayVal = cellData[key];
       const db = parseDisplayToDb(displayVal || "");
       if (db) {
-        await supabase.from("personel_talimat_matrisi").upsert(
+        const { error: upsertErr } = await supabase.from("personel_talimat_matrisi").upsert(
           { personel_id, talimat_adi, tarih: db },
           { onConflict: "personel_id, talimat_adi" }
         );
+        if (upsertErr) {
+          // Unique yoksa (eski DB) fallback: sil + ekle
+          await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });
+          const { error: insErr } = await supabase.from("personel_talimat_matrisi").insert({ personel_id, talimat_adi, tarih: db });
+          if (insErr) throw insErr;
+        }
         await logAudit("personel_talimat_matrisi", "INSERT", null, null, { personel_id, talimat_adi, tarih: db });
+        setCellData(prev => ({ ...prev, [cellKey(personel_id, talimat_adi)]: displayVal || "" }));
         setEditStatus({ type: "success", message: "Tarih kaydedildi" });
       } else {
         await supabase.from("personel_talimat_matrisi").delete().match({ personel_id, talimat_adi });

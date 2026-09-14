@@ -1024,6 +1024,9 @@ CREATE TABLE public.personel_talimat_matrisi (
     dosya_boyut bigint
 );
 
+ALTER TABLE ONLY public.personel_talimat_matrisi
+    ADD CONSTRAINT personel_talimat_matrisi_personel_talimat_unique UNIQUE (personel_id, talimat_adi);
+
 
 
 
