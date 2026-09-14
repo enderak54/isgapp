@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, AlertTriangle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon, Award } from "lucide-react";
+import { Search, Edit, Trash2, UserPlus, Eye, X, Phone, Mail, Building2, Calendar, FileText as FileDoc, Image as ImageIcon, Paperclip, ExternalLink, Upload, Save, CheckCircle, AlertCircle, AlertTriangle, Lock, Unlock, ArrowUp, ArrowDown, Archive, BookOpen, Settings as SettingsIcon, Award, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { maskTC, sanitizeForm } from "@/lib/security";
 import { logAudit } from "@/lib/audit";
@@ -681,6 +681,46 @@ export default function PersonnelList() {
     }
   };
 
+  const exportOzelExcel = async () => {
+    const headers = ["Kimlik Numarası","Adı","Soyadı","İşe Giriş","Bölümü","Çalışma Grubu","Doğum Tarihi","Kan Grubu","Eğitim Durumu","Sağlık Raporu","İSG Eğitimi","Sözleşme","Telefon","Ekibi","MESLEKİ YETERLİLİK","OPERATÖR BELGESİ","HAYAT BOYU ÖĞRENME","EHLİYET","İLKYARDIMCI","YANGIN EĞİTİMİ"];
+    const fmt = (d: string | null) => d ? d.split("-").reverse().join(".") : "";
+    try {
+      const data = filtered.length > 0 ? filtered : personnel;
+      const rows = data.map((p: any) => ({
+        "Kimlik Numarası": p.kimlik_no || "",
+        "Adı": p.ad || "",
+        "Soyadı": p.soyad || "",
+        "İşe Giriş": fmt(p.ise_giris_tarihi),
+        "Bölümü": p.santiye_adi || "",
+        "Çalışma Grubu": p.ekip_adi || "",
+        "Doğum Tarihi": fmt(p.dogum_tarihi),
+        "Kan Grubu": p.kan_grubu || "",
+        "Eğitim Durumu": p.ogrenim_durumu || "",
+        "Sağlık Raporu": fmt(p.saglik_raporu_tarihi),
+        "İSG Eğitimi": fmt(p.isg_egitim_tarihi),
+        "Sözleşme": p.is_akdi_durumu || "",
+        "Telefon": p.telefon || "",
+        "Ekibi": p.ekip_adi || "",
+        "MESLEKİ YETERLİLİK": fmt(p.myk_tarihi),
+        "OPERATÖR BELGESİ": fmt(p.operator_belgesi_tarihi),
+        "HAYAT BOYU ÖĞRENME": fmt(p.sertifika_tarihi),
+        "EHLİYET": "",
+        "İLKYARDIMCI": "",
+        "YANGIN EĞİTİMİ": fmt(p.oryantasyon_tarihi),
+      }));
+      // Baslik satiri + veriler, bos sablon ise sadece baslik
+      const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [], { header: headers });
+      if (rows.length === 0) XLSX.utils.sheet_add_aoa(ws, [headers], { origin: "A1" });
+      // Sutun genislikleri
+      ws["!cols"] = headers.map(h => ({ wch: h.length < 12 ? 14 : h.length + 2 }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Personel");
+      XLSX.writeFile(wb, `personel_ozel_${new Date().toISOString().split("T")[0]}.xlsx`);
+    } catch (e: any) {
+      alert("Excel oluşturulurken hata: " + e.message);
+    }
+  };
+
   const raporGoster = async (tip: string, yon: "portrait" | "landscape" = "portrait") => {
     setRaporLoading(true);
     let rows: any[] = [];
@@ -837,6 +877,9 @@ export default function PersonnelList() {
             <button onClick={() => arsivDegistir(false)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${!arsivGoster ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Aktif</button>
             <button onClick={() => arsivDegistir(true)} className={`px-3 py-1.5 text-xs flex items-center gap-1 transition ${arsivGoster ? "bg-amber-600 text-white" : "text-gray-500 hover:bg-gray-50"}`}>Arşiv</button>
           </div>
+          <button onClick={exportOzelExcel} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2" title="İstenen başlıklarla Excel">
+            <Download className="w-4 h-4" /> Özel Excel
+          </button>
           <button onClick={() => setShowRaporModal(true)} className="btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             <FileDoc className="w-4 h-4" /> Rapor
           </button>
