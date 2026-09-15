@@ -237,6 +237,9 @@ export default function PersonnelList() {
       meslek_kodu: p.meslek_kodu || "",
       sgk_tarihi: p.sgk_tarihi || "",
       dogum_tarihi: p.dogum_tarihi || "",
+      ehliyet_no: p.ehliyet_no || "",
+      ehliyet_sinifi: p.ehliyet_sinifi || "",
+      ehliyet_tarihi: p.ehliyet_tarihi || "",
       ise_giris_tarihi: p.ise_giris_tarihi || "",
       isg_egitim_tarihi: p.isg_egitim_tarihi || "",
       yuksekte_calisma_tarihi: p.yuksekte_calisma_tarihi || "",
@@ -467,6 +470,9 @@ export default function PersonnelList() {
         meslek_kodu: editForm.meslek_kodu,
         sgk_tarihi: editForm.sgk_tarihi || null,
         dogum_tarihi: editForm.dogum_tarihi || null,
+        ehliyet_no: editForm.ehliyet_no || null,
+        ehliyet_sinifi: editForm.ehliyet_sinifi || null,
+        ehliyet_tarihi: editForm.ehliyet_tarihi || null,
         ise_giris_tarihi: editForm.ise_giris_tarihi || null,
         isg_egitim_tarihi: editForm.isg_egitim_tarihi || null,
         yuksekte_calisma_tarihi: editForm.yuksekte_calisma_tarihi || null,
@@ -704,7 +710,7 @@ export default function PersonnelList() {
         "MESLEKİ YETERLİLİK": fmt(p.myk_tarihi),
         "OPERATÖR BELGESİ": fmt(p.operator_belgesi_tarihi),
         "HAYAT BOYU ÖĞRENME": fmt(p.sertifika_tarihi),
-        "EHLİYET": "",
+        "EHLİYET": [p.ehliyet_sinifi, p.ehliyet_no, fmt(p.ehliyet_tarihi)].filter(Boolean).join(" "),
         "İLKYARDIMCI": "",
         "YANGIN EĞİTİMİ": fmt(p.oryantasyon_tarihi),
       }));
@@ -1259,6 +1265,23 @@ export default function PersonnelList() {
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-500 w-12 shrink-0">Doğum Tarihi</label>
                   <input type="date" value={editForm.dogum_tarihi || ""} onChange={e => setEditForm({...editForm, dogum_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Ehliyet Sınıf</label>
+                  <select value={editForm.ehliyet_sinifi || ""} onChange={e => setEditForm({...editForm, ehliyet_sinifi: e.target.value})} className="input text-xs flex-1 min-w-0">
+                    <option value="">Seçin</option>
+                    {["M","A1","A2","A","B1","B","BE","C1","C1E","C","CE","D1","D1E","D","DE","F","G"].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Ehliyet No</label>
+                  <input type="text" value={editForm.ehliyet_no || ""} onChange={e => setEditForm({...editForm, ehliyet_no: e.target.value})} className="input text-xs flex-1 min-w-0" placeholder="No" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 w-12 shrink-0">Ehliyet Tarihi</label>
+                  <input type="date" value={editForm.ehliyet_tarihi || ""} onChange={e => setEditForm({...editForm, ehliyet_tarihi: e.target.value})} className="input text-xs flex-1 min-w-0" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">

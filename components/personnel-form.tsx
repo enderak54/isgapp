@@ -52,7 +52,7 @@ interface PendingFile {
 
 export default function PersonnelForm() {
   const [form, setForm] = useState({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", dogumTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", dogumTarihi: "", ehliyetNo: "", ehliyetSinifi: "", ehliyetTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
     santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
     vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -245,6 +245,9 @@ export default function PersonnelForm() {
       if (!hasFile && !form.gorevlendirme) newErrors.gorevlendirme = "Görevlendirme belgesi yükleyin";
       else if (form.gorevlendirme && !form.gorevlendirmeSure) newErrors.gorevlendirmeSure = "Süre seçiniz";
     }
+    if (activeZorunluAlanlar.includes("ehliyet")) {
+      if (!form.ehliyetNo && !form.ehliyetSinifi && !form.ehliyetTarihi) newErrors.ehliyet = "Ehliyet bilgisi zorunludur";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -395,7 +398,7 @@ export default function PersonnelForm() {
       }
       const payload = {
         kimlik_no: sanitize(form.kimlikNo), ad: sanitize(form.ad), soyad: sanitize(form.soyad), ise_giris_tarihi: form.iseGirisTarihi || null,
-        meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, dogum_tarihi: form.dogumTarihi || null, telefon: sanitize(form.telefon), hat: form.hat || null, email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
+        meslek_kodu: sanitize(form.meslekKodu), sgk_tarihi: form.sgkTarihi || null, dogum_tarihi: form.dogumTarihi || null, ehliyet_no: form.ehliyetNo ? sanitize(form.ehliyetNo) : null, ehliyet_sinifi: form.ehliyetSinifi || null, ehliyet_tarihi: form.ehliyetTarihi || null, telefon: sanitize(form.telefon), hat: form.hat || null, email: form.email ? sanitize(form.email) : null, ogrenim_durumu: form.ogrenimDurumu ? sanitize(form.ogrenimDurumu) : null,
         santiye_adi: santiyeler.filter(s => selectedSantiyeler.includes(s.id)).map(s => s.ad).join(", ") || null, ekip_id: form.ekipId || null, ekip_adi: ekipler.find(e => e.id === form.ekipId)?.ad || null, taseron_id: form.taseronId || null,
         isg_egitim_tarihi: form.isgEgitimTarihi || null, yuksekte_calisma_tarihi: form.yuksekteCalisma || null, myk_tarihi: form.myk || null,
         operator_belgesi_tarihi: form.operatorBelgesi || null, kkd_tarihi: form.kkd || null,
@@ -434,7 +437,7 @@ export default function PersonnelForm() {
       }
       setStatus({ type: "success", message: "Personel başarıyla kaydedildi!" });
       setForm({
-        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", dogumTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
+        kimlikNo: "", ad: "", soyad: "", iseGirisTarihi: "", meslekKodu: "", sgkTarihi: "", dogumTarihi: "", ehliyetNo: "", ehliyetSinifi: "", ehliyetTarihi: "", telefon: "", hat: "", email: "", ogrenimDurumu: "",
         santiyeAdi: "", ekipId: "", taseronId: "", yuksekteCalisma: "", myk: "", operatorBelgesi: "", kkd: "", oryantasyon: "", isgEgitimTarihi: "",
     sertifika: "", kanGrubu: "", saglikRaporuTarihi: "", kronikRahatsizlik: "", yuksekteCalisir: false, yuksekteCalisamaz: false, geceCalisir: false, geceCalisamaz: false,
         vardiyaliCalisir: false, vardiyaliCalisamaz: false, notlar: ["", "", ""],
@@ -551,6 +554,18 @@ export default function PersonnelForm() {
               <div>
                 <label className="text-sm text-gray-600 mb-1.5 block">Doğum Tarihi</label>
                 <input type="date" value={form.dogumTarihi} onChange={(e) => handleChange("dogumTarihi", e.target.value)} className="input" />
+              </div>
+              <div className={`p-2 rounded-lg border ${errors.ehliyet ? "border-red-300 bg-red-50" : "border-gray-100 bg-gray-50"}`}>
+                <label className="text-sm text-gray-600 mb-1.5 block">Ehliyet {isReq("ehliyet") && <span className="text-red-500 ml-1">*</span>}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <select value={form.ehliyetSinifi} onChange={(e) => handleChange("ehliyetSinifi", e.target.value)} className="input text-xs">
+                    <option value="">Sınıf</option>
+                    {["M","A1","A2","A","B1","B","BE","C1","C1E","C","CE","D1","D1E","D","DE","F","G"].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <input type="text" value={form.ehliyetNo} onChange={(e) => handleChange("ehliyetNo", e.target.value)} className="input text-xs" placeholder="Ehliyet No" />
+                  <input type="date" value={form.ehliyetTarihi} onChange={(e) => handleChange("ehliyetTarihi", e.target.value)} className="input text-xs" title="Veriliş Tarihi" />
+                </div>
+                {errors.ehliyet && <p className="text-xs text-red-500 mt-1">{errors.ehliyet}</p>}
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">

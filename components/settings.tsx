@@ -64,6 +64,7 @@ const PERSONEL_ZORUNLU_ALANLAR = [
   { key: "saglikRaporuTarihi", label: "Sağlık Raporu (tarih + süre)" },
   { key: "adliSicil", label: "Adli Sicil (belge)" },
   { key: "gorevlendirme", label: "Görevlendirme (belge)" },
+  { key: "ehliyet", label: "Ehliyet (sınıf + no + tarih)" },
 ];
 
 const TUM_ZORUNLU_ALANLAR = [
@@ -79,6 +80,7 @@ const TUM_ZORUNLU_ALANLAR = [
   { key: "kkd", label: "KKD" },
   { key: "oryantasyon", label: "Oryantasyon" },
   { key: "saglikRaporuTarihi", label: "Sağlık Raporu" },
+  { key: "ehliyet", label: "Ehliyet" },
 ];
 
 const defaultModules = [
