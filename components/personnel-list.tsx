@@ -711,7 +711,7 @@ export default function PersonnelList() {
         "OPERATÖR BELGESİ": fmt(p.operator_belgesi_tarihi),
         "HAYAT BOYU ÖĞRENME": fmt(p.sertifika_tarihi),
         "EHLİYET": [p.ehliyet_sinifi, p.ehliyet_no, fmt(p.ehliyet_tarihi)].filter(Boolean).join(" "),
-        "İLKYARDIMCI": "",
+        "İLKYARDIMCI": p.sertifika_tarihi ? `${fmt(p.sertifika_tarihi)}${p.sertifika_gecerlilik_suresi ? ` (${p.sertifika_gecerlilik_suresi}y)` : ""}` : "",
         "YANGIN EĞİTİMİ": fmt(p.oryantasyon_tarihi),
       }));
       // Baslik satiri + veriler, bos sablon ise sadece baslik
